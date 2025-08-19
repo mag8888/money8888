@@ -1,0 +1,14 @@
+{
+  "name": "cashflow-server",
+  "version": "1.0.0",
+  "description": "Backend for Cashflow Web",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.1",
+    "socket.io": "^4.5.0",
+    "mongodb": "^4.7.0"
+  }
+}
