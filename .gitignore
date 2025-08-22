@@ -3,6 +3,8 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+package-lock.json
+yarn.lock
 
 # Production builds
 build/
@@ -50,6 +52,11 @@ node-*.pkg
 # Temporary files
 *.tmp
 *.temp
+
+# Audio files
+*.mp3
+*.wav
+*.ogg
 
 # MongoDB data
 data/
