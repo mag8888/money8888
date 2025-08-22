@@ -42,6 +42,11 @@ coverage/
 *_backup_*/
 components_backup_*/
 
+# Large vendor files
+vendor/
+mongodb-*.tgz
+node-*.pkg
+
 # Temporary files
 *.tmp
 *.temp
