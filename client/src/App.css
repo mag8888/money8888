@@ -1,0 +1,51 @@
+body { background: #333; color: #fff; }
+.accent { color: turquoise; }
+@media (max-width: 360px) { .board { flex-direction: column; } }
+
+h1 {
+  color: #ffd700; /* Золотой для заголовка */
+}
+
+button {
+  background: linear-gradient(#ff7f00, #ffd700);
+  border: none;
+  padding: 10px 20px;
+  margin: 5px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+input {
+  margin: 5px;
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #ffd700;
+}
+
+.game-board {
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(#4b0082, #000);
+  margin: 20px auto;
+  position: relative;
+}
+
+.balance-sheet {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  max-width: 600px;
+  margin: 20px auto;
+  background: #f5f5f5;
+  color: black;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.menu {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+

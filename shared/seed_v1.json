@@ -1,0 +1,300 @@
+
+{
+  "rules": {
+    "loanStep": 1000,
+    "loanInterestPer1000": 100,
+    "bankruptcyThreshold": -1000,
+    "fastTrackTransition": "passiveIncome >= totalExpenses",
+    "gameTimerOptions": [1, 2, 3, 4, 5],
+    "defaultTimer": 3
+  },
+  "board": {
+    "ratRace": {
+      "cells": 20,
+      "layout": [
+        "payday", "market", "smallDeal", "bigDeal", "doodad", "charity", "child", "downsized",
+        "payday", "market", "smallDeal", "bigDeal", "doodad", "charity", "child", "downsized",
+        "payday", "market", "smallDeal", "bigDeal"
+      ]
+    },
+    "fastTrack": {
+      "cells": 50,
+      "layout": ["cashflowDay", "bigDeal", "charity", "cashflowDay", "bigDeal", "charity"]
+    }
+  },
+  "decks": {
+    "market": [
+      {
+        "name": "Акции STOCK_A",
+        "type": "market_sell",
+        "symbol": "STOCK_A",
+        "price": 10,
+        "description": "Продать акции STOCK_A по $10 за штуку",
+        "cashflow": 50,
+        "mortgage": 1000
+      },
+      {
+        "name": "Недвижимость REAL_ESTATE_B",
+        "type": "market_sell",
+        "symbol": "REAL_ESTATE_B",
+        "price": 20000,
+        "description": "Продать недвижимость REAL_ESTATE_B за $20000",
+        "cashflow": 200,
+        "mortgage": 15000
+      }
+    ],
+    "smallDeal": [
+      {
+        "name": "Акции STK1",
+        "type": "stock",
+        "symbol": "STK1",
+        "cost": 500,
+        "cashflow": 50,
+        "description": "Купить акции STK1"
+      },
+      {
+        "name": "Недвижимость RE1",
+        "type": "realEstate",
+        "symbol": "RE1",
+        "cost": 10000,
+        "cashflow": 200,
+        "description": "Купить недвижимость RE1"
+      },
+      {
+        "name": "Акции STK2",
+        "type": "stock",
+        "symbol": "STK2",
+        "cost": 1000,
+        "cashflow": 80,
+        "description": "Купить акции STK2"
+      }
+    ],
+    "bigDeal": [
+      {
+        "name": "Бизнес BIZ1",
+        "type": "business",
+        "symbol": "BIZ1",
+        "cost": 50000,
+        "cashflow": 1000,
+        "description": "Инвестировать в бизнес BIZ1"
+      },
+      {
+        "name": "Торговый центр",
+        "type": "realEstate",
+        "symbol": "MALL1",
+        "cost": 80000,
+        "cashflow": 2000,
+        "description": "Купить долю в торговом центре"
+      }
+    ],
+    "doodad": [
+      {
+        "name": "Блендер премиум-класса",
+        "cost": 150,
+        "description": "Мощный блендер для смузи и коктейлей с множеством функций"
+      },
+      {
+        "name": "Умные часы",
+        "cost": 250,
+        "description": "Модные умные часы с фитнес-трекером и уведомлениями"
+      },
+      {
+        "name": "Робот-пылесос",
+        "cost": 400,
+        "description": "Автоматический робот-пылесос с Wi-Fi управлением"
+      },
+      {
+        "name": "Кофемашина эспрессо",
+        "cost": 600,
+        "description": "Профессиональная кофемашина для домашнего баристы"
+      },
+      {
+        "name": "Массажное кресло",
+        "cost": 800,
+        "description": "Электрическое массажное кресло с подогревом"
+      },
+      {
+        "name": "Игровая приставка",
+        "cost": 500,
+        "description": "Новейшая игровая консоль с VR-поддержкой"
+      },
+      {
+        "name": "Домашний кинотеатр",
+        "cost": 1200,
+        "description": "Система объемного звука 7.1 для домашнего кинотеатра"
+      },
+      {
+        "name": "Электросамокат",
+        "cost": 700,
+        "description": "Складной электросамокат для городских поездок"
+      },
+      {
+        "name": "Тренажер для дома",
+        "cost": 900,
+        "description": "Многофункциональный тренажер для домашних тренировок"
+      },
+      {
+        "name": "Умный холодильник",
+        "cost": 1800,
+        "description": "Холодильник с сенсорным экраном и интернет-подключением"
+      },
+      {
+        "name": "Дрон с камерой",
+        "cost": 350,
+        "description": "Квадрокоптер с 4K камерой для аэросъемки"
+      },
+      {
+        "name": "Электрогриль",
+        "cost": 200,
+        "description": "Бесдымный электрогриль для приготовления мяса дома"
+      },
+      {
+        "name": "VR-очки",
+        "cost": 450,
+        "description": "Очки виртуальной реальности для игр и фильмов"
+      },
+      {
+        "name": "Электровелосипед",
+        "cost": 1500,
+        "description": "Складной электровелосипед с аккумулятором на 50 км"
+      },
+      {
+        "name": "Умная колонка",
+        "cost": 120,
+        "description": "Голосовой помощник с премиум звуком и умным домом"
+      },
+      {
+        "name": "Проектор 4K",
+        "cost": 800,
+        "description": "Портативный проектор для домашнего кинотеатра"
+      },
+      {
+        "name": "Электрогитара",
+        "cost": 650,
+        "description": "Профессиональная электрогитара с усилителем"
+      },
+      {
+        "name": "3D принтер",
+        "cost": 1100,
+        "description": "Настольный 3D принтер для творчества и прототипирования"
+      },
+      {
+        "name": "Спа-ванна джакузи",
+        "cost": 3500,
+        "description": "Портативная гидромассажная ванна для релаксации"
+      },
+      {
+        "name": "Профессиональная камера",
+        "cost": 2200,
+        "description": "Зеркальная камера с набором объективов для фотографии"
+      }
+    ],
+    "charity": []
+  },
+  "professions": [
+    {
+      "name": "Doctor",
+      "salary": 13200,
+      "startingCash": 9000,
+      "passiveIncome": 0,
+      "expenses": {
+        "taxes": 3420,
+        "homeMortgage": 1900,
+        "carLoan": 380,
+        "creditCard": 270,
+        "retail": 2380
+      },
+      "totalExpenses": 8900,
+      "monthlyCashflow": 4300,
+      "assets": {
+        "savings": 9000
+      },
+      "liabilities": {
+        "homeMortgage": 202000,
+        "carLoan": 19000,
+        "creditCard": 9000,
+        "retail": 1000
+      },
+      "childCost": 700,
+      "description": "Вы - врач с высокой зарплатой, но значительными расходами на образование и образ жизни. Ваш путь к финансовой свободе лежит через инвестиции в недвижимость и бизнес."
+    },
+    {
+      "name": "Engineer",
+      "salary": 8500,
+      "startingCash": 6000,
+      "passiveIncome": 0,
+      "expenses": {
+        "taxes": 2200,
+        "homeMortgage": 1200,
+        "carLoan": 300,
+        "creditCard": 200,
+        "retail": 1500
+      },
+      "totalExpenses": 5400,
+      "monthlyCashflow": 3100,
+      "assets": {
+        "savings": 6000
+      },
+      "liabilities": {
+        "homeMortgage": 120000,
+        "carLoan": 15000,
+        "creditCard": 6000,
+        "retail": 800
+      },
+      "childCost": 600,
+      "description": "Вы - инженер с хорошей зарплатой и умеренными расходами. Ваша стратегия - инвестировать в акции и недвижимость для создания пассивного дохода."
+    },
+    {
+      "name": "Teacher",
+      "salary": 6500,
+      "startingCash": 4000,
+      "passiveIncome": 0,
+      "expenses": {
+        "taxes": 1600,
+        "homeMortgage": 800,
+        "carLoan": 200,
+        "creditCard": 150,
+        "retail": 1000
+      },
+      "totalExpenses": 3750,
+      "monthlyCashflow": 2750,
+      "assets": {
+        "savings": 4000
+      },
+      "liabilities": {
+        "homeMortgage": 80000,
+        "carLoan": 10000,
+        "creditCard": 4000,
+        "retail": 500
+      },
+      "childCost": 500,
+      "description": "Вы - учитель с скромной зарплатой, но низкими расходами. Ваш путь к финансовой свободе - медленный и стабильный через небольшие инвестиции."
+    },
+    {
+      "name": "Manager",
+      "salary": 9500,
+      "startingCash": 7000,
+      "passiveIncome": 0,
+      "expenses": {
+        "taxes": 2400,
+        "homeMortgage": 1400,
+        "carLoan": 350,
+        "creditCard": 250,
+        "retail": 1800
+      },
+      "totalExpenses": 6200,
+      "monthlyCashflow": 3300,
+      "assets": {
+        "savings": 7000
+      },
+      "liabilities": {
+        "homeMortgage": 140000,
+        "carLoan": 17500,
+        "creditCard": 7500,
+        "retail": 900
+      },
+      "childCost": 650,
+      "description": "Вы - менеджер с хорошей зарплатой и сбалансированными расходами. Ваша стратегия - диверсифицированные инвестиции в различные активы."
+    }
+  ]
+}

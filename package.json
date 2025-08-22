@@ -1,0 +1,26 @@
+{
+  "name": "cashflow-game",
+  "version": "1.0.0",
+  "description": "Cashflow 101 Board Game - Web Version",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server:dev": "cd server && npm run dev",
+    "client:dev": "cd client && npm start",
+    "server": "cd server && npm start",
+    "client": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "start": "npm run dev"
+  },
+  "keywords": ["cashflow", "board-game", "financial-literacy", "react", "node"],
+  "author": "Cashflow Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

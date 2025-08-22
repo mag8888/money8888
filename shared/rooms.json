@@ -1,0 +1,1666 @@
+{
+  "33": {
+    "roomId": "33",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "BAOK2u7rWsRC363TAAAF",
+        "username": "Гость-AAAF",
+        "profession": "Engineer",
+        "description": "Вы - инженер с хорошей зарплатой и умеренными расходами. Ваша стратегия - инвестировать в акции и недвижимость для создания пассивного дохода.",
+        "salary": 8500,
+        "childCost": 600,
+        "balance": null,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 2200,
+          "homeMortgage": 1200,
+          "carLoan": 300,
+          "creditCard": 200,
+          "retail": 1500
+        },
+        "totalExpenses": 5400,
+        "monthlyCashflow": 3100,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 120000,
+          "carLoan": 15000,
+          "creditCard": 6000,
+          "retail": 800
+        },
+        "position": 17,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": true,
+        "seat": 1,
+        "charityTurns": 0,
+        "_lastRollOptions": {
+          "d1": 2,
+          "d2": 0,
+          "options": [
+            2
+          ]
+        },
+        "offline": true
+      },
+      {
+        "id": "T0KcALcbpYX6tFghAAAH",
+        "username": "Гость-AAAH",
+        "profession": "Manager",
+        "description": "Вы - менеджер с хорошей зарплатой и сбалансированными расходами. Ваша стратегия - диверсифицированные инвестиции в различные активы.",
+        "salary": 9500,
+        "childCost": 650,
+        "balance": 7000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 2400,
+          "homeMortgage": 1400,
+          "carLoan": 350,
+          "creditCard": 250,
+          "retail": 1800
+        },
+        "totalExpenses": 6200,
+        "monthlyCashflow": 3300,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 140000,
+          "carLoan": 17500,
+          "creditCard": 7500,
+          "retail": 900
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": true,
+        "seat": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "offline": true
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": null,
+    "timer": {
+      "hours": 3,
+      "remaining": 10071
+    },
+    "currentTurn": "BAOK2u7rWsRC363TAAAF",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755763111876
+  },
+  "111": {
+    "roomId": "111",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "4RfxBdbSZl4D5LGIAAAB",
+        "username": "B",
+        "profession": "Doctor",
+        "description": "Вы - врач с высокой зарплатой, но значительными расходами на образование и образ жизни. Ваш путь к финансовой свободе лежит через инвестиции в недвижимость и бизнес.",
+        "salary": 13200,
+        "childCost": 700,
+        "balance": 9000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 3420,
+          "homeMortgage": 1900,
+          "carLoan": 380,
+          "creditCard": 270,
+          "retail": 2380
+        },
+        "totalExpenses": 8900,
+        "monthlyCashflow": 4300,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 202000,
+          "carLoan": 19000,
+          "creditCard": 9000,
+          "retail": 1000
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": true,
+        "seat": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "offline": false
+      },
+      {
+        "id": "1y0UjU6jYQqcpx0FAAAF",
+        "username": "AF",
+        "profession": "Doctor",
+        "description": "Вы - врач с высокой зарплатой, но значительными расходами на образование и образ жизни. Ваш путь к финансовой свободе лежит через инвестиции в недвижимость и бизнес.",
+        "salary": 13200,
+        "childCost": 700,
+        "balance": 9000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 3420,
+          "homeMortgage": 1900,
+          "carLoan": 380,
+          "creditCard": 270,
+          "retail": 2380
+        },
+        "totalExpenses": 8900,
+        "monthlyCashflow": 4300,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 202000,
+          "carLoan": 19000,
+          "creditCard": 9000,
+          "retail": 1000
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": true,
+        "seat": 1,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "offline": false
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": "4RfxBdbSZl4D5LGIAAAB",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": "4RfxBdbSZl4D5LGIAAAB",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755758505894
+  },
+  "122": {
+    "roomId": "122",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "87GE9-qCkWPsH2JpAAAB",
+        "username": "AAD",
+        "profession": "Engineer",
+        "description": "Вы - инженер с хорошей зарплатой и умеренными расходами. Ваша стратегия - инвестировать в акции и недвижимость для создания пассивного дохода.",
+        "salary": 8500,
+        "childCost": 600,
+        "balance": 6000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 2200,
+          "homeMortgage": 1200,
+          "carLoan": 300,
+          "creditCard": 200,
+          "retail": 1500
+        },
+        "totalExpenses": 5400,
+        "monthlyCashflow": 3100,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 120000,
+          "carLoan": 15000,
+          "creditCard": 6000,
+          "retail": 800
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": true,
+        "seat": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "offline": true
+      }
+    ],
+    "status": "waiting",
+    "password": "",
+    "hostId": "AeUxMZDfGDacwkEBAAAD",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755781235394
+  },
+  "133": {
+    "roomId": "133",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "hvjilYJ1pISTMPQAAAAH",
+        "username": "AH",
+        "profession": "Teacher",
+        "description": "Вы - учитель с скромной зарплатой, но низкими расходами. Ваш путь к финансовой свободе - медленный и стабильный через небольшие инвестиции.",
+        "salary": 6500,
+        "childCost": 500,
+        "balance": 4000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 1600,
+          "homeMortgage": 800,
+          "carLoan": 200,
+          "creditCard": 150,
+          "retail": 1000
+        },
+        "totalExpenses": 3750,
+        "monthlyCashflow": 2750,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 80000,
+          "carLoan": 10000,
+          "creditCard": 4000,
+          "retail": 500
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": true,
+        "seat": 1,
+        "charityTurns": 0,
+        "_lastRollOptions": {
+          "d1": 3,
+          "d2": 0,
+          "options": [
+            3
+          ]
+        },
+        "offline": false
+      }
+    ],
+    "status": "waiting",
+    "password": "",
+    "hostId": "kKggb9kNr9bu4dFHAAAD",
+    "timer": {
+      "hours": 3,
+      "remaining": 10402
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755786903901
+  },
+  "144": {
+    "roomId": "144",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "mbmdF6RNcen0ynKNAAAH",
+        "fixedId": "P354368",
+        "socketId": "XbO9uYt3DiwQGkN0AAAF",
+        "username": "Игрок 4368",
+        "color": "#f35221",
+        "profession": "Engineer",
+        "balance": 2000,
+        "passiveIncome": 0,
+        "position": 0,
+        "isFastTrack": false,
+        "ready": true,
+        "seat": 0,
+        "offline": true,
+        "salary": 2000,
+        "childCost": 500,
+        "expenses": {
+          "taxes": 200,
+          "other": 0
+        },
+        "totalExpenses": 200,
+        "monthlyCashflow": 0,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null
+      },
+      {
+        "id": "OgICk0yrxJutO51uAAAJ",
+        "fixedId": "P360465",
+        "socketId": "OgICk0yrxJutO51uAAAJ",
+        "username": "Игрок 0465",
+        "color": "#732ce6",
+        "profession": "Engineer",
+        "balance": 2000,
+        "passiveIncome": 0,
+        "position": 0,
+        "isFastTrack": false,
+        "ready": false,
+        "seat": null,
+        "offline": false,
+        "salary": 2000,
+        "childCost": 500,
+        "expenses": {
+          "taxes": 200,
+          "other": 0
+        },
+        "totalExpenses": 200,
+        "monthlyCashflow": 0,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null
+      }
+    ],
+    "status": "waiting",
+    "password": "",
+    "hostId": "XbO9uYt3DiwQGkN0AAAF",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755793354342
+  },
+  "155": {
+    "roomId": "155",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "OgICk0yrxJutO51uAAAJ",
+        "fixedId": "P354368",
+        "socketId": "XbO9uYt3DiwQGkN0AAAF",
+        "username": "Игрок 4368",
+        "color": "#ac9807",
+        "profession": "Engineer",
+        "balance": 2000,
+        "passiveIncome": 0,
+        "position": 0,
+        "isFastTrack": false,
+        "ready": false,
+        "seat": null,
+        "offline": false,
+        "salary": 2000,
+        "childCost": 500,
+        "expenses": {
+          "taxes": 200,
+          "other": 0
+        },
+        "totalExpenses": 200,
+        "monthlyCashflow": 0,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null
+      },
+      {
+        "id": "P360465",
+        "fixedId": "P360465",
+        "socketId": "OgICk0yrxJutO51uAAAJ",
+        "username": "Игрок 0465",
+        "color": "#2e18db",
+        "profession": "Engineer",
+        "balance": 2000,
+        "passiveIncome": 0,
+        "position": 0,
+        "isFastTrack": false,
+        "ready": false,
+        "seat": null,
+        "offline": false,
+        "salary": 2000,
+        "childCost": 500,
+        "expenses": {
+          "taxes": 200,
+          "other": 0
+        },
+        "totalExpenses": 200,
+        "monthlyCashflow": 0,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null
+      }
+    ],
+    "status": "waiting",
+    "password": "",
+    "hostId": "XbO9uYt3DiwQGkN0AAAF",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755794841432
+  },
+  "166": {
+    "roomId": "166",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "P360465",
+        "fixedId": "P360465",
+        "socketId": "jQPHGFOd0MEWdjxeAAAH",
+        "username": "Игрок 0465",
+        "color": "#9990de",
+        "profession": "Engineer",
+        "balance": 2000,
+        "passiveIncome": 0,
+        "position": 0,
+        "isFastTrack": false,
+        "ready": true,
+        "seat": 1,
+        "offline": false,
+        "salary": 2000,
+        "childCost": 500,
+        "expenses": {
+          "taxes": 200,
+          "other": 0
+        },
+        "totalExpenses": 200,
+        "monthlyCashflow": 0,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null
+      }
+    ],
+    "status": "waiting",
+    "password": "",
+    "hostId": "yXlLpAdewwXWLN4oAAAF",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755795058677
+  },
+  "177": {
+    "roomId": "177",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "uZ6ebz78O1SeCMduAAAH",
+        "fixedId": "P354368",
+        "socketId": "SBPSXJt7TtXGgKtnAAAF",
+        "username": "Игрок 4368",
+        "color": "#e82d53",
+        "ready": true,
+        "position": 0,
+        "balance": 2000,
+        "passiveIncome": 0,
+        "seat": 1,
+        "offline": false,
+        "roomId": "177",
+        "salary": 2000,
+        "childCost": 500,
+        "expenses": {
+          "taxes": 200,
+          "other": 0
+        },
+        "totalExpenses": 200,
+        "monthlyCashflow": 0,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null
+      },
+      {
+        "id": "P360465",
+        "fixedId": "P360465",
+        "socketId": "uZ6ebz78O1SeCMduAAAH",
+        "username": "Игрок 0465",
+        "color": "#617c14",
+        "ready": true,
+        "position": 0,
+        "balance": 2000,
+        "passiveIncome": 0,
+        "seat": 0,
+        "offline": false,
+        "roomId": "177",
+        "salary": 2000,
+        "childCost": 500,
+        "expenses": {
+          "taxes": 200,
+          "other": 0
+        },
+        "totalExpenses": 200,
+        "monthlyCashflow": 0,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": "SBPSXJt7TtXGgKtnAAAF",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": "uZ6ebz78O1SeCMduAAAH",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755796254548
+  },
+  "222": {
+    "roomId": "222",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "axf_hR19O6BKNRw4AAAB",
+        "username": "Гость-AAAB",
+        "profession": "Teacher",
+        "description": "Вы - учитель с скромной зарплатой, но низкими расходами. Ваш путь к финансовой свободе - медленный и стабильный через небольшие инвестиции.",
+        "salary": 6500,
+        "childCost": 500,
+        "balance": 4000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 1600,
+          "homeMortgage": 800,
+          "carLoan": 200,
+          "creditCard": 150,
+          "retail": 1000
+        },
+        "totalExpenses": 3750,
+        "monthlyCashflow": 2750,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 80000,
+          "carLoan": 10000,
+          "creditCard": 4000,
+          "retail": 500
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": true,
+        "seat": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "offline": false
+      },
+      {
+        "id": "9he_JGIFHHNh2899AAAD",
+        "username": "Гость-AAAD",
+        "profession": "Doctor",
+        "description": "Вы - врач с высокой зарплатой, но значительными расходами на образование и образ жизни. Ваш путь к финансовой свободе лежит через инвестиции в недвижимость и бизнес.",
+        "salary": 13200,
+        "childCost": 700,
+        "balance": 9000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 3420,
+          "homeMortgage": 1900,
+          "carLoan": 380,
+          "creditCard": 270,
+          "retail": 2380
+        },
+        "totalExpenses": 8900,
+        "monthlyCashflow": 4300,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 202000,
+          "carLoan": 19000,
+          "creditCard": 9000,
+          "retail": 1000
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": true,
+        "seat": 1,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "offline": false
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": "axf_hR19O6BKNRw4AAAB",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": "axf_hR19O6BKNRw4AAAB",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755758907038
+  },
+  "444": {
+    "roomId": "444",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "s7M00wB_dJCuMDz_AAAL",
+        "username": "Гость-AAAL",
+        "profession": "Doctor",
+        "description": "Вы - врач с высокой зарплатой, но значительными расходами на образование и образ жизни. Ваш путь к финансовой свободе лежит через инвестиции в недвижимость и бизнес.",
+        "salary": 13200,
+        "childCost": 700,
+        "balance": 9000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 3420,
+          "homeMortgage": 1900,
+          "carLoan": 380,
+          "creditCard": 270,
+          "retail": 2380
+        },
+        "totalExpenses": 8900,
+        "monthlyCashflow": 4300,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 202000,
+          "carLoan": 19000,
+          "creditCard": 9000,
+          "retail": 1000
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": true,
+        "seat": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "offline": false
+      },
+      {
+        "id": "kTzO3BfSor-Yqb2WAAAJ",
+        "username": "Гость-AAAJ",
+        "profession": "Engineer",
+        "description": "Вы - инженер с хорошей зарплатой и умеренными расходами. Ваша стратегия - инвестировать в акции и недвижимость для создания пассивного дохода.",
+        "salary": 8500,
+        "childCost": 600,
+        "balance": 6000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 2200,
+          "homeMortgage": 1200,
+          "carLoan": 300,
+          "creditCard": 200,
+          "retail": 1500
+        },
+        "totalExpenses": 5400,
+        "monthlyCashflow": 3100,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 120000,
+          "carLoan": 15000,
+          "creditCard": 6000,
+          "retail": 800
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": true,
+        "seat": 1,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "offline": false
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": "s7M00wB_dJCuMDz_AAAL",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": "s7M00wB_dJCuMDz_AAAL",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755763842853
+  },
+  "666": {
+    "roomId": "666",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "rgGCkyZJD1G2fM2qAAAL",
+        "username": "AAL",
+        "profession": "Teacher",
+        "description": "Вы - учитель с скромной зарплатой, но низкими расходами. Ваш путь к финансовой свободе - медленный и стабильный через небольшие инвестиции.",
+        "salary": 6500,
+        "childCost": 500,
+        "balance": 4000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 1600,
+          "homeMortgage": 800,
+          "carLoan": 200,
+          "creditCard": 150,
+          "retail": 1000
+        },
+        "totalExpenses": 3750,
+        "monthlyCashflow": 2750,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 80000,
+          "carLoan": 10000,
+          "creditCard": 4000,
+          "retail": 500
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": true,
+        "seat": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "offline": true
+      },
+      {
+        "id": "raBwuMnepbbZ6oCAAAAN",
+        "username": "Гость-AAAN",
+        "profession": "Doctor",
+        "description": "Вы - врач с высокой зарплатой, но значительными расходами на образование и образ жизни. Ваш путь к финансовой свободе лежит через инвестиции в недвижимость и бизнес.",
+        "salary": 13200,
+        "childCost": 700,
+        "balance": 9000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 3420,
+          "homeMortgage": 1900,
+          "carLoan": 380,
+          "creditCard": 270,
+          "retail": 2380
+        },
+        "totalExpenses": 8900,
+        "monthlyCashflow": 4300,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 202000,
+          "carLoan": 19000,
+          "creditCard": 9000,
+          "retail": 1000
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": true,
+        "seat": 1,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "offline": true
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": null,
+    "timer": {
+      "hours": 3,
+      "remaining": 10278
+    },
+    "currentTurn": "rgGCkyZJD1G2fM2qAAAL",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755771022998
+  },
+  "777": {
+    "roomId": "777",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "UgDM0RzpbhCyBAHyAAAP",
+        "username": "AAP",
+        "profession": "Teacher",
+        "description": "Вы - учитель с скромной зарплатой, но низкими расходами. Ваш путь к финансовой свободе - медленный и стабильный через небольшие инвестиции.",
+        "salary": 6500,
+        "childCost": 500,
+        "balance": 4000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 1600,
+          "homeMortgage": 800,
+          "carLoan": 200,
+          "creditCard": 150,
+          "retail": 1000
+        },
+        "totalExpenses": 3750,
+        "monthlyCashflow": 2750,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 80000,
+          "carLoan": 10000,
+          "creditCard": 4000,
+          "retail": 500
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": true,
+        "seat": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "offline": true
+      },
+      {
+        "id": "hmvBASyU1LAQ_r6KAAAR",
+        "username": "Гость-AAAR",
+        "profession": "Teacher",
+        "description": "Вы - учитель с скромной зарплатой, но низкими расходами. Ваш путь к финансовой свободе - медленный и стабильный через небольшие инвестиции.",
+        "salary": 6500,
+        "childCost": 500,
+        "balance": 4000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 1600,
+          "homeMortgage": 800,
+          "carLoan": 200,
+          "creditCard": 150,
+          "retail": 1000
+        },
+        "totalExpenses": 3750,
+        "monthlyCashflow": 2750,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 80000,
+          "carLoan": 10000,
+          "creditCard": 4000,
+          "retail": 500
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": true,
+        "seat": 1,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "offline": false
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": "hmvBASyU1LAQ_r6KAAAR",
+    "timer": {
+      "hours": 3,
+      "remaining": 10490
+    },
+    "currentTurn": "UgDM0RzpbhCyBAHyAAAP",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755771232163
+  },
+  "888": {
+    "roomId": "888",
+    "maxPlayers": 2,
+    "currentPlayers": [],
+    "status": "waiting",
+    "password": "",
+    "hostId": "hmvBASyU1LAQ_r6KAAAR",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755771529106
+  },
+  "999": {
+    "roomId": "999",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "YE_YQbnVTRdR3DbnAAAF",
+        "username": "Гость-ined",
+        "profession": "Engineer",
+        "description": "Вы - инженер с хорошей зарплатой и умеренными расходами. Ваша стратегия - инвестировать в акции и недвижимость для создания пассивного дохода.",
+        "salary": 8500,
+        "childCost": 600,
+        "balance": 6000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 2200,
+          "homeMortgage": 1200,
+          "carLoan": 300,
+          "creditCard": 200,
+          "retail": 1500
+        },
+        "totalExpenses": 5400,
+        "monthlyCashflow": 3100,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 120000,
+          "carLoan": 15000,
+          "creditCard": 6000,
+          "retail": 800
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": false,
+        "seat": null,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "offline": false
+      }
+    ],
+    "status": "waiting",
+    "password": "",
+    "hostId": "xXI_nzGa7LJcw4_TAAAH",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755778291494
+  },
+  "5555": {
+    "roomId": "5555",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "jCLFwK9kHUB4OoTxAAAF",
+        "username": "Гость-AAAF",
+        "profession": "Engineer",
+        "description": "Вы - инженер с хорошей зарплатой и умеренными расходами. Ваша стратегия - инвестировать в акции и недвижимость для создания пассивного дохода.",
+        "salary": 8500,
+        "childCost": 600,
+        "balance": null,
+        "passiveIncome": 0,
+        "expenses": "[object Object]600",
+        "totalExpenses": 5400,
+        "monthlyCashflow": 3100,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 120000,
+          "carLoan": 15000,
+          "creditCard": 6000,
+          "retail": 800
+        },
+        "position": 17,
+        "isFastTrack": false,
+        "children": 1,
+        "ready": true,
+        "seat": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": {
+          "d1": 1,
+          "d2": 0,
+          "options": [
+            1
+          ]
+        },
+        "offline": true
+      },
+      {
+        "id": "hFH-FHTAjR8mTazYAAAH",
+        "username": "Гость-AAAH",
+        "profession": "Manager",
+        "description": "Вы - менеджер с хорошей зарплатой и сбалансированными расходами. Ваша стратегия - диверсифицированные инвестиции в различные активы.",
+        "salary": 9500,
+        "childCost": 650,
+        "balance": 7000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 2400,
+          "homeMortgage": 1400,
+          "carLoan": 350,
+          "creditCard": 250,
+          "retail": 1800
+        },
+        "totalExpenses": 6200,
+        "monthlyCashflow": 3300,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 140000,
+          "carLoan": 17500,
+          "creditCard": 7500,
+          "retail": 900
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": true,
+        "seat": 1,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "offline": true
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": null,
+    "timer": {
+      "hours": 3,
+      "remaining": 4562
+    },
+    "currentTurn": "jCLFwK9kHUB4OoTxAAAF",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755764992915
+  },
+  "lobby": {
+    "roomId": "lobby",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "4RfxBdbSZl4D5LGIAAAB",
+        "username": "Гость-AAAB",
+        "profession": "Doctor",
+        "description": "Вы - врач с высокой зарплатой, но значительными расходами на образование и образ жизни. Ваш путь к финансовой свободе лежит через инвестиции в недвижимость и бизнес.",
+        "salary": 13200,
+        "childCost": 700,
+        "balance": 9000,
+        "passiveIncome": 0,
+        "expenses": {
+          "taxes": 3420,
+          "homeMortgage": 1900,
+          "carLoan": 380,
+          "creditCard": 270,
+          "retail": 2380
+        },
+        "totalExpenses": 8900,
+        "monthlyCashflow": 4300,
+        "assets": [],
+        "liabilities": {
+          "homeMortgage": 202000,
+          "carLoan": 19000,
+          "creditCard": 9000,
+          "retail": 1000
+        },
+        "position": 0,
+        "isFastTrack": false,
+        "children": 0,
+        "ready": false,
+        "seat": null,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "offline": false
+      }
+    ],
+    "status": "waiting",
+    "password": "",
+    "hostId": null,
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    }
+  }
+}

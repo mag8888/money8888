@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест ID игроков</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #2F1B40;
+            color: white;
+        }
+        .player-card {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .id-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFD54F;
+            margin: 10px 0;
+        }
+        .generate-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .generate-btn:hover {
+            background: #45a049;
+        }
+        .clear-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .clear-btn:hover {
+            background: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 Тест ID игроков Cashflow</h1>
+    
+    <div class="player-card">
+        <h3>Ваш текущий ID:</h3>
+        <div id="currentId" class="id-display">Не установлен</div>
+        <p>Этот ID сохраняется в localStorage и не меняется при перезагрузке страницы</p>
+    </div>
+    
+    <div class="player-card">
+        <h3>Действия:</h3>
+        <button class="generate-btn" onclick="generateNewId()">🆔 Сгенерировать новый ID</button>
+        <button class="clear-btn" onclick="clearId()">🗑️ Очистить ID</button>
+    </div>
+    
+    <div class="player-card">
+        <h3>Информация:</h3>
+        <p>• Откройте эту страницу в разных браузерах</p>
+        <p>• Каждый браузер получит уникальный ID</p>
+        <p>• ID сохраняется между сессиями</p>
+        <p>• Для тестирования игры используйте разные браузеры</p>
+    </div>
+
+    <script>
+        function generateNewId() {
+            const playerId = `P${Date.now().toString().slice(-6)}`;
+            localStorage.setItem('cashflow_playerId', playerId);
+            displayCurrentId();
+        }
+        
+        function clearId() {
+            localStorage.removeItem('cashflow_playerId');
+            displayCurrentId();
+        }
+        
+        function displayCurrentId() {
+            const currentId = localStorage.getItem('cashflow_playerId');
+            document.getElementById('currentId').textContent = currentId || 'Не установлен';
+        }
+        
+        // Показываем текущий ID при загрузке
+        displayCurrentId();
+        
+        // Показываем информацию о браузере
+        console.log('Браузер:', navigator.userAgent);
+        console.log('Текущий ID:', localStorage.getItem('cashflow_playerId'));
+    </script>
+</body>
+</html>

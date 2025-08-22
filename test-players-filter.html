@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест фильтрации игроков по комнатам</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #2F1B40;
+            color: white;
+        }
+        .test-card {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .room-section {
+            background: rgba(0,255,0,0.1);
+            border: 1px solid #4CAF50;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .player-item {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 5px;
+            padding: 10px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .player-id {
+            font-weight: bold;
+            color: #FFD700;
+        }
+        .room-id {
+            color: #4CAF50;
+        }
+        .socket-id {
+            color: #2196F3;
+            font-size: 0.9em;
+        }
+        .filter-btn {
+            background: #FF9800;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .filter-btn:hover {
+            background: #F57C00;
+        }
+        .filter-btn.active {
+            background: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 Тест фильтрации игроков по комнатам</h1>
+    
+    <div class="test-card">
+        <h3>Инструкции:</h3>
+        <p>1. Откройте игру в разных браузерах</p>
+        <p>2. Создайте разные комнаты</p>
+        <p>3. Нажмите кнопки фильтрации ниже</p>
+        <p>4. Проверьте, что показываются только игроки из выбранной комнаты</p>
+    </div>
+    
+    <div class="test-card">
+        <h3>Фильтрация по комнатам:</h3>
+        <button id="filterAll" class="filter-btn active" onclick="filterByRoom('all')">Все игроки</button>
+        <button id="filterRoom1" class="filter-btn" onclick="filterByRoom('room1')">Комната 1</button>
+        <button id="filterRoom2" class="filter-btn" onclick="filterByRoom('room2')">Комната 2</button>
+        <button id="filterRoom3" class="filter-btn" onclick="filterByRoom('room3')">Комната 3</button>
+    </div>
+    
+    <div class="test-card">
+        <h3>Список игроков:</h3>
+        <div id="playersList">
+            <p>Загрузка...</p>
+        </div>
+    </div>
+    
+    <div class="test-card">
+        <h3>Отладочная информация:</h3>
+        <div id="debugInfo">
+            <p>Текущий фильтр: <span id="currentFilter">Все игроки</span></p>
+            <p>Всего игроков: <span id="totalPlayers">0</span></p>
+            <p>Отфильтровано: <span id="filteredPlayers">0</span></p>
+        </div>
+    </div>
+
+    <script>
+        // Тестовые данные игроков
+        const testPlayers = [
+            { id: 'PLAYER001', username: 'Игрок 001', roomId: 'room1', socketId: 'socket001', balance: 2000 },
+            { id: 'PLAYER002', username: 'Игрок 002', roomId: 'room1', socketId: 'socket002', balance: 1500 },
+            { id: 'PLAYER003', username: 'Игрок 003', roomId: 'room2', socketId: 'socket003', balance: 3000 },
+            { id: 'PLAYER004', username: 'Игрок 004', roomId: 'room2', socketId: 'socket004', balance: 2500 },
+            { id: 'PLAYER005', username: 'Игрок 005', roomId: 'room3', socketId: 'socket005', balance: 1800 },
+            { id: 'PLAYER006', username: 'Игрок 006', roomId: 'room3', socketId: 'socket006', balance: 2200 }
+        ];
+        
+        let currentFilter = 'all';
+        
+        function filterByRoom(roomId) {
+            currentFilter = roomId;
+            updateFilterButtons();
+            displayPlayers();
+        }
+        
+        function updateFilterButtons() {
+            // Убираем активный класс со всех кнопок
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Добавляем активный класс к выбранной кнопке
+            const activeBtn = document.getElementById(`filter${roomId === 'all' ? 'All' : roomId.charAt(0).toUpperCase() + roomId.slice(1)}`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+            
+            document.getElementById('currentFilter').textContent = roomId === 'all' ? 'Все игроки' : `Комната ${roomId.slice(-1)}`;
+        }
+        
+        function displayPlayers() {
+            const playersList = document.getElementById('playersList');
+            let filteredPlayers;
+            
+            if (currentFilter === 'all') {
+                filteredPlayers = testPlayers;
+            } else {
+                filteredPlayers = testPlayers.filter(p => p.roomId === currentFilter);
+            }
+            
+            // Группируем игроков по комнатам
+            const groupedPlayers = {};
+            filteredPlayers.forEach(player => {
+                if (!groupedPlayers[player.roomId]) {
+                    groupedPlayers[player.roomId] = [];
+                }
+                groupedPlayers[player.roomId].push(player);
+            });
+            
+            let html = '';
+            Object.keys(groupedPlayers).forEach(roomId => {
+                html += `<div class="room-section">
+                    <h4>Комната: ${roomId}</h4>`;
+                
+                groupedPlayers[roomId].forEach(player => {
+                    html += `<div class="player-item">
+                        <div>
+                            <span class="player-id">${player.username}</span>
+                            <span class="room-id">(ID: ${player.id})</span>
+                        </div>
+                        <div>
+                            <span>Баланс: ${player.balance}$</span>
+                            <span class="socket-id">Socket: ${player.socketId}</span>
+                        </div>
+                    </div>`;
+                });
+                
+                html += '</div>';
+            });
+            
+            if (filteredPlayers.length === 0) {
+                html = '<p>Нет игроков в выбранной комнате</p>';
+            }
+            
+            playersList.innerHTML = html;
+            
+            // Обновляем отладочную информацию
+            document.getElementById('totalPlayers').textContent = testPlayers.length;
+            document.getElementById('filteredPlayers').textContent = filteredPlayers.length;
+        }
+        
+        // Инициализация
+        displayPlayers();
+        
+        // Логируем информацию при загрузке
+        console.log('Test players filter page loaded:', {
+            totalPlayers: testPlayers.length,
+            rooms: [...new Set(testPlayers.map(p => p.roomId))],
+            timestamp: new Date().toISOString()
+        });
+    </script>
+</body>
+</html>

@@ -2,7 +2,7 @@ import React from 'react';
 
 const MainMenu = () => {
   return (
-    <div>
+    <div className="menu">
       <button>🤝 Партнёры</button>
       <button>📅 Привычки</button>
       <button>💳 Баланс</button>
