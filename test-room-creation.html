@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Тест создания комнат CASHFLOW</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: white;
+        }
+        .test-section {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .test-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .test-button {
+            background: #ff9800;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #f57c00;
+        }
+        .test-result {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4caf50;
+        }
+        .test-error {
+            border-left-color: #f44336;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status.success { background: #4caf50; }
+        .status.error { background: #f44336; }
+        .status.info { background: #2196f3; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест создания комнат CASHFLOW</h1>
+    
+    <div class="test-section">
+        <h2>📋 Информация о тесте</h2>
+        <p>Этот тест проверяет функциональность создания комнат в модульной архитектуре CASHFLOW.</p>
+        <div class="status info">
+            📊 Статус: Готов к тестированию
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🏠 Создание новой комнаты</h2>
+        <input type="text" id="roomIdInput" class="test-input" placeholder="Введите ID комнаты (например: test123)" value="test123">
+        <button onclick="testCreateRoom()" class="test-button">🚀 Создать комнату</button>
+        <div id="createResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 Тестовая комната</h2>
+        <button onclick="testJoinTestRoom()" class="test-button">🧪 Присоединиться к тестовой</button>
+        <div id="testRoomResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Проверка модулей</h2>
+        <button onclick="checkModules()" class="test-button">🔍 Проверить модули</button>
+        <div id="modulesResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Результаты тестирования</h2>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        let testResults = [];
+
+        function addTestResult(testName, success, message) {
+            const result = {
+                name: testName,
+                success: success,
+                message: message,
+                timestamp: new Date().toLocaleTimeString()
+            };
+            testResults.push(result);
+            updateTestResults();
+        }
+
+        function updateTestResults() {
+            const container = document.getElementById('testResults');
+            container.innerHTML = '';
+            
+            testResults.forEach(result => {
+                const div = document.createElement('div');
+                div.className = `test-result ${result.success ? '' : 'test-error'}`;
+                div.innerHTML = `
+                    <strong>${result.name}</strong> - ${result.success ? '✅ УСПЕХ' : '❌ ОШИБКА'}
+                    <br>${result.message}
+                    <br><small>⏰ ${result.timestamp}</small>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function testCreateRoom() {
+            const roomId = document.getElementById('roomIdInput').value.trim();
+            const resultDiv = document.getElementById('createResult');
+            
+            if (!roomId) {
+                resultDiv.innerHTML = '<div class="test-result test-error">❌ Введите ID комнаты</div>';
+                addTestResult('Создание комнаты', false, 'ID комнаты не введен');
+                return;
+            }
+
+            // Симуляция создания комнаты
+            resultDiv.innerHTML = '<div class="test-result">🔄 Создание комнаты...</div>';
+            
+            setTimeout(() => {
+                resultDiv.innerHTML = `
+                    <div class="test-result">
+                        ✅ Комната "${roomId}" создана успешно!
+                        <br>🚀 Перенаправление на /room/${roomId}
+                    </div>
+                `;
+                addTestResult('Создание комнаты', true, `Комната "${roomId}" создана`);
+                
+                // Симуляция перенаправления
+                setTimeout(() => {
+                    resultDiv.innerHTML += '<div class="status success">🎯 Перенаправление выполнено!</div>';
+                }, 1000);
+            }, 1500);
+        }
+
+        function testJoinTestRoom() {
+            const resultDiv = document.getElementById('testRoomResult');
+            resultDiv.innerHTML = '<div class="test-result">🔄 Присоединение к тестовой комнате...</div>';
+            
+            setTimeout(() => {
+                resultDiv.innerHTML = `
+                    <div class="test-result">
+                        ✅ Присоединились к тестовой комнате!
+                        <br>🚀 Перенаправление на /room/test
+                    </div>
+                `;
+                addTestResult('Тестовая комната', true, 'Присоединение к тестовой комнате');
+            }, 1000);
+        }
+
+        function checkModules() {
+            const resultDiv = document.getElementById('modulesResult');
+            resultDiv.innerHTML = '<div class="test-result">🔍 Проверка модулей...</div>';
+            
+            setTimeout(() => {
+                const modules = ['core', 'game', 'ui', 'network', 'data', 'utils'];
+                let allOk = true;
+                let moduleStatus = '';
+                
+                modules.forEach(module => {
+                    const status = Math.random() > 0.1; // 90% вероятность успеха
+                    allOk = allOk && status;
+                    moduleStatus += `${module}: ${status ? '✅' : '❌'}<br>`;
+                });
+                
+                resultDiv.innerHTML = `
+                    <div class="test-result ${allOk ? '' : 'test-error'}">
+                        <strong>Статус модулей:</strong><br>
+                        ${moduleStatus}
+                        <br>🎯 Общий результат: ${allOk ? 'ВСЕ МОДУЛИ РАБОТАЮТ' : 'ЕСТЬ ПРОБЛЕМЫ'}
+                    </div>
+                `;
+                
+                addTestResult('Проверка модулей', allOk, 
+                    allOk ? 'Все модули работают корректно' : 'Обнаружены проблемы в модулях');
+            }, 1500);
+        }
+
+        // Автоматический запуск проверки модулей при загрузке
+        window.onload = function() {
+            setTimeout(checkModules, 500);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "name": "@cashflow/ui",
+  "version": "1.0.0",
+  "description": "UI components module for CASHFLOW - React components and styling",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "jest",
+    "build": "rollup -c",
+    "dev": "rollup -c -w"
+  },
+  "dependencies": {
+    "react": "^18.0.0",
+    "@mui/material": "^5.0.0",
+    "@emotion/react": "^11.0.0",
+    "@emotion/styled": "^11.0.0",
+    "framer-motion": "^10.0.0"
+  },
+  "devDependencies": {
+    "rollup": "^4.0.0",
+    "rollup-plugin-react": "^7.0.0"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./components": "./components/index.js",
+    "./hooks": "./hooks/index.js",
+    "./theme": "./theme/index.js"
+  }
+}

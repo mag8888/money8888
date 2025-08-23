@@ -46,17 +46,13 @@ components_backup_*/
 
 # Large vendor files
 vendor/
-mongodb-*.tgz
+mongodb-*
 node-*.pkg
 
 # Temporary files
-*.tmp
-*.temp
+tmp/
+temp/
 
-# Audio files
-*.mp3
-*.wav
-*.ogg
-
-# MongoDB data
-data/
+# Game specific
+*.save
+game-state.json

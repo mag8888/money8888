@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import socket from '../socket';
 import { motion } from 'framer-motion';
+import { useParams } from 'react-router-dom';
 import { 
   Box, 
   Typography, 
@@ -27,9 +28,21 @@ import { useNavigate } from 'react-router-dom';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 
-const RoomSetup = ({ user, roomId, onSetupComplete, onBack, onGameStarted, onExit }) => {
+// Импортируем новую цветовую систему
+import { colors, textColors, buttonStyles, inputStyles, cardStyles, typographyStyles, animationStyles } from '../styles/component-styles.js';
+
+// CSS для анимации спиннера
+const spinnerStyle = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
+  const { roomId } = useParams(); // Получаем roomId из URL
   const [inputRoomId, setInputRoomId] = useState(roomId || '');
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(playerData?.username || '');
   const [maxPlayers, setMaxPlayers] = useState(2);
   const [players, setPlayers] = useState([]);
   const [myReady, setMyReady] = useState(false);
@@ -49,17 +62,70 @@ const RoomSetup = ({ user, roomId, onSetupComplete, onBack, onGameStarted, onExi
     setExitModalOpen(false);
     
     // Используем централизованный хук
-    if (onExit) {
-      onExit();
+    if (onExitGame) {
+      onExitGame();
     } else {
       logout(roomId, 'setup_exit');
     }
   };
 
   useEffect(() => {
+    // Проверяем подключение к комнате при монтировании
+    if (roomId && socket.connected) {
+      console.log('🎮 [RoomSetup] Component mounted, checking room connection');
+      console.log('🎮 [RoomSetup] roomId:', roomId);
+      console.log('🎮 [RoomSetup] socket.id:', socket.id);
+      
+      // Запрашиваем данные комнаты
+      socket.emit('getRoom', roomId);
+      socket.emit('getPlayers', roomId);
+    }
+    
     // Получаем данные игроков
-    socket.on('playersUpdate', setPlayers);
-    socket.on('playersList', setPlayers);
+    socket.on('playersUpdate', (updatedPlayers) => {
+      console.log('🔄 [RoomSetup] playersUpdate received:', updatedPlayers);
+      setPlayers(updatedPlayers);
+      
+      // Проверяем, есть ли текущий игрок в списке
+      const currentPlayer = updatedPlayers.find(p => p.socketId === socket.id);
+      if (currentPlayer) {
+        console.log('🔄 [RoomSetup] Current player found:', currentPlayer);
+        setMyReady(currentPlayer.ready || false);
+      }
+    });
+    
+    socket.on('playersList', (playersList) => {
+      console.log('🔄 [RoomSetup] playersList received:', playersList);
+      setPlayers(playersList);
+      
+      // Проверяем, есть ли текущий игрок в списке
+      const currentPlayer = playersList.find(p => p.socketId === socket.id);
+      if (currentPlayer) {
+        console.log('🔄 [RoomSetup] Current player found in playersList:', currentPlayer);
+        setMyReady(currentPlayer.ready || false);
+      }
+    });
+    
+    // Обработка ошибок toggleReady
+    socket.on('noSeat', () => {
+      console.log('❌ [RoomSetup] No free seats available');
+      // Можно показать уведомление пользователю
+    });
+    
+    socket.on('toggleReadyError', (error) => {
+      console.log('❌ [RoomSetup] toggleReady error:', error);
+      // Откатываем состояние готовности
+      setMyReady(false);
+    });
+    
+    // Подтверждение успешного toggleReady
+    socket.on('toggleReadySuccess', (data) => {
+      console.log('✅ [RoomSetup] toggleReady success:', data);
+      // Обновляем состояние на основе серверных данных
+      if (data.player) {
+        setMyReady(data.player.ready);
+      }
+    });
     
     // Получаем данные комнаты
     socket.on('roomData', (data) => {
@@ -70,15 +136,14 @@ const RoomSetup = ({ user, roomId, onSetupComplete, onBack, onGameStarted, onExi
     // Обработка кика
     socket.on('kicked', ({ roomId: kickedRoom }) => {
       if (kickedRoom === roomId) {
-        onBack();
+        onRoomSetup({ roomId: roomId }); // Assuming onRoomSetup handles back navigation
       }
     });
     
     // Обработка старта игры
     socket.on('gameStarted', () => {
       setStarting(false);
-      if (onSetupComplete) onSetupComplete();
-      if (onGameStarted) onGameStarted();
+      if (onRoomSetup) onRoomSetup({ roomId: roomId }); // Assuming onRoomSetup handles setup completion
     });
     
     // Обработчик успешного выхода из комнаты - теперь управляется централизованно в App.js
@@ -91,7 +156,7 @@ const RoomSetup = ({ user, roomId, onSetupComplete, onBack, onGameStarted, onExi
       socket.off('gameStarted');
       // leftRoom теперь обрабатывается централизованно в App.js
     };
-  }, [roomId, onBack, onSetupComplete, onGameStarted]);
+  }, [roomId, onRoomSetup]);
 
     // Регистрируем текущего пользователя в комнате при монтировании
   useEffect(() => {
@@ -147,16 +212,16 @@ const RoomSetup = ({ user, roomId, onSetupComplete, onBack, onGameStarted, onExi
       setMyReady(me.ready);
     }
     
-    // Проверяем, все ли игроки готовы
+    // Проверяем, готовы ли игроки для старта (минимум 2)
     const readyPlayers = players.filter(p => p.ready);
     const wasAllReady = allReady;
-    const isAllReady = readyPlayers.length >= 2 && readyPlayers.length === players.length;
+    const canStartGame = readyPlayers.length >= 2;
     
-    // Если все стали готовы и раньше не были - воспроизводим звук
-    if (isAllReady && !wasAllReady && players.length >= 2) {
+    // Если достигли минимума для старта и раньше не могли - воспроизводим звук
+    if (canStartGame && !wasAllReady && players.length >= 2) {
       setAllReady(true);
       playReadySound();
-    } else if (!isAllReady) {
+    } else if (!canStartGame) {
       setAllReady(false);
     }
   }, [players, allReady]);
@@ -169,18 +234,43 @@ const RoomSetup = ({ user, roomId, onSetupComplete, onBack, onGameStarted, onExi
   }, [roomId, maxPlayers]);
 
   const handleToggleReady = () => {
-    socket.emit('toggleReady', roomId);
-    setMyReady(!myReady);
+    console.log('🎯 [RoomSetup] handleToggleReady called');
+    console.log('🎯 [RoomSetup] roomId:', roomId);
+    console.log('🎯 [RoomSetup] current myReady:', myReady);
+    console.log('🎯 [RoomSetup] socket.id:', socket.id);
+    console.log('🎯 [RoomSetup] socket.connected:', socket.connected);
+    console.log('🎯 [RoomSetup] socket.emit function:', typeof socket.emit);
     
-    // Воспроизводим звук при изменении статуса готовности
+    if (!roomId) {
+      console.error('❌ [RoomSetup] No roomId available!');
+      return;
+    }
+    
+    if (!socket.connected) {
+      console.error('❌ [RoomSetup] Socket not connected!');
+      return;
+    }
+    
     try {
-      readySound.currentTime = 0;
-      readySound.volume = 0.5;
-      readySound.play().catch(err => {
-        console.log('Не удалось воспроизвести звук готовности:', err);
-      });
-    } catch (err) {
-      console.log('Ошибка воспроизведения звука готовности:', err);
+      console.log('🎯 [RoomSetup] Emitting toggleReady with roomId:', roomId);
+      socket.emit('toggleReady', roomId);
+      console.log('✅ [RoomSetup] toggleReady emitted successfully');
+      
+      // Временно меняем состояние для UI
+      setMyReady(!myReady);
+      
+      // Воспроизводим звук при изменении статуса готовности
+      try {
+        readySound.currentTime = 0;
+        readySound.volume = 0.5;
+        readySound.play().catch(err => {
+          console.log('Не удалось воспроизвести звук готовности:', err);
+        });
+      } catch (err) {
+        console.log('Ошибка воспроизведения звука готовности:', err);
+      }
+    } catch (error) {
+      console.error('❌ [RoomSetup] Error in handleToggleReady:', error);
     }
   };
 
@@ -200,8 +290,7 @@ const RoomSetup = ({ user, roomId, onSetupComplete, onBack, onGameStarted, onExi
     
     socket.emit('startGame', roomId, (ok, reason) => {
       if (ok) {
-        onSetupComplete && onSetupComplete();
-        onGameStarted && onGameStarted();
+        onRoomSetup({ roomId: roomId }); // Assuming onRoomSetup handles setup completion
       } else {
         setStarting(false);
         console.warn('startGame rejected', reason);
@@ -233,16 +322,18 @@ const RoomSetup = ({ user, roomId, onSetupComplete, onBack, onGameStarted, onExi
   };
 
   return (
-    <Box sx={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      p: 4,
-      pt: 6
-    }}>
+    <>
+      <style>{spinnerStyle}</style>
+      <Box sx={{
+        minHeight: '100vh',
+        background: colors.roomSetup.background,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        p: 4,
+        pt: 6
+      }}>
       {/* Заголовок */}
       <Typography variant="h4" sx={{ 
         color: 'white', 
@@ -308,8 +399,8 @@ const RoomSetup = ({ user, roomId, onSetupComplete, onBack, onGameStarted, onExi
                           if (inputRoomId.trim()) {
                             const newRoomId = inputRoomId.trim();
                             console.log('🔄 [RoomSetup] Connecting to room:', newRoomId);
-                            if (onSetupComplete) {
-                              onSetupComplete({ roomId: newRoomId });
+                            if (onRoomSetup) {
+                              onRoomSetup({ roomId: newRoomId });
                             }
                           }
                         }}
@@ -491,17 +582,15 @@ const RoomSetup = ({ user, roomId, onSetupComplete, onBack, onGameStarted, onExi
           variant="contained"
           fullWidth
           sx={{
+            ...buttonStyles.success,
             mb: 2,
-            bgcolor: myReady ? '#4CAF50' : '#FFD700',
-            color: myReady ? 'white' : 'black',
             borderRadius: 3,
             py: 1.5,
-            fontWeight: 'bold',
             fontSize: '1.1rem',
-            transition: 'all 0.3s ease',
+            bgcolor: myReady ? colors.success.main : colors.warning.main,
+            color: myReady ? colors.success.contrast : colors.warning.contrast,
             '&:hover': {
-              transform: 'translateY(-2px)',
-              boxShadow: 4
+              bgcolor: myReady ? colors.success.dark : colors.warning.dark
             }
           }}
           onClick={handleToggleReady}
@@ -509,7 +598,7 @@ const RoomSetup = ({ user, roomId, onSetupComplete, onBack, onGameStarted, onExi
           {myReady ? '✓ Готов' : '🎯 Готов'}
         </Button>
 
-                            {/* Индикация "Все готовы" */}
+                            {/* Индикация готовности к старту */}
                     {allReady && players.length >= 2 && (
                       <motion.div
                         initial={{ scale: 0, opacity: 0 }}
@@ -532,37 +621,106 @@ const RoomSetup = ({ user, roomId, onSetupComplete, onBack, onGameStarted, onExi
                             justifyContent: 'center',
                             gap: 1
                           }}>
-                            🎉 Все игроки готовы! 🎉
+                            🎉 Игра готова к старту! 🎉
+                          </Typography>
+                          <Typography variant="body2" sx={{
+                            color: '#2E7D32',
+                            mt: 1,
+                            fontSize: '0.9rem'
+                          }}>
+                            {players.filter(p => p.ready).length} из {players.length} игроков готовы
                           </Typography>
                         </Box>
                       </motion.div>
                     )}
 
-                    {/* Кнопка старта игры */}
-                    {(user?.isAdmin || hostId === socket.id) && players.filter(p => p.ready).length >= 2 && (
-                      <Button
-                        disabled={starting}
-                        variant="contained"
-                        fullWidth
-                        sx={{
-                          mb: 2,
-                          bgcolor: '#4CAF50',
-                          color: 'white',
-                          borderRadius: 3,
-                          py: 1.5,
-                          fontWeight: 'bold',
-                          fontSize: '1.1rem',
-                          opacity: starting ? 0.7 : 1,
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            transform: 'translateY(-2px)',
-                            boxShadow: 4
-                          }
-                        }}
-                        onClick={handleStartGame}
+                    {/* Кнопка старта игры - показываем когда минимум 2 игрока готовы */}
+                    {players.filter(p => p.ready).length >= 2 && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5, type: "spring" }}
                       >
-                        {starting ? '🚀 Запуск...' : `🚀 Старт игры (${players.filter(p => p.ready).length}/${players.length} готовы)`}
-                      </Button>
+                        <Button
+                          disabled={starting}
+                          variant="contained"
+                          fullWidth
+                          sx={{
+                            ...buttonStyles.primary,
+                            mb: 2,
+                            bgcolor: colors.game.start,
+                            borderColor: colors.game.start,
+                            borderRadius: 3,
+                            py: 2,
+                            fontSize: '1.2rem',
+                            opacity: starting ? 0.7 : 1,
+                            '&:hover': {
+                              bgcolor: colors.game.start,
+                              transform: 'translateY(-3px)',
+                              boxShadow: '0 12px 35px rgba(255, 107, 53, 0.6)'
+                            },
+                            '&:disabled': {
+                              bgcolor: colors.gray[400],
+                              borderColor: colors.gray[500],
+                              boxShadow: 'none'
+                            }
+                          }}
+                          onClick={handleStartGame}
+                        >
+                          {starting ? (
+                            <>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{ 
+                                  width: 20, 
+                                  height: 20, 
+                                  border: '2px solid white', 
+                                  borderTop: '2px solid transparent',
+                                  borderRadius: '50%',
+                                  animation: 'spin 1s linear infinite'
+                                }} />
+                                🚀 Запуск игры...
+                              </Box>
+                            </>
+                          ) : (
+                            <>
+                              🚀 СТАРТ ИГРЫ! 🚀
+                              <Box sx={{ 
+                                ml: 1, 
+                                fontSize: '0.9rem', 
+                                opacity: 0.9,
+                                fontWeight: 'normal'
+                              }}>
+                                {players.filter(p => p.ready).length}/{players.length} готовы
+                              </Box>
+                            </>
+                          )}
+                        </Button>
+                        
+                        {/* Информация о том, что другие могут присоединиться */}
+                        <Box sx={{
+                          mt: 1,
+                          p: 2,
+                          bgcolor: 'rgba(255, 107, 53, 0.1)',
+                          border: '2px solid #FF6B35',
+                          borderRadius: 2,
+                          textAlign: 'center'
+                        }}>
+                          <Typography variant="body2" sx={{
+                            color: '#E55A2B',
+                            fontWeight: 'bold',
+                            fontSize: '0.9rem'
+                          }}>
+                            💡 Игра может начаться с {players.filter(p => p.ready).length} игроками!
+                          </Typography>
+                          <Typography variant="caption" sx={{
+                            color: '#FF6B35',
+                            display: 'block',
+                            mt: 0.5
+                          }}>
+                            Остальные игроки смогут присоединиться во время игры
+                          </Typography>
+                        </Box>
+                      </motion.div>
                     )}
 
         {/* Кнопки управления */}
@@ -601,7 +759,7 @@ const RoomSetup = ({ user, roomId, onSetupComplete, onBack, onGameStarted, onExi
                 bgcolor: 'rgba(25, 118, 210, 0.04)'
               }
             }}
-            onClick={onBack}
+            onClick={() => onRoomSetup({ roomId: roomId })}
           >
             ← Назад
           </Button>
@@ -682,7 +840,8 @@ const RoomSetup = ({ user, roomId, onSetupComplete, onBack, onGameStarted, onExi
         onClose={() => setExitModalOpen(false)}
         onConfirm={handleExitRoom}
       />
-    </Box>
+      </Box>
+    </>
   );
 };
 

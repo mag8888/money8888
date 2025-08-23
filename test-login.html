@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест системы логина</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: white;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            color: #333;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input:focus {
+            border-color: #1976d2;
+            outline: none;
+        }
+        button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #1565c0;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            cursor: pointer;
+            color: #495057;
+        }
+        .tab.active {
+            background: #1976d2;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .user-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #bbdefb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Тест системы логина по Email</h1>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('login')">Вход</div>
+            <div class="tab" onclick="showTab('register')">Регистрация</div>
+            <div class="tab" onclick="showTab('profile')">Профиль</div>
+        </div>
+
+        <!-- Форма входа -->
+        <div id="login" class="tab-content active">
+            <h2>Вход в систему</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email:</label>
+                    <input type="email" id="loginEmail" required placeholder="Введите ваш email">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Пароль:</label>
+                    <input type="password" id="loginPassword" required placeholder="Введите пароль">
+                </div>
+                <button type="submit">🔐 Войти</button>
+            </form>
+        </div>
+
+        <!-- Форма регистрации -->
+        <div id="register" class="tab-content">
+            <h2>Регистрация нового пользователя</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="registerEmail">Email:</label>
+                    <input type="email" id="registerEmail" required placeholder="Введите email">
+                </div>
+                <div class="form-group">
+                    <label for="registerUsername">Имя пользователя:</label>
+                    <input type="text" id="registerUsername" required placeholder="Введите имя пользователя">
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Пароль:</label>
+                    <input type="password" id="registerPassword" required placeholder="Минимум 6 символов">
+                </div>
+                <button type="submit">🚀 Зарегистрироваться</button>
+            </form>
+        </div>
+
+        <!-- Профиль пользователя -->
+        <div id="profile" class="tab-content">
+            <h2>Профиль пользователя</h2>
+            <div id="userInfo" class="user-info" style="display: none;">
+                <h3>Информация о пользователе:</h3>
+                <div id="userDetails"></div>
+            </div>
+            <button onclick="getProfile()" id="profileBtn" style="display: none;">📋 Получить профиль</button>
+            <p id="profileMessage">Войдите в систему, чтобы просмотреть профиль</p>
+        </div>
+
+        <!-- Результаты -->
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        let currentToken = null;
+        let currentUser = null;
+
+        // Переключение между вкладками
+        function showTab(tabName) {
+            // Скрываем все вкладки
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Показываем выбранную вкладку
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Показать результат
+        function showResult(message, isSuccess = true) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${isSuccess ? 'success' : 'error'}`;
+            resultDiv.style.display = 'block';
+        }
+
+        // Обработка входа
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentToken = data.token;
+                    currentUser = data.user;
+                    
+                    showResult(`✅ ${data.message}\n\nПользователь: ${data.user.username}\nID: ${data.user.displayId}\nEmail: ${data.user.email}`);
+                    
+                    // Обновляем UI
+                    updateUIAfterAuth();
+                } else {
+                    showResult(`❌ ${data.error}`, false);
+                }
+            } catch (error) {
+                showResult(`❌ Ошибка сети: ${error.message}`, false);
+            }
+        });
+
+        // Обработка регистрации
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('registerEmail').value;
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentToken = data.token;
+                    currentUser = data.user;
+                    
+                    showResult(`✅ ${data.message}\n\nПользователь: ${data.user.username}\nID: ${data.user.displayId}\nEmail: ${data.user.email}`);
+                    
+                    // Обновляем UI
+                    updateUIAfterAuth();
+                } else {
+                    showResult(`❌ ${data.error}`, false);
+                }
+            } catch (error) {
+                showResult(`❌ Ошибка сети: ${error.message}`, false);
+            }
+        });
+
+        // Обновление UI после аутентификации
+        function updateUIAfterAuth() {
+            if (currentUser) {
+                document.getElementById('userInfo').style.display = 'block';
+                document.getElementById('profileBtn').style.display = 'block';
+                document.getElementById('profileMessage').style.display = 'none';
+                
+                // Заполняем информацию о пользователе
+                document.getElementById('userDetails').innerHTML = `
+                    <p><strong>ID:</strong> ${currentUser.displayId}</p>
+                    <p><strong>Имя:</strong> ${currentUser.username}</p>
+                    <p><strong>Email:</strong> ${currentUser.email}</p>
+                    <p><strong>Роль:</strong> ${currentUser.role}</p>
+                    <p><strong>Игр сыграно:</strong> ${currentUser.gameStats.gamesPlayed}</p>
+                    <p><strong>Побед:</strong> ${currentUser.gameStats.gamesWon}</p>
+                `;
+            }
+        }
+
+        // Получение профиля
+        async function getProfile() {
+            if (!currentToken) {
+                showResult('❌ Сначала войдите в систему', false);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/profile', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentUser = data.user;
+                    showResult(`✅ Профиль получен:\n\nИмя: ${data.user.username}\nID: ${data.user.displayId}\nEmail: ${data.user.email}`);
+                    updateUIAfterAuth();
+                } else {
+                    showResult(`❌ ${data.error}`, false);
+                }
+            } catch (error) {
+                showResult(`❌ Ошибка сети: ${error.message}`, false);
+            }
+        }
+
+        // Проверка статуса сервера
+        async function checkServerStatus() {
+            try {
+                const response = await fetch('/api/health');
+                if (response.ok) {
+                    console.log('✅ Сервер доступен');
+                } else {
+                    console.log('❌ Сервер недоступен');
+                }
+            } catch (error) {
+                console.log('❌ Ошибка подключения к серверу:', error.message);
+            }
+        }
+
+        // Проверяем статус сервера при загрузке
+        window.addEventListener('load', checkServerStatus);
+    </script>
+</body>
+</html>

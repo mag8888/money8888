@@ -12,6 +12,16 @@ const pool = new Pool({ /* config */ });
 
 const Rating = require('./models/Rating');
 
+// Подключаем auth routes
+const authRoutes = require('./routes/auth');
+
+// Функция генерации уникального порядкового ID для комнат
+let lastRoomId = 0;
+const generateSequentialRoomId = () => {
+  lastRoomId++;
+  return `room${lastRoomId}`;
+};
+
 const app = express();
 const server = http.createServer(app);
 // Allow JSON bodies and CORS for local dev
@@ -28,6 +38,9 @@ const io = socketIo(server, {
   pingInterval: 25000
 });
 
+// Подключаем auth routes
+app.use('/api/auth', authRoutes);
+
 // Serve client files (moved to end after API routes)
 
 // Admin: reset all rooms (dangerous)
@@ -40,6 +53,70 @@ app.post('/admin/reset', (req, res) => {
     return res.json({ ok: true });
   } catch (e) {
     return res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+// Команда для просмотра всех комнат (отладка)
+app.get('/api/admin/rooms', (req, res) => {
+  try {
+    const roomsInfo = Object.keys(rooms).map(roomId => {
+      const room = rooms[roomId];
+      return {
+        roomId,
+        status: room.status,
+        maxPlayers: room.maxPlayers,
+        currentPlayers: room.currentPlayers.length,
+        players: room.currentPlayers.map(p => ({
+          id: p.id,
+          username: p.username,
+          socketId: p.socketId,
+          ready: p.ready,
+          offline: p.offline
+        }))
+      };
+    });
+    
+    res.json({
+      success: true,
+      totalRooms: roomsInfo.length,
+      rooms: roomsInfo
+    });
+    
+    console.log('📊 [ADMIN] Rooms info requested, total rooms:', roomsInfo.length);
+  } catch (error) {
+    console.error('❌ [ADMIN] Error getting rooms info:', error);
+    res.status(500).json({ error: 'Failed to get rooms info' });
+  }
+});
+
+// Команда для очистки дублей во всех комнатах (админ)
+app.post('/api/admin/cleanup-duplicates', async (req, res) => {
+  try {
+    let totalCleaned = 0;
+    
+    for (const roomId in rooms) {
+      const room = rooms[roomId];
+      const cleaned = cleanupDuplicatePlayers(room);
+      totalCleaned += cleaned;
+      
+      if (cleaned > 0) {
+        // Обновляем клиентов
+        io.to(roomId).emit('playersUpdate', room.currentPlayers);
+      }
+    }
+    
+    persistRooms();
+    
+    res.json({ 
+      success: true, 
+      message: `Cleaned up ${totalCleaned} duplicate players`,
+      totalCleaned 
+    });
+    
+    console.log('🧹 [ADMIN] Cleaned up duplicates in all rooms:', totalCleaned);
+  } catch (error) {
+    console.error('❌ [ADMIN] Error cleaning up duplicates:', error);
+    res.status(500).json({ error: 'Failed to cleanup duplicates' });
   }
 });
 
@@ -73,13 +150,7 @@ function loadRooms() {
   }
 }
 
-// API route example
-app.post('/register', async (req, res) => {
-  const { username, email, password } = req.body;
-  const newUser = new User({ username, email, password }); // Add hashing in production
-  await newUser.save();
-  res.status(201).send('User registered');
-});
+// Убираем старый register route, теперь используем /api/auth/register
 
 // Update rooms structure to include timer, players with full data, board state
 const rooms = {}; // { roomId: { maxPlayers, currentPlayers: [...], status, password, timer, currentTurn, board, createdAt } }
@@ -92,6 +163,8 @@ function createDefaultRoom() {
   const id = 'lobby';
   rooms[id] = {
     roomId: id,
+    displayName: 'Лобби',
+    originalRequestedId: 'lobby',
     maxPlayers: 6,
     currentPlayers: [],
     status: 'waiting',
@@ -119,18 +192,73 @@ io.on('connection', (socket) => {
   // Send initial rooms list to client
   socket.emit('roomsList', getSortedRoomsList());
 
-  // Join a room namespace
-  socket.on('joinRoom', (roomId) => {
-    if (rooms[roomId]) {
-      socket.join(roomId);
+  // Рефакторинг: исправляю функцию joinRoom для правильной работы с игроками
+  socket.on('joinRoom', (roomId, playerData) => {
+    console.log(`🔗 [SERVER] joinRoom requested: ${roomId} by socket: ${socket.id}`, playerData);
+    
+    if (!rooms[roomId]) {
+      console.log(`❌ [SERVER] Room ${roomId} not found for socket: ${socket.id}`);
+      socket.emit('error', { message: 'Комната не найдена' });
+      return;
     }
+    
+    socket.join(roomId);
+    console.log(`✅ [SERVER] Socket ${socket.id} joined room: ${roomId}`);
+    
+    // Создаем объект игрока
+    const player = {
+      id: socket.id,
+      username: playerData?.username || `Гость-${socket.id.slice(-4)}`,
+      email: playerData?.email || '',
+      displayId: playerData?.displayId || '',
+      ready: false,
+      offline: false,
+      socketId: socket.id,
+      joinedAt: Date.now()
+    };
+    
+    // Проверяем, не добавлен ли уже игрок
+    const existingPlayerIndex = rooms[roomId].currentPlayers.findIndex(p => p.socketId === socket.id);
+    
+    if (existingPlayerIndex === -1) {
+      // Добавляем нового игрока
+      rooms[roomId].currentPlayers.push(player);
+      console.log(`👤 [SERVER] Player ${player.username} added to room ${roomId}`);
+    } else {
+      // Обновляем существующего игрока
+      rooms[roomId].currentPlayers[existingPlayerIndex] = { ...player, offline: false };
+      console.log(`👤 [SERVER] Player ${player.username} updated in room ${roomId}`);
+    }
+    
+    // Сохраняем изменения
+    persistRooms();
+    
+    // Отправляем обновленный список игроков всем в комнате
+    io.to(roomId).emit('playersUpdate', rooms[roomId].currentPlayers);
+    
+    // Отправляем данные комнаты
+    socket.emit('roomUpdated', rooms[roomId]);
+    
+    // Обновляем список комнат для всех
+    const roomsList = getSortedRoomsList();
+    io.emit('roomsList', roomsList);
+    
+    console.log(`✅ [SERVER] Room ${roomId} now has ${rooms[roomId].currentPlayers.length} players`);
   });
 
-  socket.on('createRoom', (roomId, maxPlayers, password, timerHours = config.rules.defaultTimer) => {
-    if (!rooms[roomId]) {
-      console.log(`Creating room ${roomId} by ${socket.id}`);
-      rooms[roomId] = {
-        roomId,
+  socket.on('createRoom', (roomId, maxPlayers, password, timerHours = config.rules.defaultTimer, roomName) => {
+    // Генерируем уникальный порядковый ID для комнаты
+    const sequentialId = generateSequentialRoomId();
+    
+    // Создаем комнату с автоматически сгенерированным ID
+    const actualRoomId = sequentialId;
+    
+    if (!rooms[actualRoomId]) {
+      console.log(`Creating room ${actualRoomId} (requested: ${roomId}) by ${socket.id} with name: ${roomName || 'Unnamed'}`);
+      rooms[actualRoomId] = {
+        roomId: actualRoomId,
+        displayName: roomName || `Комната ${roomId}`,
+        originalRequestedId: roomId, // Сохраняем запрошенный ID для отображения
         maxPlayers,
         currentPlayers: [], // Will add players with details on join/setup
         status: 'waiting',
@@ -143,11 +271,42 @@ io.on('connection', (socket) => {
       };
       
       // Start timers for the room
-      startRoomTimers(roomId);
+      startRoomTimers(actualRoomId);
       
       persistRooms();
       const roomsList = getSortedRoomsList();
       io.emit('roomsList', roomsList);
+      
+      // Отправляем событие о создании комнаты создателю
+      socket.emit('roomCreated', rooms[actualRoomId]);
+      
+      console.log(`✅ Room ${actualRoomId} created with name: ${rooms[actualRoomId].displayName}`);
+    } else {
+      // Если комната с таким ID уже существует, генерируем новый
+      console.log(`⚠️ Room ${actualRoomId} already exists, generating new ID`);
+      const newId = generateSequentialRoomId();
+      rooms[newId] = {
+        roomId: newId,
+        displayName: roomName || `Комната ${roomId}`,
+        originalRequestedId: roomId,
+        maxPlayers,
+        currentPlayers: [],
+        status: 'waiting',
+        password,
+        hostId: socket.id,
+        timer: { hours: timerHours, remaining: timerHours * 3600 },
+        currentTurn: null,
+        board: config.board,
+        createdAt: Date.now()
+      };
+      
+      startRoomTimers(newId);
+      persistRooms();
+      const roomsList = getSortedRoomsList();
+      io.emit('roomsList', roomsList);
+      
+      socket.emit('roomCreated', rooms[newId]);
+      console.log(`✅ Room ${newId} created with name: ${rooms[newId].displayName}`);
     }
   });
 
@@ -162,47 +321,144 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Функция очистки дублей в комнате
+  const cleanupDuplicatePlayers = (room) => {
+    const beforeCleanup = room.currentPlayers.length;
+    
+    // Убираем дубли по socketId
+    const uniqueBySocketId = [];
+    const seenSocketIds = new Set();
+    
+    for (const player of room.currentPlayers) {
+      if (!seenSocketIds.has(player.socketId) || player.socketId === null) {
+        uniqueBySocketId.push(player);
+        if (player.socketId) {
+          seenSocketIds.add(player.socketId);
+        }
+      }
+    }
+    
+    // Убираем дубли по fixedId
+    const uniqueByFixedId = [];
+    const seenFixedIds = new Set();
+    
+    for (const player of uniqueBySocketId) {
+      if (!seenFixedIds.has(player.fixedId)) {
+        uniqueByFixedId.push(player);
+        seenFixedIds.add(player.fixedId);
+      } else {
+        console.log('🧹 [SERVER] Removed duplicate player by fixedId:', player.fixedId);
+      }
+    }
+    
+    room.currentPlayers = uniqueByFixedId;
+    
+    const afterCleanup = room.currentPlayers.length;
+    if (beforeCleanup !== afterCleanup) {
+      console.log('🧹 [SERVER] Cleaned up duplicate players:', beforeCleanup - afterCleanup);
+      console.log('🧹 [SERVER] Players after cleanup:', room.currentPlayers.map(p => ({ 
+        id: p.id, 
+        username: p.username, 
+        socketId: p.socketId 
+      })));
+    }
+    
+    return beforeCleanup - afterCleanup;
+  };
+
+  // Обработка запроса списка комнат
+  socket.on('getRoomsList', () => {
+    console.log('🏠 [SERVER] getRoomsList requested by socket:', socket.id);
+    const roomsList = getSortedRoomsList();
+    socket.emit('roomsList', roomsList);
+    console.log('🏠 [SERVER] Sent rooms list:', roomsList.length, 'rooms');
+  });
+
   // On join, assign profession and initial finances (in a new 'setupPlayer' event or here)
   socket.on('setupPlayer', (roomId, playerData) => {
-    console.log('setupPlayer called:', { roomId, socketId: socket.id, playerData });
-    console.log('Available rooms:', Object.keys(rooms));
+    console.log('🎮 [SERVER] setupPlayer called:', { roomId, socketId: socket.id, playerData });
+    console.log('🎮 [SERVER] Available rooms:', Object.keys(rooms));
     
     const room = rooms[roomId];
     if (!room) {
-      console.log('❌ setupPlayer: Room not found:', roomId);
-      console.log('Available rooms:', Object.keys(rooms));
+      console.log('❌ [SERVER] setupPlayer: Room not found:', roomId);
+      console.log('🎮 [SERVER] Available rooms:', Object.keys(rooms));
       return;
     }
     
-    console.log('✅ setupPlayer: Room found:', { roomId, status: room.status, currentPlayers: room.currentPlayers.length });
+    console.log('✅ [SERVER] setupPlayer: Room found:', { 
+      roomId, 
+      status: room.status, 
+      currentPlayers: room.currentPlayers.length,
+      players: room.currentPlayers.map(p => ({ 
+        id: p.id, 
+        username: p.username, 
+        socketId: p.socketId,
+        offline: p.offline 
+      }))
+    });
+    
+    // Очищаем старые игроки с тем же socketId (защита от дублей)
+    const beforeCleanup = room.currentPlayers.length;
+    room.currentPlayers = room.currentPlayers.filter(p => p.socketId !== socket.id);
+    const afterCleanup = room.currentPlayers.length;
+    
+    if (beforeCleanup !== afterCleanup) {
+      console.log('🧹 [SERVER] Cleaned up duplicate socketId players:', beforeCleanup - afterCleanup);
+    }
+    
+    // Дополнительная очистка дублей
+    cleanupDuplicatePlayers(room);
     
     // Проверяем, есть ли уже игрок с таким фиксированным ID
     const existingById = room.currentPlayers.find(p => p.fixedId === playerData.id);
     if (existingById) {
-      console.log('[setupPlayer] Player with ID already exists:', playerData.id);
+      console.log('🔄 [SERVER] Player with ID already exists:', playerData.id);
+      console.log('🔄 [SERVER] Updating existing player socketId from', existingById.socketId, 'to', socket.id);
+      
       // Если игрок с таким ID уже есть, подключаем к нему
       existingById.socketId = socket.id;
       existingById.offline = false;
-      existingById.roomId = roomId; // Обновляем roomId
+      existingById.roomId = roomId;
+      
       socket.join(roomId);
+      console.log('✅ [SERVER] Existing player reconnected:', {
+        id: existingById.id,
+        username: existingById.username,
+        socketId: existingById.socketId
+      });
+      
       io.to(roomId).emit('playersUpdate', room.currentPlayers);
       return;
     }
     
-    // Разрешаем переподключение по socket.id
-    const existingBySocket = room.currentPlayers.find(p => p.socketId === socket.id);
-    if (existingBySocket) {
-      console.log('[setupPlayer] Reconnecting player by socket:', existingBySocket.username, 'old socketId:', existingBySocket.socketId, 'new socketId:', socket.id);
-      existingBySocket.socketId = socket.id;
-      existingBySocket.offline = false;
-      existingBySocket.roomId = roomId; // Обновляем roomId
+    // Проверяем, есть ли уже игрок с тем же username (защита от дублей)
+    const existingByUsername = room.currentPlayers.find(p => p.username === playerData.username);
+    if (existingByUsername) {
+      console.log('🔄 [SERVER] Player with username already exists:', playerData.username);
+      console.log('🔄 [SERVER] Updating existing player socketId from', existingByUsername.socketId, 'to', socket.id);
+      
+      // Обновляем существующего игрока
+      existingByUsername.socketId = socket.id;
+      existingByUsername.offline = false;
+      existingByUsername.roomId = roomId;
+      
       socket.join(roomId);
+      console.log('✅ [SERVER] Existing player reconnected by username:', {
+        id: existingByUsername.id,
+        username: existingByUsername.username,
+        socketId: existingByUsername.socketId
+      });
+      
       io.to(roomId).emit('playersUpdate', room.currentPlayers);
       return;
     }
     
     // Новый игрок только если статус ожидания
-    if (room.status !== 'waiting') return;
+    if (room.status !== 'waiting') {
+      console.log('❌ [SERVER] Room not in waiting status, cannot add new player');
+      return;
+    }
     
     // Создаем игрока с фиксированным ID
     const player = {
@@ -217,7 +473,7 @@ io.on('connection', (socket) => {
       passiveIncome: playerData.passiveIncome || 0,
       seat: null,
       offline: false,
-      roomId: roomId, // Добавляем roomId для фильтрации на клиенте
+      roomId: roomId,
       // Добавляем базовые характеристики если их нет
       salary: playerData.salary || 2000,
       childCost: playerData.childCost || 500,
@@ -233,6 +489,28 @@ io.on('connection', (socket) => {
     
     room.currentPlayers.push(player);
     socket.join(roomId);
+    
+    console.log('✅ [SERVER] New player added:', {
+      id: player.id,
+      username: player.username,
+      socketId: player.socketId,
+      totalPlayers: room.currentPlayers.length
+    });
+    
+    console.log('📊 [SERVER] Final room state:', {
+      roomId,
+      totalPlayers: room.currentPlayers.length,
+      players: room.currentPlayers.map(p => ({ 
+        id: p.id, 
+        username: p.username, 
+        socketId: p.socketId,
+        offline: p.offline 
+      }))
+    });
+    
+    // Финальная очистка дублей перед отправкой
+    cleanupDuplicatePlayers(room);
+    
     io.to(roomId).emit('playersUpdate', room.currentPlayers);
     persistRooms();
     const roomsList = getSortedRoomsList();
@@ -241,52 +519,107 @@ io.on('connection', (socket) => {
 
   // New event: toggle ready
   socket.on('toggleReady', (roomId) => {
-    console.log('Toggle ready received for room', roomId, 'from', socket.id);
+    console.log('🎯 [SERVER] toggleReady received for room', roomId, 'from socket', socket.id);
+    console.log('🎯 [SERVER] Available rooms:', Object.keys(rooms));
+    console.log('🎯 [SERVER] Room details:', Object.keys(rooms).map(id => ({
+      id,
+      status: rooms[id]?.status,
+      players: rooms[id]?.currentPlayers?.length || 0
+    })));
     
-    // Ищем игрока по socketId (для переподключений) или по фиксированному ID
-    let player = rooms[roomId].currentPlayers.find(p => p.socketId === socket.id);
+    const room = rooms[roomId];
+    if (!room) {
+      console.log('❌ [SERVER] toggleReady: Room not found:', roomId);
+      console.log('❌ [SERVER] Available room IDs:', Object.keys(rooms));
+      socket.emit('toggleReadyError', 'Room not found');
+      return;
+    }
+    
+    console.log('🎯 [SERVER] Room found:', { 
+      roomId, 
+      status: room.status, 
+      currentPlayers: room.currentPlayers.length,
+      players: room.currentPlayers.map(p => ({ 
+        id: p.id, 
+        username: p.username, 
+        socketId: p.socketId,
+        ready: p.ready 
+      }))
+    });
+    
+    // Ищем игрока по socketId
+    let player = room.currentPlayers.find(p => p.socketId === socket.id);
     
     if (!player) {
-      console.log('Player not found by socketId, trying to find by fixedId...');
+      console.log('🎯 [SERVER] Player not found by socketId, trying to find by fixedId...');
       // Если не нашли по socketId, ищем по фиксированному ID
-      player = rooms[roomId].currentPlayers.find(p => p.id && p.id !== socket.id);
+      // Но только если у нас есть playerData в socket
+      const playerData = socket.playerData;
+      if (playerData && playerData.id) {
+        player = room.currentPlayers.find(p => p.fixedId === playerData.id);
+        console.log('🎯 [SERVER] Looking for player with fixedId:', playerData.id);
+      }
     }
     
     if (player) {
-      console.log('Found player:', player.username, 'ID:', player.id, 'SocketID:', player.socketId);
+      console.log('✅ [SERVER] Found player:', { 
+        username: player.username, 
+        id: player.id, 
+        socketId: player.socketId,
+        currentReady: player.ready 
+      });
       
       // Flip ready and manage seat assignment
       const nextReady = !player.ready;
       if (nextReady) {
         // Assign lowest free seat
         const usedSeats = new Set(
-          rooms[roomId].currentPlayers.filter(p => p.ready && p.seat !== null).map(p => p.seat)
+          room.currentPlayers.filter(p => p.ready && p.seat !== null).map(p => p.seat)
         );
         let seat = null;
-        for (let i = 0; i < rooms[roomId].maxPlayers; i += 1) {
+        for (let i = 0; i < room.maxPlayers; i += 1) {
           if (!usedSeats.has(i)) { seat = i; break; }
         }
         if (seat === null) {
-          console.log('No free seats');
-          io.to(socket.id).emit('noSeat');
+          console.log('❌ [SERVER] No free seats available');
+          socket.emit('noSeat');
           return;
         }
         player.seat = seat;
         player.ready = true;
-        console.log('Player marked as ready, assigned seat:', seat);
+        console.log('✅ [SERVER] Player marked as ready, assigned seat:', seat);
       } else {
         player.ready = false;
         player.seat = null;
-        console.log('Player marked as not ready, seat cleared');
+        console.log('✅ [SERVER] Player marked as not ready, seat cleared');
       }
       
-      console.log('Player ready status:', player.ready);
-      io.to(roomId).emit('playersUpdate', rooms[roomId].currentPlayers);
+      console.log('✅ [SERVER] Player ready status updated:', player.ready);
+      
+      // Очищаем дубли перед отправкой обновления
+      cleanupDuplicatePlayers(room);
+      
+      // Отправляем подтверждение клиенту
+      socket.emit('toggleReadySuccess', { 
+        player: { 
+          id: player.id, 
+          username: player.username, 
+          ready: player.ready,
+          seat: player.seat 
+        } 
+      });
+      
+      io.to(roomId).emit('playersUpdate', room.currentPlayers);
       persistRooms();
       // Note: game will start only when host presses Start
     } else {
-      console.log('❌ Player not found in room:', roomId, 'socketId:', socket.id);
-      console.log('Available players:', rooms[roomId].currentPlayers.map(p => ({ id: p.id, socketId: p.socketId, username: p.username })));
+      console.log('❌ [SERVER] Player not found in room:', roomId, 'socketId:', socket.id);
+      console.log('❌ [SERVER] Available players:', room.currentPlayers.map(p => ({ 
+        id: p.id, 
+        socketId: p.socketId, 
+        username: p.username 
+      })));
+      socket.emit('toggleReadyError', 'Player not found in room');
     }
   });
 
@@ -760,9 +1093,10 @@ io.on('connection', (socket) => {
 
   // Return full room data for setup screen (hostId, maxPlayers, etc.)
   socket.on('getRoom', (roomId) => {
+    console.log(`🏠 [SERVER] getRoom requested: ${roomId} by socket: ${socket.id}`);
     const room = rooms[roomId];
     if (room) {
-      console.log('getRoom response:', {
+      console.log(`✅ [SERVER] getRoom response for room ${roomId}:`, {
         roomId: room.roomId,
         status: room.status,
         currentTurn: room.currentTurn,
@@ -777,7 +1111,8 @@ io.on('connection', (socket) => {
         currentTurn: room.currentTurn
       });
     } else {
-      console.log('getRoom: room not found', roomId);
+      console.log(`❌ [SERVER] getRoom: room ${roomId} not found for socket: ${socket.id}`);
+      console.log(`🔍 [SERVER] Available rooms:`, Object.keys(rooms));
     }
   });
 
@@ -819,24 +1154,28 @@ io.on('connection', (socket) => {
   });
 
   socket.on('getPlayers', (roomId) => {
+    console.log(`👥 [SERVER] getPlayers requested for room: ${roomId} by socket: ${socket.id}`);
     if (rooms[roomId]) {
-      console.log('[getPlayers] Room:', roomId, 'Socket ID:', socket.id);
-      console.log('[getPlayers] Current players:', rooms[roomId].currentPlayers.map(p => ({ id: p.id, username: p.username })));
+      console.log(`✅ [SERVER] getPlayers: Room ${roomId} found, Socket ID: ${socket.id}`);
+      console.log(`👥 [SERVER] getPlayers: Current players:`, rooms[roomId].currentPlayers.map(p => ({ id: p.id, username: p.username })));
       
       // Проверяем, есть ли текущий игрок в списке
       const currentPlayer = rooms[roomId].currentPlayers.find(p => p.id === socket.id);
       if (!currentPlayer) {
-        console.log('[getPlayers] Player not found by socket.id, checking by username...');
+        console.log(`⚠️ [SERVER] getPlayers: Player not found by socket.id, checking by username...`);
         // Ищем по username (для переподключений)
         const playerByUsername = rooms[roomId].currentPlayers.find(p => p.username && !p.offline);
         if (playerByUsername) {
-          console.log('[getPlayers] Found player by username, updating ID from', playerByUsername.id, 'to', socket.id);
+          console.log(`🔄 [SERVER] getPlayers: Found player by username, updating ID from ${playerByUsername.id} to ${socket.id}`);
           playerByUsername.id = socket.id;
           playerByUsername.offline = false;
         }
       }
       
       socket.emit('playersList', rooms[roomId].currentPlayers);
+    } else {
+      console.log(`❌ [SERVER] getPlayers: Room ${roomId} not found for socket: ${socket.id}`);
+      console.log(`🔍 [SERVER] Available rooms:`, Object.keys(rooms));
     }
   });
 
@@ -872,98 +1211,106 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Обработчик выхода из комнаты
-  socket.on('leaveRoom', (roomId) => {
-    console.log('🔄 [Server] Player leaving room:', { roomId, socketId: socket.id });
-    
-    // Проверяем, что roomId передан
-    if (!roomId) {
-      console.log('❌ [Server] No roomId provided, sending error');
-      socket.emit('leftRoom', { success: false, reason: 'no_room_id', error: 'Room ID is required' });
-      return;
-    }
+  // Обработчик готовности игрока
+  socket.on('setReady', (roomId, readyState) => {
+    console.log(`🎯 [SERVER] setReady: ${readyState} for room: ${roomId} by socket: ${socket.id}`);
     
     const room = rooms[roomId];
     if (!room) {
-      console.log('❌ [Server] Room not found:', roomId);
-      socket.emit('leftRoom', { roomId, success: true, reason: 'room_not_found' });
+      console.log(`❌ [SERVER] setReady: Room ${roomId} not found`);
       return;
     }
     
-    // Удаляем игрока из комнаты
-    const playerIndex = room.currentPlayers.findIndex(p => p.id === socket.id);
+    const player = room.currentPlayers.find(p => p.socketId === socket.id);
+    if (!player) {
+      console.log(`❌ [SERVER] setReady: Player not found in room ${roomId}`);
+      return;
+    }
+    
+    // Обновляем статус готовности
+    player.ready = readyState;
+    player.readyAt = readyState ? Date.now() : null;
+    
+    console.log(`✅ [SERVER] Player ${player.username} ready state: ${readyState}`);
+    
+    // Сохраняем изменения
+    persistRooms();
+    
+    // Отправляем обновленный список игроков всем в комнате
+    io.to(roomId).emit('playersUpdate', room.currentPlayers);
+    
+    // Проверяем, можно ли начинать игру
+    const readyPlayers = room.currentPlayers.filter(p => p.ready);
+    if (readyPlayers.length >= 2) {
+      io.to(roomId).emit('canStartGame', { readyPlayers: readyPlayers.length, totalPlayers: room.currentPlayers.length });
+    }
+    
+    // Обновляем список комнат для всех
+    const roomsList = getSortedRoomsList();
+    io.emit('roomsList', roomsList);
+  });
+
+  // Обработчик выхода из комнаты
+  socket.on('leaveRoom', (roomId) => {
+    console.log(`🚪 [SERVER] leaveRoom: ${roomId} by socket: ${socket.id}`);
+    
+    const room = rooms[roomId];
+    if (!room) {
+      console.log(`❌ [SERVER] leaveRoom: Room ${roomId} not found`);
+      return;
+    }
+    
+    const playerIndex = room.currentPlayers.findIndex(p => p.socketId === socket.id);
     if (playerIndex !== -1) {
-      const [removedPlayer] = room.currentPlayers.splice(playerIndex, 1);
-      console.log('✅ [Server] Player removed from room:', removedPlayer.username);
+      const player = room.currentPlayers[playerIndex];
+      console.log(`👤 [SERVER] Player ${player.username} leaving room ${roomId}`);
       
-      // Если это был хост, назначаем нового
-      if (room.hostId === socket.id) {
-        room.hostId = room.currentPlayers[0]?.id || null;
-        console.log('👑 [Server] New host assigned:', room.hostId);
-      }
+      // Удаляем игрока из комнаты
+      room.currentPlayers.splice(playerIndex, 1);
       
-      // Если игра началась и это был текущий ход, передаем ход следующему
-      if (room.status === 'started' && room.currentTurn === socket.id) {
-        if (room.currentPlayers.length > 0) {
-          const nextPlayerIndex = 0; // Берем первого доступного игрока
-          room.currentTurn = room.currentPlayers[nextPlayerIndex].id;
-          console.log('🎯 [Server] Turn passed to next player:', room.currentPlayers[nextPlayerIndex].username);
-          io.to(roomId).emit('turnChanged', room.currentTurn);
-        }
-      }
-      
-      // Покидаем комнату
-      socket.leave(roomId);
-      
-      // Обновляем данные для всех игроков
-      io.to(roomId).emit('playersUpdate', room.currentPlayers);
-      io.to(roomId).emit('roomData', { 
-        roomId: room.roomId, 
-        maxPlayers: room.maxPlayers, 
-        status: room.status, 
-        hostId: room.hostId, 
-        timer: room.timer,
-        currentTurn: room.currentTurn
-      });
-      
-      // Если игроков меньше 2, останавливаем игру
-      if (room.currentPlayers.length < 2 && room.status === 'started') {
-        room.status = 'waiting';
-        room.currentTurn = null;
-        io.to(roomId).emit('gameEnded', 'Недостаточно игроков');
-        console.log('🛑 [Server] Game stopped due to insufficient players');
-      }
-      
-      // Обновляем список комнат
+      // Сохраняем изменения
       persistRooms();
+      
+      // Отправляем обновленный список игроков всем в комнате
+      io.to(roomId).emit('playersUpdate', room.currentPlayers);
+      
+      // Обновляем список комнат для всех
       const roomsList = getSortedRoomsList();
       io.emit('roomsList', roomsList);
       
-      // Уведомляем игрока об успешном выходе
-      socket.emit('leftRoom', { roomId, success: true, reason: 'player_removed', playerCount: room.currentPlayers.length });
-      console.log('✅ [Server] leftRoom event sent to player');
-    } else {
-      console.log('⚠️ [Server] Player not found in room, but allowing exit anyway');
-      // Игрок не найден в комнате, но разрешаем выход
+      // Покидаем комнату
       socket.leave(roomId);
-      socket.emit('leftRoom', { roomId, success: true, reason: 'player_not_found' });
     }
   });
 
+  // Обработчик отключения игрока
   socket.on('disconnect', () => {
-    console.log('Client disconnected');
-    // Remove from any room and free seat
-    Object.values(rooms).forEach(room => {
-      const player = room.currentPlayers.find(p => p.id === socket.id);
-      if (player) {
-        player.offline = true; // не удаляем, чтобы сохранить позицию
-        if (room.hostId === socket.id) {
-          room.hostId = room.currentPlayers.find(p => !p.offline)?.id || null;
+    console.log('Client disconnected:', socket.id);
+    
+    // Находим все комнаты, где был этот игрок
+    Object.keys(rooms).forEach(roomId => {
+      const room = rooms[roomId];
+      if (room && room.currentPlayers) {
+        const playerIndex = room.currentPlayers.findIndex(p => p.socketId === socket.id);
+        if (playerIndex !== -1) {
+          const player = room.currentPlayers[playerIndex];
+          console.log(`Player ${player.username} disconnected from room ${roomId}`);
+          
+          // Помечаем игрока как оффлайн, но не удаляем
+          player.offline = true;
+          player.socketId = null;
+          
+          // Если игрок был готов, сбрасываем готовность
+          if (player.ready) {
+            player.ready = false;
+            player.seat = null;
+            console.log(`Player ${player.username} marked as not ready due to disconnect`);
+          }
+          
+          // Обновляем список игроков
+          io.to(roomId).emit('playersUpdate', room.currentPlayers);
+          persistRooms();
         }
-        io.to(room.roomId).emit('playersUpdate', room.currentPlayers);
-        io.to(room.roomId).emit('roomData', { roomId: room.roomId, maxPlayers: room.maxPlayers, status: room.status, hostId: room.hostId, timer: room.timer });
-        const roomsList = getSortedRoomsList();
-        io.emit('roomsList', roomsList);
       }
     });
   });
@@ -1101,15 +1448,26 @@ function clearRoomTimers(roomId) {
 
 // Get sorted rooms list (newest first)
 function getSortedRoomsList() {
-  return Object.values(rooms)
+  const roomsList = Object.values(rooms)
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
     .map(r => ({ 
-      id: r.roomId, 
+      roomId: r.roomId,  // Уникальный ID (room1, room2, lobby...)
+      displayName: r.displayName || r.roomName || `Комната ${r.roomId}`, // Отображаемое название с fallback
+      originalRequestedId: r.originalRequestedId || r.roomId, // Запрошенный пользователем ID с fallback
       currentPlayers: r.currentPlayers.length, 
       maxPlayers: r.maxPlayers,
       createdAt: r.createdAt,
       status: r.status
     }));
+  
+  console.log('🏠 [SERVER] getSortedRoomsList result:', roomsList.map(r => ({
+    roomId: r.roomId,
+    displayName: r.displayName,
+    originalRequestedId: r.originalRequestedId,
+    players: r.currentPlayers
+  })));
+  
+  return roomsList;
 }
 
 // API для получения рейтингов
@@ -1121,6 +1479,81 @@ app.get('/api/ratings/overall', async (req, res) => {
   } catch (error) {
     console.error('Error fetching overall ratings:', error);
     res.status(500).json({ error: 'Failed to fetch ratings' });
+  }
+});
+
+// Создание тестовых данных для рейтингов (если их нет)
+app.post('/api/ratings/init-test-data', async (req, res) => {
+  try {
+    // Проверяем, есть ли уже данные
+    const existingRatings = await Rating.countDocuments();
+    
+    if (existingRatings === 0) {
+      // Создаем тестовые рейтинги
+      const testRatings = [
+        {
+          playerId: 'romeoproo1',
+          username: 'RomeoProo1',
+          email: 'romeoproo1@gmail.com',
+          overallScore: 2500,
+          gamesPlayed: 15,
+          gamesWon: 12,
+          averageScore: 1800,
+          netWorth: 50000,
+          categories: {
+            wealth: { score: 2800, rank: 1 },
+            speed: { score: 2200, rank: 3 },
+            strategy: { score: 2400, rank: 2 },
+            consistency: { score: 2600, rank: 1 }
+          }
+        },
+        {
+          playerId: 'xqrmedia',
+          username: 'XQRMedia',
+          email: 'xqrmedia@gmail.com',
+          overallScore: 2300,
+          gamesPlayed: 12,
+          gamesWon: 9,
+          averageScore: 1600,
+          netWorth: 45000,
+          categories: {
+            wealth: { score: 2500, rank: 2 },
+            speed: { score: 2400, rank: 1 },
+            strategy: { score: 2200, rank: 3 },
+            consistency: { score: 2300, rank: 2 }
+          }
+        },
+        {
+          playerId: 'testplayer1',
+          username: 'TestPlayer1',
+          email: 'test1@example.com',
+          overallScore: 2000,
+          gamesPlayed: 8,
+          gamesWon: 5,
+          averageScore: 1400,
+          netWorth: 30000,
+          categories: {
+            wealth: { score: 2200, rank: 3 },
+            speed: { score: 2000, rank: 2 },
+            strategy: { score: 2000, rank: 4 },
+            consistency: { score: 2000, rank: 3 }
+          }
+        }
+      ];
+
+      for (const ratingData of testRatings) {
+        const rating = new Rating(ratingData);
+        await rating.save();
+      }
+
+      console.log('✅ Тестовые рейтинги созданы');
+      res.json({ success: true, message: 'Test ratings created', count: testRatings.length });
+    } else {
+      res.json({ success: true, message: 'Ratings already exist', count: existingRatings });
+    }
+  } catch (error) {
+    console.error('Error creating test ratings:', error);
+    res.status(500).json({ error: 'Failed to create test ratings' });
   }
 });
 
@@ -1233,6 +1666,20 @@ app.get('/api/ratings/stats', async (req, res) => {
     console.error('Error fetching rating stats:', error);
     res.status(500).json({ error: 'Failed to fetch stats' });
   }
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    server: 'CASHFLOW Game Server',
+    version: '1.0.0',
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    platform: process.platform,
+    nodeVersion: process.version
+  });
 });
 
 // Serve client files (moved here after all API routes)

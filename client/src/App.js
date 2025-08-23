@@ -1,193 +1,170 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import PlayerLogin from './components/PlayerLogin';
-import RoomSelection from './components/RoomSelection';
-import RoomSetup from './components/RoomSetup';
-import GameBoardRefactored from './components/GameBoardRefactored';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import SimpleAuth from './components/SimpleAuth';
+import SimpleRoomSelection from './components/SimpleRoomSelection';
+import RoomSetupWrapper from './components/RoomSetupWrapper';
+import GameBoardWrapper from './components/GameBoardWrapper';
 import RatingsPage from './components/RatingsPage';
 import { useLogout } from './hooks/useLogout';
+import './styles/global-fixes.css';
+import './websocket-fix.js';
 
-// Создаем темную тему
-const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#9C27B0',
-    },
-    secondary: {
-      main: '#FF9800',
-    },
-    background: {
-      default: '#1a1a2e',
-      paper: '#16213e',
-    },
-    text: {
-      primary: '#ffffff',
-      secondary: 'rgba(255, 255, 255, 0.7)',
-    },
-  },
-  typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    h1: {
-      fontWeight: 700,
-    },
-    h2: {
-      fontWeight: 600,
-    },
-    h3: {
-      fontWeight: 600,
-    },
-    h4: {
-      fontWeight: 500,
-    },
-    h5: {
-      fontWeight: 500,
-    },
-    h6: {
-      fontWeight: 500,
-    },
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          borderRadius: 8,
-          textTransform: 'none',
-          fontWeight: 600,
-        },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-        },
-      },
-    },
-  },
-});
-
-function App() {
-  const [currentPlayer, setCurrentPlayer] = useState(null);
+// Компонент-обертка для использования useNavigate
+function AppContent() {
+  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(null);
   const [currentRoom, setCurrentRoom] = useState(null);
   const { logout } = useLogout();
 
-  const handlePlayerLogin = (playerData) => {
-    console.log('🔄 [App] Player logged in:', playerData);
-    setCurrentPlayer(playerData);
+  // Обработка регистрации нового пользователя
+  const handleUserRegister = (userData) => {
+    console.log('🔄 [App] User registered:', userData);
+    setCurrentUser(userData);
+    navigate('/rooms');
+  };
+
+  // Обработка входа пользователя
+  const handleUserLogin = (userData) => {
+    console.log('🔄 [App] User logged in:', userData);
+    setCurrentUser(userData);
+    navigate('/rooms');
   };
 
   const handleRoomSetup = (roomData) => {
     console.log('🔄 [App] Room setup completed:', roomData);
-    setCurrentRoom(roomData);
-    // Перенаправляем на страницу настройки комнаты
-    window.location.href = `/room/${roomData.roomId}`;
+    // Устанавливаем currentRoom с правильной структурой
+    const roomInfo = {
+      roomId: roomData.roomId || roomData.id,
+      displayName: roomData.displayName,
+      maxPlayers: roomData.maxPlayers || 2,
+      status: roomData.status || 'waiting'
+    };
+    console.log('🔄 [App] Setting currentRoom from setup:', roomInfo);
+    setCurrentRoom(roomInfo);
+    navigate(`/room/${roomInfo.roomId}`);
+  };
+
+  const handleRoomSelect = (roomData) => {
+    console.log('🔄 [App] Room selected:', roomData);
+    // Устанавливаем currentRoom с правильной структурой
+    const roomInfo = {
+      roomId: roomData.roomId || roomData.id,
+      displayName: roomData.displayName,
+      maxPlayers: roomData.maxPlayers || 2,
+      status: roomData.status || 'waiting'
+    };
+    console.log('🔄 [App] Setting currentRoom:', roomInfo);
+    setCurrentRoom(roomInfo);
+    navigate(`/room/${roomInfo.roomId}`);
   };
 
   const handleExitGame = () => {
     console.log('🔄 [App] Exiting game');
     setCurrentRoom(null);
-    setCurrentPlayer(null);
-  };
-
-  const handleExitToMenu = () => {
-    console.log('🔄 [App] Exiting to menu');
-    setCurrentRoom(null);
+    navigate('/rooms');
   };
 
   const handleLogout = () => {
     console.log('🔄 [App] Logging out');
-    logout();
-    setCurrentPlayer(null);
+    setCurrentUser(null);
     setCurrentRoom(null);
+    logout();
+    navigate('/');
   };
 
   return (
-    <ThemeProvider theme={darkTheme}>
-      <CssBaseline />
-      <Router>
-        <Routes>
-          {/* Главная страница - вход игрока */}
-          <Route 
-            path="/" 
-            element={
-              currentPlayer ? (
-                <Navigate to="/menu" replace />
-              ) : (
-                <PlayerLogin onLogin={handlePlayerLogin} />
-              )
-            } 
-          />
+    <div className="App">
+      <Routes>
+        {/* Главная страница - регистрация/вход */}
+        <Route 
+          path="/" 
+          element={
+            currentUser ? (
+              <Navigate to="/rooms" replace />
+            ) : (
+              <SimpleAuth 
+                onRegister={handleUserRegister}
+                onLogin={handleUserLogin}
+              />
+            )
+          } 
+        />
 
-          {/* Меню - выбор комнаты */}
-          <Route 
-            path="/menu" 
-            element={
-              currentPlayer ? (
-                <RoomSelection 
-                  playerData={currentPlayer}
-                  onRoomSelect={handleRoomSetup}
-                  onLogout={handleLogout}
-                />
-              ) : (
-                <Navigate to="/" replace />
-              )
-            } 
-          />
+        {/* Страница выбора комнат */}
+        <Route 
+          path="/rooms" 
+          element={
+            currentUser ? (
+              <SimpleRoomSelection 
+                playerData={currentUser}
+                onRoomSelect={handleRoomSelect}
+                onLogout={handleLogout}
+              />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          } 
+        />
 
-          {/* Настройка комнаты */}
-          <Route 
-            path="/room/:roomId" 
-            element={
-              currentPlayer && currentRoom ? (
-                <RoomSetup 
-                  user={currentPlayer}
-                  roomId={currentRoom.roomId}
-                  onSetupComplete={handleRoomSetup}
-                  onBack={() => setCurrentRoom(null)}
-                  onLogout={handleLogout}
-                />
-              ) : (
-                <Navigate to="/" replace />
-              )
-            } 
-          />
+        {/* Страница настройки комнаты */}
+        <Route 
+          path="/room/:roomId" 
+          element={
+            currentUser && currentRoom ? (
+              <RoomSetupWrapper 
+                playerData={currentUser}
+                roomId={currentRoom.roomId}
+                onExitGame={handleExitGame}
+              />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          } 
+        />
 
-          {/* Игровая доска */}
-          <Route 
-            path="/game/:roomId" 
-            element={
-              currentPlayer && currentRoom ? (
-                <GameBoardRefactored 
-                  roomId={currentRoom.roomId}
-                  onExit={handleExitToMenu}
-                />
-              ) : (
-                <Navigate to="/" replace />
-              )
-            } 
-          />
+        {/* Страница игровой доски */}
+        <Route 
+          path="/game/:roomId" 
+          element={
+            currentUser ? (
+              <GameBoardWrapper 
+                playerData={currentUser}
+                onExitGame={handleExitGame}
+              />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          } 
+        />
 
-          {/* Страница рейтингов */}
-          <Route 
-            path="/ratings" 
-            element={
-              currentPlayer ? (
-                <RatingsPage />
-              ) : (
-                <Navigate to="/" replace />
-              )
-            } 
-          />
+        {/* Страница рейтингов */}
+        <Route 
+          path="/ratings" 
+          element={
+            currentUser ? (
+              <RatingsPage 
+                playerData={currentUser}
+                onBack={() => navigate('/rooms')}
+              />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          } 
+        />
 
-          {/* Редирект для несуществующих маршрутов */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-    </ThemeProvider>
+        {/* Перенаправление для неизвестных маршрутов */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </div>
+  );
+}
+
+// Главный компонент приложения
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
   );
 }
 

@@ -1,4 +1,112 @@
 {
+  "1": {
+    "roomId": 1,
+    "displayName": "2233",
+    "originalRequestedId": "1",
+    "maxPlayers": 2,
+    "currentPlayers": [],
+    "status": "waiting",
+    "password": "",
+    "hostId": "F40R9k8HuwTYHtkQAAAT",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755881098720
+  },
+  "2": {
+    "roomId": 2,
+    "displayName": "3344",
+    "originalRequestedId": "room1_459015",
+    "maxPlayers": 2,
+    "currentPlayers": [],
+    "status": "waiting",
+    "password": "",
+    "hostId": "AGHe_LcWevcm6adMAAAX",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755882470897
+  },
   "33": {
     "roomId": "33",
     "maxPlayers": 2,
@@ -838,7 +946,7 @@
     "maxPlayers": 2,
     "currentPlayers": [
       {
-        "id": "axf_hR19O6BKNRw4AAAB",
+        "id": "khxSlP7fEwOkBMMpAAAF",
         "username": "Гость-AAAB",
         "profession": "Teacher",
         "description": "Вы - учитель с скромной зарплатой, но низкими расходами. Ваш путь к финансовой свободе - медленный и стабильный через небольшие инвестиции.",
@@ -1577,6 +1685,113 @@
     },
     "createdAt": 1755764992915
   },
+  "6666": {
+    "roomId": "6666",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "P360465",
+        "fixedId": "P360465",
+        "socketId": null,
+        "username": "Игрок 0465",
+        "color": "#4e1d5c",
+        "ready": false,
+        "position": 0,
+        "balance": 2000,
+        "passiveIncome": 0,
+        "seat": null,
+        "offline": true,
+        "roomId": "6666",
+        "salary": 2000,
+        "childCost": 500,
+        "expenses": {
+          "taxes": 200,
+          "other": 0
+        },
+        "totalExpenses": 200,
+        "monthlyCashflow": 0,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null
+      },
+      {
+        "id": "NlPbhb9te-pwjtW1AAAB",
+        "fixedId": "P354368",
+        "socketId": "NlPbhb9te-pwjtW1AAAB",
+        "username": "Игрок 4368",
+        "color": "#21e51d",
+        "ready": false,
+        "position": 0,
+        "balance": 2000,
+        "passiveIncome": 0,
+        "seat": null,
+        "offline": false,
+        "roomId": "6666",
+        "salary": 2000,
+        "childCost": 500,
+        "expenses": {
+          "taxes": 200,
+          "other": 0
+        },
+        "totalExpenses": 200,
+        "monthlyCashflow": 0,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null
+      }
+    ],
+    "status": "waiting",
+    "password": "",
+    "hostId": "SEe3Sc-WaJZvmQ_EAAAF",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755861328111
+  },
   "lobby": {
     "roomId": "lobby",
     "maxPlayers": 2,
@@ -1662,5 +1877,533 @@
         ]
       }
     }
+  },
+  "room1": {
+    "roomId": "room1",
+    "displayName": "4455667788",
+    "originalRequestedId": "room1_338997",
+    "maxPlayers": 2,
+    "currentPlayers": [],
+    "status": "waiting",
+    "password": "",
+    "hostId": "BkosSHCSUsUyOxr-AAAF",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755884346078
+  },
+  "room2": {
+    "roomId": "room2",
+    "displayName": "686868",
+    "originalRequestedId": "room1_470761",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "UicJqc6_ghewDyjoAAAB",
+        "username": "test1",
+        "email": "test1@cashflow.com",
+        "displayId": 416,
+        "ready": false,
+        "offline": true,
+        "socketId": null,
+        "joinedAt": 1755908486703,
+        "readyAt": 1755908512550,
+        "seat": null
+      },
+      {
+        "id": "2irOCvlRrqPItn8PAAAD",
+        "username": "test2",
+        "email": "test2@cashflow.com",
+        "displayId": 754,
+        "ready": false,
+        "offline": true,
+        "socketId": null,
+        "joinedAt": 1755908508226,
+        "readyAt": 1755908510233,
+        "seat": null
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": "UicJqc6_ghewDyjoAAAB",
+    "timer": {
+      "hours": 3,
+      "remaining": 8284
+    },
+    "currentTurn": "UicJqc6_ghewDyjoAAAB",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755908486666
+  },
+  "room3": {
+    "roomId": "room3",
+    "displayName": "98767896",
+    "originalRequestedId": "room1_768799",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "WGQwG-R5aS_hnGe9AAAN",
+        "username": "test2",
+        "email": "test2@cashflow.com",
+        "displayId": 59,
+        "ready": false,
+        "offline": true,
+        "socketId": null,
+        "joinedAt": 1755908088525,
+        "readyAt": 1755908256905,
+        "seat": null
+      },
+      {
+        "id": "ZTanyKt9PqfIWcKIAAAL",
+        "username": "test1",
+        "email": "test1@cashflow.com",
+        "displayId": 501,
+        "ready": false,
+        "offline": true,
+        "socketId": null,
+        "joinedAt": 1755908088095,
+        "readyAt": 1755908253341,
+        "seat": null
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": "WGQwG-R5aS_hnGe9AAAN",
+    "timer": {
+      "hours": 3,
+      "remaining": 10421
+    },
+    "currentTurn": "WGQwG-R5aS_hnGe9AAAN",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755907781535
+  },
+  "room4": {
+    "roomId": "room4",
+    "displayName": "333333",
+    "originalRequestedId": "room1_587223",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "BDytsNyNIXR2qVVIAAAH",
+        "username": "test1",
+        "email": "test1@cashflow.com",
+        "displayId": 780,
+        "ready": false,
+        "offline": true,
+        "socketId": null,
+        "joinedAt": 1755908593481,
+        "readyAt": 1755908611636,
+        "seat": null
+      },
+      {
+        "id": "yjsTC041P5EO9WoFAAAF",
+        "username": "test2",
+        "email": "test2@cashflow.com",
+        "displayId": 391,
+        "ready": false,
+        "offline": true,
+        "socketId": null,
+        "joinedAt": 1755908606312,
+        "readyAt": 1755908607508,
+        "seat": null
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": "BDytsNyNIXR2qVVIAAAH",
+    "timer": {
+      "hours": 3,
+      "remaining": 8382
+    },
+    "currentTurn": "BDytsNyNIXR2qVVIAAAH",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755908593448
+  },
+  "room5": {
+    "roomId": "room5",
+    "displayName": "1212122",
+    "originalRequestedId": "room1_076826",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "v57Aa4yQU8BURKZZAAAN",
+        "username": "test1",
+        "email": "test1@cashflow.com",
+        "displayId": 635,
+        "ready": false,
+        "offline": true,
+        "socketId": null,
+        "joinedAt": 1755909083348,
+        "readyAt": 1755909099582,
+        "seat": null
+      },
+      {
+        "id": "IxjeNHgzKsQ9Drj4AAAP",
+        "username": "test2",
+        "email": "test2@cashflow.com",
+        "displayId": 949,
+        "ready": false,
+        "offline": true,
+        "socketId": null,
+        "joinedAt": 1755909094718,
+        "readyAt": 1755909095981,
+        "seat": null
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": "v57Aa4yQU8BURKZZAAAN",
+    "timer": {
+      "hours": 3,
+      "remaining": 8870
+    },
+    "currentTurn": "v57Aa4yQU8BURKZZAAAN",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755909083315
+  },
+  "room6": {
+    "roomId": "room6",
+    "displayName": "565775756",
+    "originalRequestedId": "room1_525769",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "ygw_Jz6OWKiWyt2-AAAS",
+        "username": "test2",
+        "email": "test2@cashflow.com",
+        "displayId": 506,
+        "ready": false,
+        "offline": true,
+        "socketId": null,
+        "joinedAt": 1755909532131,
+        "readyAt": 1755909548527,
+        "seat": null
+      },
+      {
+        "id": "dSaavbHyCly5DftFAAAT",
+        "username": "test3",
+        "email": "test3@cashflow.com",
+        "displayId": 288,
+        "ready": false,
+        "offline": true,
+        "socketId": null,
+        "joinedAt": 1755909544013,
+        "readyAt": 1755909546411,
+        "seat": null
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": "ygw_Jz6OWKiWyt2-AAAS",
+    "timer": {
+      "hours": 3,
+      "remaining": 9320
+    },
+    "currentTurn": "ygw_Jz6OWKiWyt2-AAAS",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755909532110
+  },
+  "room7": {
+    "roomId": "room7",
+    "displayName": "г8868",
+    "originalRequestedId": "room1_012091",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "CviMVIph1F6ITzhXAAAX",
+        "username": "test2",
+        "email": "test2@cashflow.com",
+        "displayId": 134,
+        "ready": false,
+        "offline": true,
+        "socketId": null,
+        "joinedAt": 1755911021011,
+        "readyAt": 1755911022897,
+        "seat": null
+      },
+      {
+        "id": "XK_dTq-7RcOfH8-9AAAZ",
+        "username": "test1",
+        "email": "test1@cashflow.com",
+        "displayId": 621,
+        "ready": false,
+        "offline": true,
+        "socketId": null,
+        "joinedAt": 1755911027276,
+        "readyAt": 1755911028568,
+        "seat": null
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": "CviMVIph1F6ITzhXAAAX",
+    "timer": {
+      "hours": 3,
+      "remaining": 10798
+    },
+    "currentTurn": "CviMVIph1F6ITzhXAAAX",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1755911020917
   }
 }

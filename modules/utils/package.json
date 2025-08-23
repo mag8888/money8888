@@ -1,0 +1,22 @@
+{
+  "name": "@cashflow/utils",
+  "version": "1.0.0",
+  "description": "Utility functions module for CASHFLOW - helpers, validators, and common functions",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "jest",
+    "build": "rollup -c",
+    "dev": "rollup -c -w"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "rollup": "^4.0.0"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./helpers": "./helpers.js",
+    "./validators": "./validators.js",
+    "./formatters": "./formatters.js"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@cashflow/network",
+  "version": "1.0.0",
+  "description": "Network communication module for CASHFLOW - WebSocket and API",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "jest",
+    "build": "rollup -c",
+    "dev": "rollup -c -w"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.0.0",
+    "axios": "^1.0.0"
+  },
+  "devDependencies": {
+    "rollup": "^4.0.0"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./socket": "./socket.js",
+    "./api": "./api.js",
+    "./events": "./events.js"
+  }
+}
