@@ -2079,59 +2079,6 @@
     },
     "createdAt": 1755907781535
   },
-  "room4": {
-    "roomId": "room4",
-    "displayName": "Комната Тест Активов",
-    "originalRequestedId": "Тест Активов",
-    "maxPlayers": 2,
-    "currentPlayers": [],
-    "status": "waiting",
-    "hostId": "pGBjFUHfhdpFXxAjAAAa",
-    "timer": {
-      "hours": 3,
-      "remaining": 10800
-    },
-    "currentTurn": null,
-    "board": {
-      "ratRace": {
-        "cells": 20,
-        "layout": [
-          "payday",
-          "market",
-          "smallDeal",
-          "bigDeal",
-          "doodad",
-          "charity",
-          "child",
-          "downsized",
-          "payday",
-          "market",
-          "smallDeal",
-          "bigDeal",
-          "doodad",
-          "charity",
-          "child",
-          "downsized",
-          "payday",
-          "market",
-          "smallDeal",
-          "bigDeal"
-        ]
-      },
-      "fastTrack": {
-        "cells": 50,
-        "layout": [
-          "cashflowDay",
-          "bigDeal",
-          "charity",
-          "cashflowDay",
-          "bigDeal",
-          "charity"
-        ]
-      }
-    },
-    "createdAt": 1755927603212
-  },
   "room5": {
     "roomId": "room5",
     "displayName": "1212122",
@@ -2210,85 +2157,6 @@
       }
     },
     "createdAt": 1755909083315
-  },
-  "room6": {
-    "roomId": "room6",
-    "displayName": "435255",
-    "originalRequestedId": "room1_304148",
-    "maxPlayers": 2,
-    "currentPlayers": [
-      {
-        "id": "HDJ8Cywbo8R9lyNFAAAz",
-        "username": "test1",
-        "email": "test1@cashflow.com",
-        "displayId": 113,
-        "ready": false,
-        "offline": true,
-        "socketId": null,
-        "joinedAt": 1755930320019,
-        "readyAt": 1755930321504,
-        "seat": null
-      },
-      {
-        "id": "g2dR7wdbr5C8Qfe8AABv",
-        "username": "test2",
-        "email": "test2@cashflow.com",
-        "displayId": 15,
-        "ready": false,
-        "offline": true,
-        "socketId": null,
-        "joinedAt": 1755930325610,
-        "readyAt": 1755930327303,
-        "seat": null
-      }
-    ],
-    "status": "started",
-    "password": "",
-    "hostId": "HDJ8Cywbo8R9lyNFAAAz",
-    "timer": {
-      "hours": 3,
-      "remaining": 2956
-    },
-    "currentTurn": "HDJ8Cywbo8R9lyNFAAAz",
-    "board": {
-      "ratRace": {
-        "cells": 20,
-        "layout": [
-          "payday",
-          "market",
-          "smallDeal",
-          "bigDeal",
-          "doodad",
-          "charity",
-          "child",
-          "downsized",
-          "payday",
-          "market",
-          "smallDeal",
-          "bigDeal",
-          "doodad",
-          "charity",
-          "child",
-          "downsized",
-          "payday",
-          "market",
-          "smallDeal",
-          "bigDeal"
-        ]
-      },
-      "fastTrack": {
-        "cells": 50,
-        "layout": [
-          "cashflowDay",
-          "bigDeal",
-          "charity",
-          "cashflowDay",
-          "bigDeal",
-          "charity"
-        ]
-      }
-    },
-    "createdAt": 1755930319972
   },
   "room7": {
     "roomId": "room7",
@@ -2371,43 +2239,30 @@
   },
   "room8": {
     "roomId": "room8",
-    "displayName": "лопор",
-    "originalRequestedId": "room1_015635",
+    "displayName": "665к6к6к5в",
+    "originalRequestedId": "room1_424891",
     "maxPlayers": 2,
     "currentPlayers": [
       {
-        "id": "EOPTaXNm7hfY8sEwAAAj",
+        "id": "R7cd2_kw7C2lf0TmAAFl",
         "username": "test1",
         "email": "test1@cashflow.com",
-        "displayId": 140,
-        "ready": false,
-        "offline": true,
-        "socketId": null,
-        "joinedAt": 1755921021972,
-        "readyAt": 1755921024177,
-        "seat": null
-      },
-      {
-        "id": "cY2Y7AWFyWvsO7LIAAAl",
-        "username": "test2",
-        "email": "test2@cashflow.com",
-        "displayId": 195,
-        "ready": false,
-        "offline": true,
-        "socketId": null,
-        "joinedAt": 1755921027866,
-        "readyAt": 1755921028875,
-        "seat": null
+        "displayId": 285,
+        "ready": true,
+        "offline": false,
+        "socketId": "R7cd2_kw7C2lf0TmAAFl",
+        "joinedAt": 1755972435296,
+        "readyAt": 1755972437462
       }
     ],
     "status": "started",
     "password": "",
-    "hostId": "EOPTaXNm7hfY8sEwAAAj",
+    "hostId": "R7cd2_kw7C2lf0TmAAFl",
     "timer": {
       "hours": 3,
-      "remaining": 9566
+      "remaining": 9134
     },
-    "currentTurn": "EOPTaXNm7hfY8sEwAAAj",
+    "currentTurn": "R7cd2_kw7C2lf0TmAAFl",
     "board": {
       "ratRace": {
         "cells": 20,
@@ -2446,7 +2301,7 @@
         ]
       }
     },
-    "createdAt": 1755921021876
+    "createdAt": 1755972434958
   },
   "room9": {
     "roomId": "room9",
@@ -2529,43 +2384,18 @@
   },
   "room10": {
     "roomId": "room10",
-    "displayName": "Clean Test Room",
-    "originalRequestedId": "clean_test_1755921078721",
+    "displayName": "765757",
+    "originalRequestedId": "room1_213084",
     "maxPlayers": 2,
-    "currentPlayers": [
-      {
-        "id": "QbKeYgrnXeuIQcmIAAAr",
-        "username": "Гость-AAAr",
-        "email": "",
-        "displayId": "",
-        "ready": false,
-        "offline": true,
-        "socketId": null,
-        "joinedAt": 1755921078731,
-        "readyAt": 1755921078745,
-        "seat": null
-      },
-      {
-        "id": "lYSINfGdnzJLzyqTAAAt",
-        "username": "Гость-AAAt",
-        "email": "",
-        "displayId": "",
-        "ready": false,
-        "offline": true,
-        "socketId": null,
-        "joinedAt": 1755921078735,
-        "readyAt": 1755921078751,
-        "seat": null
-      }
-    ],
+    "currentPlayers": [],
     "status": "started",
-    "password": null,
-    "hostId": "QbKeYgrnXeuIQcmIAAAr",
+    "password": "",
+    "hostId": "vw18bhNa92xwCNbxAAFp",
     "timer": {
-      "hours": 10,
-      "remaining": 34813
+      "hours": 3,
+      "remaining": 9900
     },
-    "currentTurn": "QbKeYgrnXeuIQcmIAAAr",
+    "currentTurn": "vw18bhNa92xwCNbxAAFp",
     "board": {
       "ratRace": {
         "cells": 20,
@@ -2604,7 +2434,7 @@
         ]
       }
     },
-    "createdAt": 1755921078723
+    "createdAt": 1755973220081
   },
   "room11": {
     "roomId": "room11",
@@ -2687,42 +2517,41 @@
   },
   "room12": {
     "roomId": "room12",
-    "displayName": "веввен",
-    "originalRequestedId": "room1_754747",
+    "displayName": "арароаор",
+    "originalRequestedId": "room1_118944",
     "maxPlayers": 2,
     "currentPlayers": [
       {
-        "id": "U_3ERcoDJJihu7xPAAAz",
-        "username": "test1",
-        "email": "test1@cashflow.com",
-        "displayId": 285,
-        "ready": false,
-        "offline": true,
-        "socketId": null,
-        "joinedAt": 1755921760667,
-        "readyAt": 1755921762736,
-        "seat": null
-      },
-      {
-        "id": "9kd4lQyJg3TNvlUlAAA1",
+        "id": "-UcqM0IbqZE_LpsnAAFt",
         "username": "test2",
         "email": "test2@cashflow.com",
-        "displayId": 314,
+        "displayId": 15,
         "ready": true,
         "offline": false,
-        "socketId": "9kd4lQyJg3TNvlUlAAA1",
-        "joinedAt": 1755921770108,
-        "readyAt": 1755921771337
+        "socketId": "-UcqM0IbqZE_LpsnAAFt",
+        "joinedAt": 1755974125656,
+        "readyAt": 1755974126932
+      },
+      {
+        "id": "TJKuedxjhOmlaiTqAAFr",
+        "username": "test1",
+        "email": "test1@cashflow.com",
+        "displayId": 113,
+        "ready": true,
+        "offline": false,
+        "socketId": "TJKuedxjhOmlaiTqAAFr",
+        "joinedAt": 1755974132483,
+        "readyAt": 1755974133662
       }
     ],
     "status": "started",
     "password": "",
-    "hostId": "U_3ERcoDJJihu7xPAAAz",
+    "hostId": "-UcqM0IbqZE_LpsnAAFt",
     "timer": {
       "hours": 3,
-      "remaining": 10309
+      "remaining": 10800
     },
-    "currentTurn": "U_3ERcoDJJihu7xPAAAz",
+    "currentTurn": "-UcqM0IbqZE_LpsnAAFt",
     "board": {
       "ratRace": {
         "cells": 20,
@@ -2761,7 +2590,7 @@
         ]
       }
     },
-    "createdAt": 1755921760507
+    "createdAt": 1755974125568
   },
   "room13": {
     "roomId": "room13",

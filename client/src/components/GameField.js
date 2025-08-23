@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Typography, Avatar } from '@mui/material';
+import { Box, Typography, Avatar, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { motion } from 'framer-motion';
 import HomeIcon from '@mui/icons-material/Home';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -79,7 +79,8 @@ const GameCell = React.memo(({
   position, 
   type, 
   icon, 
-  color, 
+  color,
+  name,
   isPlayerHere, 
   playerColor, 
   playerInitial,
@@ -90,7 +91,9 @@ const GameCell = React.memo(({
     <motion.div
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.95 }}
-      onClick={() => onClick?.(position, type)}
+      onClick={() => {
+        onClick?.(position, type, name, number);
+      }}
       style={{
         width: 42,
         height: 42,
@@ -174,6 +177,19 @@ const GameField = ({
     charity: { remaining: 24, total: 24, isShuffling: false }
   });
 
+  // Состояние всплывающего окна с информацией о клетке
+  const [cellDialog, setCellDialog] = useState({
+    open: false,
+    cellNumber: '',
+    cellName: '',
+    cellType: ''
+  });
+
+  // Убираем состояние профессии - теперь она приходит из пропсов
+  // const [professionDialogOpen, setProfessionDialogOpen] = useState(false);
+  // const [playerProfession, setPlayerProfession] = useState(null);
+  // const [gameStarted, setGameStarted] = useState(false);
+
   // Функция перетасовки колоды
   const handleShuffleDeck = (deckType) => {
     setCardDecks(prev => ({
@@ -208,6 +224,50 @@ const GameField = ({
     }));
   };
 
+  // Функция получения описания клетки
+  const getCellDescription = (cellType) => {
+    switch (cellType) {
+      case 'opportunity':
+        return '🟢 Возможность - Вы можете купить активы: недвижимость, бизнес, акции. Выберите между малой сделкой (до $5,000) или большой сделкой (от $5,000).';
+      case 'doodad':
+        return '🛒 Всякая всячина - Обязательные траты от $100 до $4,000 на бытовые нужды: чайник, кофе, машина, ТВ и прочее.';
+      case 'charity':
+        return '❤️ Благотворительность - Пожертвуйте 10% от дохода для получения возможности бросать 2 кубика в течение 3 ходов. Можно отказаться.';
+      case 'payday':
+        return '💰 PayDay - Получите зарплату! Ваш ежемесячный доход зачисляется на счет.';
+      case 'market':
+        return '📈 Рынок - Появляются покупатели на ваши активы. Можете продать недвижимость, бизнес или акции по рыночной цене.';
+      case 'child':
+        return '👶 Ребенок - Родился ребенок! Увеличиваются ежемесячные расходы.';
+      case 'downsized':
+        return '💸 Потеря - Увольнение! Оплатите один раз расходы и пропустите 2 хода ИЛИ 3 раза расходы без пропуска хода. При невозможности оплаты - кредит или банкротство.';
+      case 'cashflowDay':
+        return '💵 День Потока - Получите доход от всех ваших активов (недвижимость, бизнес, акции).';
+      case 'fastTrack':
+        return '🚀 Fast Track - Быстрый путь к финансовой свободе! Специальные возможности для продвинутых игроков.';
+      default:
+        return '🎯 Игровая клетка - взаимодействуйте с ней для продвижения в игре.';
+    }
+  };
+
+  // Обработчик клика на клетку
+  const handleCellClick = (position, type, name, number) => {
+    setCellDialog({
+      open: true,
+      cellNumber: number,
+      cellName: name,
+      cellType: type
+    });
+    onCellClick?.(position, type);
+  };
+
+  // Убираем функции профессии - теперь она назначается при регистрации
+  // const handleProfessionSelect = (profession) => {
+  //   setPlayerProfession(profession);
+  //   setGameStarted(true);
+  //   console.log('Выбрана профессия:', profession);
+  // };
+
   // Вычисляем позиции игроков
   const playerPositions = useMemo(() => {
     const positions = {};
@@ -230,22 +290,83 @@ const GameField = ({
     const cellSize = 42;
     const cellHalf = cellSize / 2;
 
-    // Внешний круг - клетки по кругу (0-23)
+    // Внутренний контур - 24 клетки по кругу, центр в 350px (700/2)
+    const outerFieldSize = 700; // Размер внешнего поля
+    const innerRadius = 150; // Радиус внутреннего круга
+    const innerCenter = 350; // Центр внутреннего круга = центр внешнего поля (700/2)
+    
     for (let i = 0; i < 24; i++) {
       // Начинаем с верха и идем по часовой стрелке
       const angle = (i * 15 - 90) * (Math.PI / 180); // -90 чтобы начать сверху
-      const radius = 240;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
+      const x = Math.cos(angle) * innerRadius;
+      const y = Math.sin(angle) * innerRadius;
       
       positions.push({
         position: i,
-        x: x + 247.5 - 21,
-        y: y + 247.5 - 21,
+        x: x + innerCenter - cellSize/2,
+        y: y + innerCenter - cellSize/2,
         ...CELL_CONFIG.innerCircle[i % CELL_CONFIG.innerCircle.length],
         number: i + 1 // Нумерация от 1 до 24
       });
     }
+    
+    // Внешний контур - квадрат 12×12 клеток, сдвинутый вверх и влево
+    const marginX = -90; // Еще 20px влево (-70 - 20)
+    const marginY = -55; // Еще 5px вверх (-50 - 5)
+    
+    // Верхняя сторона (12 клеток) с отступом 2px между клетками
+    for (let i = 0; i < 12; i++) {
+      const x = marginX + i * (cellSize + 2);
+      const y = marginY;
+      positions.push({
+        position: 24 + i,
+        x: x,
+        y: y,
+        ...CELL_CONFIG.outerSquare[i % CELL_CONFIG.outerSquare.length],
+        number: 25 + i // Нумерация от 25 до 36
+      });
+    }
+    
+    // Правая сторона (12 клеток)
+    for (let i = 0; i < 12; i++) {
+      const x = outerFieldSize - cellSize + marginX;
+      const y = marginY + cellSize + i * (outerFieldSize - 3 * cellSize) / 11;
+      positions.push({
+        position: 36 + i,
+        x: x,
+        y: y,
+        ...CELL_CONFIG.outerSquare[(12 + i) % CELL_CONFIG.outerSquare.length],
+        number: 37 + i // Нумерация от 37 до 48
+      });
+    }
+    
+    // Нижняя сторона (12 клеток) - начинается напротив клеток 62 и 47
+    for (let i = 0; i < 12; i++) {
+      const x = marginX + (11 - i) * (cellSize + 2);
+      const y = outerFieldSize - cellSize + marginY;
+      positions.push({
+        position: 48 + i,
+        x: x,
+        y: y,
+        ...CELL_CONFIG.outerSquare[(24 + i) % CELL_CONFIG.outerSquare.length],
+        number: 49 + i // Нумерация от 49 до 60
+      });
+    }
+    
+    // Левая сторона (12 клеток)
+    for (let i = 0; i < 12; i++) {
+      const x = marginX;
+      const y = outerFieldSize - cellSize - cellSize + marginY - i * (outerFieldSize - 3 * cellSize) / 11;
+      positions.push({
+        position: 60 + i,
+        x: x,
+        y: y,
+        ...CELL_CONFIG.outerSquare[(36 + i) % CELL_CONFIG.outerSquare.length],
+        number: 61 + i // Нумерация от 61 до 72
+      });
+    }
+    
+
     return positions;
   }, []);
 
@@ -253,17 +374,29 @@ const GameField = ({
     <Box
       sx={{
         position: 'relative',
-        width: 495, // 550 * 0.9 = 495 - поле уменьшено на 10%
-        height: 495, // 550 * 0.9 = 495 - поле уменьшено на 10%
-        backgroundColor: '#2F1B40',
-        borderRadius: '50%',
-        border: '4px solid #6E4D92',
+        width: 700, // Размер для размещения внешнего квадрата
+        height: 700, // Размер для размещения внешнего квадрата
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'visible'
       }}
     >
+      {/* Внутренний круг - привязан к круглому полю */}
+      <Box
+        sx={{
+          position: 'absolute',
+          width: 495,
+          height: 495,
+          backgroundColor: '#2F1B40',
+          borderRadius: '50%',
+          border: '4px solid #6E4D92',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10
+        }}
+      >
       {/* Кнопка броска кубиков */}
       {isMyTurn && (
         <motion.div
@@ -282,6 +415,8 @@ const GameField = ({
         </motion.div>
       )}
 
+      {/* Убираем кнопку выбора профессии - теперь она назначается при регистрации */}
+
       {/* Значение кубиков */}
       {diceValue > 0 && (
         <Typography 
@@ -299,6 +434,8 @@ const GameField = ({
           {diceValue}
         </Typography>
       )}
+
+      {/* Убираем отображение профессии - теперь она показывается в другом месте */}
 
 
 
@@ -339,11 +476,12 @@ const GameField = ({
             type={type}
             icon={icon}
             color={color}
+            name={name}
             number={number}
             isPlayerHere={!!playerPositions[position]}
             playerColor={playerPositions[position]?.color}
             playerInitial={playerPositions[position]?.initial}
-            onClick={onCellClick}
+            onClick={handleCellClick}
           />
         </Box>
       ))}
@@ -416,6 +554,86 @@ const GameField = ({
         isShuffling={cardDecks.doodad.isShuffling}
         position="right"
       />
+      </Box>
+
+      {/* Всплывающее окно с информацией о клетке */}
+      <Dialog
+        open={cellDialog.open}
+        onClose={() => setCellDialog({ ...cellDialog, open: false })}
+        maxWidth="md"
+        PaperProps={{
+          sx: {
+            backgroundColor: '#FFFFFF',
+            borderRadius: 0,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
+            border: '3px solid #6E4D92',
+            width: 500,
+            height: 500,
+            maxWidth: 500,
+            maxHeight: 500,
+            display: 'flex',
+            flexDirection: 'column'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          backgroundColor: '#6E4D92', 
+          color: 'white', 
+          textAlign: 'center',
+          fontSize: '1.5rem',
+          fontWeight: 'bold',
+          py: 2
+        }}>
+          🎯 Клетка {cellDialog.cellNumber}
+        </DialogTitle>
+        <DialogContent sx={{ backgroundColor: '#FFFFFF', color: '#333333', py: 3 }}>
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', color: '#2F1B40' }}>
+              {cellDialog.cellName}
+            </Typography>
+            <Typography variant="h6" sx={{ mb: 2, color: '#6E4D92', fontWeight: 'bold' }}>
+              Тип: {cellDialog.cellType}
+            </Typography>
+            <Box sx={{ 
+              backgroundColor: '#F5F5F5', 
+              borderRadius: 2, 
+              p: 2, 
+              border: '2px solid #E0E0E0',
+              mt: 2
+            }}>
+              <Typography variant="body1" sx={{ color: '#333333', lineHeight: 1.6, fontSize: '1.1rem' }}>
+                {getCellDescription(cellDialog.cellType)}
+              </Typography>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ backgroundColor: '#F5F5F5', justifyContent: 'center', pb: 3, px: 3 }}>
+          <Button 
+            onClick={() => setCellDialog({ ...cellDialog, open: false })}
+            variant="contained"
+            size="large"
+            sx={{ 
+              backgroundColor: '#6E4D92',
+              color: 'white',
+              fontSize: '1.1rem',
+              fontWeight: 'bold',
+              px: 4,
+              py: 1.5,
+              borderRadius: 2,
+              '&:hover': { 
+                backgroundColor: '#8E6DB2',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 8px 25px rgba(110,77,146,0.4)'
+              },
+              transition: 'all 0.3s ease'
+            }}
+          >
+            ЗАКРЫТЬ
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Убираем компонент выбора профессии - теперь она назначается при регистрации */}
     </Box>
   );
 };

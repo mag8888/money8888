@@ -17,6 +17,7 @@ import {
 import { motion } from 'framer-motion';
 import { colors, textColors, buttonStyles, inputStyles, containerStyles, typographyStyles } from '../styles/component-styles.js';
 
+
 const UserRegistration = ({ onRegister, onLogin, onBack }) => {
   const [formData, setFormData] = useState({
     email: ''
@@ -61,7 +62,7 @@ const UserRegistration = ({ onRegister, onLogin, onBack }) => {
       const testAccounts = ['romeoproo1@gmail.com', 'xqrmedia@gmail.com'];
       
       if (testAccounts.includes(formData.email)) {
-        // Создаем тестовый аккаунт автоматически
+        // Создаем тестовый аккаунт автоматически БЕЗ профессии
         const userData = {
           email: formData.email,
           username: formData.email.split('@')[0],
@@ -72,6 +73,7 @@ const UserRegistration = ({ onRegister, onLogin, onBack }) => {
         // Сохраняем в localStorage для тестирования
         localStorage.setItem('testUser', JSON.stringify(userData));
         
+        // Сразу логинимся
         if (onLogin) {
           onLogin(userData);
         }

@@ -234,7 +234,7 @@ io.on('connection', (socket) => {
       return;
     }
     
-    socket.join(roomId);
+      socket.join(roomId);
     console.log(`✅ [SERVER] Socket ${socket.id} joined room: ${roomId}`);
     
     // Создаем объект игрока
@@ -668,7 +668,7 @@ io.on('connection', (socket) => {
     // If already started, just re-emit events so clients can sync state
     if (room.status === 'started') {
       console.log('startGame: game already started, re-emitting events');
-      io.to(roomId).emit('gameStarted');
+        io.to(roomId).emit('gameStarted');
       io.to(roomId).emit('roomData', { roomId: room.roomId, maxPlayers: room.maxPlayers, status: room.status, hostId: room.hostId, timer: room.timer, currentTurn: room.currentTurn });
       io.to(roomId).emit('playersList', room.currentPlayers);
       if (typeof ack === 'function') ack(true);
@@ -745,7 +745,7 @@ io.on('connection', (socket) => {
           if (r.timer.remaining <= 0) {
             clearInterval(timerInterval);
             io.to(roomId).emit('gameEnded', 'Timer expired');
-          } else {
+    } else {
             io.to(roomId).emit('timerUpdate', r.timer.remaining);
           }
         }, 1000);

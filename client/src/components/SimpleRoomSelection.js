@@ -188,6 +188,11 @@ const SimpleRoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
             <p style={{ color: '#666', fontSize: '0.9rem', margin: '4px 0' }}>
               ID: {playerData?.displayId || 'N/A'} | Email: {playerData?.email || 'N/A'}
             </p>
+            {playerData?.profession && (
+              <p style={{ color: '#4CAF50', fontSize: '0.9rem', margin: '4px 0', fontWeight: 'bold' }}>
+                💼 Профессия: {playerData.profession.name} | 💰 Баланс: ${playerData.profession.balance.toLocaleString()}
+              </p>
+            )}
             {playerData?.gameStats && (
               <p style={{ color: '#666', fontSize: '0.9rem', margin: '4px 0' }}>
                 🎮 Игр сыграно: {playerData.gameStats.gamesPlayed} | 🏆 Побед: {playerData.gameStats.gamesWon}
