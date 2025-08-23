@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useGameNavigation } from '../hooks/useGameState';
 import socket from '../socket';
 
 const SimpleRoomSetup = ({ roomId, playerData }) => {
@@ -6,6 +7,13 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
   const [roomData, setRoomData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ text: '', type: '' });
+
+  // Используем хук для автоматического перехода на игровое поле
+  const { handleGameStarted } = useGameNavigation(socket, roomId, (gameData) => {
+    console.log('🎮 [SimpleRoomSetup] Game started callback:', gameData);
+    // Обновляем статус комнаты
+    setRoomData(prev => ({ ...prev, status: 'started' }));
+  });
 
   useEffect(() => {
     if (!roomId) return;
@@ -36,31 +44,14 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
     socket.on('gameStarted', (gameData) => {
       console.log('🎮 [SimpleRoomSetup] Game started event received:', gameData);
       console.log('🎮 [SimpleRoomSetup] Current roomId:', roomId);
-      console.log('🎮 [SimpleRoomSetup] Current window.location:', window.location.href);
       
       setMessage({ text: '🎉 Игра началась! Переходим к игровой доске...', type: 'success' });
       
       // Обновляем статус комнаты
       setRoomData(prev => ({ ...prev, status: 'started' }));
       
-      // Переходим к игровой доске через 2 секунды
-      setTimeout(() => {
-        console.log('🚀 [SimpleRoomSetup] Starting navigation to game board...');
-        const gamePath = `/game/${roomId}`;
-        console.log('🎯 [SimpleRoomSetup] Target game path:', gamePath);
-        console.log('🎯 [SimpleRoomSetup] Current pathname:', window.location.pathname);
-        
-        try {
-          // Используем window.location.replace для принудительного перехода
-          console.log('🧭 [SimpleRoomSetup] Using window.location.replace for navigation');
-          window.location.replace(gamePath);
-        } catch (error) {
-          console.error('❌ [SimpleRoomSetup] Navigation error:', error);
-          // Fallback - перезагружаем страницу с новым URL
-          console.log('🔄 [SimpleRoomSetup] Fallback: reloading page with new URL');
-          window.location.href = gamePath;
-        }
-      }, 2000);
+      // Навигация теперь происходит автоматически через хук useGameState
+      console.log('🚀 [SimpleRoomSetup] Navigation will be handled by useGameState hook');
     });
 
     // Подписываемся на обновление данных комнаты

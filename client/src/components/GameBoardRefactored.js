@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Box, Typography, Avatar } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useLogout } from '../hooks/useLogout';
@@ -7,13 +7,14 @@ import { useSocketEvents } from '../hooks/useSocketEvents';
 import { useGameLogic } from '../hooks/useGameLogic';
 import GameField from './GameField';
 import GameControls from './GameControls';
-import ExitConfirmModal from './ExitConfirmModal';
+import Hud from './Hud';
 import BankModal from './BankModal';
 import ProfessionModal from './ProfessionModal';
 import FreedomModal from './FreedomModal';
 import DealModal from './DealModal';
+import ExitConfirmModal from './ExitConfirmModal';
 
-const GameBoardRefactored = ({ roomId, onExit }) => {
+const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
   // Используем централизованные хуки
   const {
     gameState,
@@ -122,6 +123,13 @@ const GameBoardRefactored = ({ roomId, onExit }) => {
   const currentPlayer = getCurrentPlayer();
   const transferablePlayers = getTransferablePlayers();
 
+  // Обновляем активы игрока при изменении состояния
+  useEffect(() => {
+    if (currentPlayer?.assets) {
+      console.log('🔄 [GameBoard] Player assets updated:', currentPlayer.assets);
+    }
+  }, [currentPlayer?.assets]);
+
   return (
     <Box
       sx={{
@@ -152,10 +160,10 @@ const GameBoardRefactored = ({ roomId, onExit }) => {
               height: 40
             }}
           >
-            {currentPlayer?.username?.charAt(0) || 'И'}
+            {playerData?.username?.charAt(0) || currentPlayer?.username?.charAt(0) || 'И'}
           </Avatar>
           <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-            {currentPlayer?.username || 'Игрок'}
+            {playerData?.username || currentPlayer?.username || 'Игрок'}
           </Typography>
         </Box>
 
@@ -170,7 +178,7 @@ const GameBoardRefactored = ({ roomId, onExit }) => {
             WebkitTextFillColor: 'transparent'
           }}
         >
-          CASHFLOW
+                      ПОТОК ДЕНЕГ
         </Typography>
 
         {/* Пустое место для баланса */}
@@ -192,8 +200,10 @@ const GameBoardRefactored = ({ roomId, onExit }) => {
           sx={{
             flex: 1,
             display: 'flex',
+            flexDirection: 'column',
             justifyContent: 'center',
-            alignItems: 'center'
+            alignItems: 'center',
+            gap: 2
           }}
         >
           <GameField
@@ -205,10 +215,8 @@ const GameBoardRefactored = ({ roomId, onExit }) => {
             diceValue={diceState.displayDice}
             isRolling={diceState.isRolling}
           />
-        </Box>
-
-        {/* Правая панель - Управление */}
-        <Box sx={{ width: 300 }}>
+          
+          {/* Управление игрой под полем */}
           <GameControls
             isMyTurn={gameState.isMyTurn}
             currentTurn={gameState.currentTurn}
@@ -223,6 +231,11 @@ const GameBoardRefactored = ({ roomId, onExit }) => {
             isTimerActive={turnTimerState.isActive}
             turnBanner={gameState.turnBanner}
           />
+        </Box>
+
+        {/* Правая панель - Управление */}
+        <Box sx={{ width: 300 }}>
+          <Hud playerAssets={currentPlayer?.assets || []} />
         </Box>
       </Box>
 

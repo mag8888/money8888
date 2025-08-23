@@ -1,6 +1,61 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import socket from '../socket';
 
+export const useGameNavigation = (socket, roomId, onGameStarted) => {
+  const navigate = useNavigate();
+
+  // Обработчик запуска игры
+  const handleGameStarted = useCallback((gameData) => {
+    console.log('🎮 [useGameNavigation] Game started event received:', gameData);
+    console.log('🎮 [useGameNavigation] Current roomId:', roomId);
+    
+    // Вызываем callback для обновления состояния
+    if (onGameStarted) {
+      onGameStarted(gameData);
+    }
+    
+    // Переходим к игровой доске
+    const gamePath = `/game/${roomId}`;
+    console.log('🚀 [useGameNavigation] Navigating to game board:', gamePath);
+    
+    // Используем navigate для программного перехода
+    navigate(gamePath, { replace: true });
+  }, [navigate, roomId, onGameStarted]);
+
+  // Подписываемся на события игры
+  useEffect(() => {
+    if (!socket || !roomId) return;
+
+    console.log('🎮 [useGameNavigation] Setting up game event listeners for room:', roomId);
+    
+    // Слушаем запуск игры
+    socket.on('gameStarted', handleGameStarted);
+    
+    // Слушаем обновление данных комнаты
+    socket.on('roomData', (roomData) => {
+      console.log('🏠 [useGameNavigation] Room data updated:', roomData);
+      
+      // Если игра запущена, переходим к игровой доске
+      if (roomData.status === 'started') {
+        console.log('🚀 [useGameNavigation] Room status is started, navigating to game board');
+        handleGameStarted(roomData);
+      }
+    });
+
+    return () => {
+      console.log('🎮 [useGameNavigation] Cleaning up game event listeners');
+      socket.off('gameStarted', handleGameStarted);
+      socket.off('roomData');
+    };
+  }, [socket, roomId, handleGameStarted]);
+
+  return {
+    handleGameStarted
+  };
+};
+
+// Оригинальный хук для управления игровым состоянием
 export const useGameState = (roomId) => {
   const [gameState, setGameState] = useState({
     players: [],
@@ -93,6 +148,11 @@ export const useGameState = (roomId) => {
     return gameState.players.filter(p => p.roomId === roomId);
   }, [gameState.players]);
 
+  // Получение игроков для перевода денег
+  const getTransferablePlayers = useCallback(() => {
+    return gameState.players.filter(p => p.id !== gameState.myId);
+  }, [gameState.players, gameState.myId]);
+
   return {
     gameState,
     bankState,
@@ -110,6 +170,7 @@ export const useGameState = (roomId) => {
     isHost,
     getPlayersCount,
     getReadyPlayers,
-    getPlayersInRoom
+    getPlayersInRoom,
+    getTransferablePlayers
   };
 };

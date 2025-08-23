@@ -33,18 +33,44 @@ const SimpleRoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
     // Слушаем обновления списка комнат
     socket.on('roomsList', (roomsList) => {
       console.log('🏠 [SimpleRoomSelection] Received rooms list:', roomsList);
-      setAvailableRooms(roomsList);
+      
+      // Проверяем и фильтруем данные комнат
+      let validRooms = [];
+      if (Array.isArray(roomsList)) {
+        validRooms = roomsList.filter(room => {
+          if (!room || typeof room !== 'object') {
+            console.warn('🏠 [SimpleRoomSelection] Invalid room data:', room);
+            return false;
+          }
+          // Упрощенная проверка: roomId должен существовать и не быть null/undefined
+          if (room.roomId === null || room.roomId === undefined) {
+            console.warn('🏠 [SimpleRoomSelection] Room missing roomId:', room);
+            return false;
+          }
+          return true;
+        });
+      } else {
+        console.error('🏠 [SimpleRoomSelection] roomsList is not an array:', roomsList);
+        validRooms = [];
+      }
+      
+      console.log('🏠 [SimpleRoomSelection] Valid rooms:', validRooms);
+      setAvailableRooms(validRooms);
       setRoomsLoading(false);
     });
 
     // Слушаем событие создания комнаты
     socket.on('roomCreated', (createdRoom) => {
       console.log('✅ [SimpleRoomSelection] Room created:', createdRoom);
-      setSuccess(`Комната создана! ID: ${createdRoom.roomId}`);
+      setSuccess(`Комната создана! ID: ${createdRoom && createdRoom.roomId ? createdRoom.roomId : 'Unknown'}`);
       
       // Переходим к настройке созданной комнаты
       // Используем roomId от сервера, а не originalRequestedId
-      handleRoomSelect(createdRoom.roomId);
+      if (createdRoom && createdRoom.roomId !== null && createdRoom.roomId !== undefined) {
+        handleRoomSelect(createdRoom.roomId);
+      } else {
+        console.error('✅ [SimpleRoomSelection] Invalid createdRoom:', createdRoom);
+      }
     });
 
     // Запрашиваем текущий список комнат
@@ -59,6 +85,13 @@ const SimpleRoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
   // Обработка выбора комнаты
   const handleRoomSelect = (selectedRoomId) => {
     console.log('🔄 [SimpleRoomSelection] Selected room:', selectedRoomId);
+    
+    // Проверяем, что selectedRoomId валиден
+    if (selectedRoomId === null || selectedRoomId === undefined) {
+      console.error('🔄 [SimpleRoomSelection] Invalid room ID:', selectedRoomId);
+      return;
+    }
+    
     onRoomSelect({ roomId: selectedRoomId.toString() });
   };
 
@@ -411,60 +444,78 @@ const SimpleRoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
               gap: '16px'
             }}>
               {availableRooms
-                .filter(room => room && room.roomId)
+                .filter(room => {
+                  if (!room || typeof room !== 'object') {
+                    console.warn('🏠 [SimpleRoomSelection] Invalid room in render:', room);
+                    return false;
+                  }
+                  // Упрощенная проверка: roomId должен существовать и не быть null/undefined
+                  if (room.roomId === null || room.roomId === undefined) {
+                    console.warn('🏠 [SimpleRoomSelection] Room missing roomId in render:', room);
+                    return false;
+                  }
+                  return true;
+                })
                 .map((room) => (
                   <div
-                    key={room.roomId}
+                    key={room.roomId || `room-${Math.random()}`}
                     style={{
                       background: 'white',
                       border: '2px solid #E0E0E0',
-                      borderRadius: '8px',
-                      padding: '16px',
+                      borderRadius: '12px',
+                      padding: '20px',
                       cursor: 'pointer',
                       transition: 'all 0.2s'
                     }}
                     onMouseEnter={(e) => {
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-                      e.target.style.borderColor = '#1976D2';
+                      if (e.target && e.target.style) {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                        e.target.style.borderColor = '#1976D2';
+                      }
                     }}
                     onMouseLeave={(e) => {
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-                      e.target.style.borderColor = '#E0E0E0';
+                      if (e.target && e.target.style) {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                        e.target.style.borderColor = '#E0E0E0';
+                      }
                     }}
-                    onClick={() => handleRoomSelect(room.roomId)}
+                    onClick={() => {
+                      if (room && room.roomId !== null && room.roomId !== undefined) {
+                        handleRoomSelect(room.roomId);
+                      } else {
+                        console.error('🏠 [SimpleRoomSelection] Cannot select invalid room:', room);
+                      }
+                    }}
                   >
                     <div style={{ marginBottom: '12px' }}>
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '8px'
-                      }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <h3 style={{
                           fontSize: '1.2rem',
+                          fontWeight: 'bold',
                           color: '#1976D2',
                           margin: 0
                         }}>
                           🎯 {room.displayName || `Комната ${room.roomId}`}
                         </h3>
                         <span style={{
-                          background: room.status === 'waiting' ? '#FFF3E0' : '#E8F5E8',
-                          color: room.status === 'waiting' ? '#E65100' : '#2E7D32',
+                          background: (room.status && room.status === 'waiting') ? '#FFF3E0' : '#E8F5E8',
+                          color: (room.status && room.status === 'waiting') ? '#E65100' : '#2E7D32',
                           padding: '4px 8px',
                           borderRadius: '4px',
                           fontSize: '0.8rem',
                           fontWeight: 'bold'
                         }}>
-                          {room.status === 'waiting' ? '⏳ Ожидание' : '🎮 Игра'}
+                          {(room.status && room.status === 'waiting') ? '⏳ Ожидание' : '🎮 Игра'}
                         </span>
                       </div>
+                    </div>
 
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                         <span style={{
-                          background: '#E3F2FD',
-                          color: '#1976D2',
+                          background: '#F5F5F5',
                           padding: '4px 8px',
                           borderRadius: '4px',
                           fontSize: '0.8rem',
@@ -472,51 +523,45 @@ const SimpleRoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                         }}>
                           🔢 ID: {room.roomId}
                         </span>
-                        {room.originalRequestedId && room.originalRequestedId !== room.roomId.toString() && (
+                        {room.originalRequestedId && room.roomId && room.originalRequestedId !== room.roomId.toString() && (
                           <span style={{
                             background: '#F5F5F5',
-                            color: '#666',
                             padding: '4px 8px',
                             borderRadius: '4px',
-                            fontSize: '0.8rem'
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold'
                           }}>
-                            📝 Запрошено: {room.originalRequestedId}
+                            🔄 Запрошен: {room.originalRequestedId}
                           </span>
                         )}
                       </div>
 
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{ color: '#666', fontSize: '0.9rem', marginRight: '4px' }}>👥</span>
+                        <span style={{ fontSize: '0.9rem', color: '#666' }}>
+                          {Array.isArray(room.currentPlayers) ? room.currentPlayers.length : (room.currentPlayers || 0)}/{room.maxPlayers || 2} игроков
+                        </span>
+                      </div>
+                      {room.createdAt && (
                         <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <span style={{ color: '#666', fontSize: '0.9rem', marginRight: '4px' }}>👥</span>
-                          <span style={{ fontSize: '0.9rem', color: '#666' }}>
-                            {room.currentPlayers || 0}/{room.maxPlayers || 2} игроков
+                          <span style={{ fontSize: '0.9rem', color: '#666', marginRight: '4px' }}>🕒</span>
+                          <span style={{ fontSize: '0.8rem', color: '#666' }}>
+                            Создана: {new Date(room.createdAt).toLocaleString()}
                           </span>
-                        </div>
-                        {room.createdAt && (
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.9rem', color: '#666', marginRight: '4px' }}>🕒</span>
-                            <span style={{ fontSize: '0.8rem', color: '#666' }}>
-                              {new Date(room.createdAt).toLocaleDateString('ru-RU')}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {room.currentPlayers && room.currentPlayers.length > 0 && (
-                        <div style={{ marginTop: '8px' }}>
-                          <p style={{ fontSize: '0.8rem', color: '#666', margin: '4px 0' }}>
-                            Игроки в комнате:
-                          </p>
-                          <p style={{ fontSize: '0.9rem', color: '#666', margin: '4px 0' }}>
-                            {room.currentPlayers.map(p => p.username || 'Гость').join(', ')}
-                          </p>
                         </div>
                       )}
                     </div>
+
+                    {Array.isArray(room.currentPlayers) && room.currentPlayers.length > 0 && (
+                      <div style={{ marginTop: '8px' }}>
+                        <p style={{ fontSize: '0.8rem', color: '#666', margin: '4px 0' }}>
+                          Игроки в комнате:
+                        </p>
+                        <p style={{ fontSize: '0.9rem', color: '#666', margin: '4px 0' }}>
+                          {room.currentPlayers.map(p => (p && p.username) ? p.username : 'Гость').join(', ')}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
             </div>

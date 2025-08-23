@@ -165,7 +165,10 @@ const GameControls = React.memo(({
         padding: 2,
         backgroundColor: 'rgba(255,255,255,0.05)',
         borderRadius: 2,
-        border: '1px solid rgba(255,255,255,0.1)'
+        border: '1px solid rgba(255,255,255,0.1)',
+        width: 'fit-content',
+        minWidth: 280,
+        alignSelf: 'center'
       }}
     >
       {/* Баннер текущего хода */}
@@ -239,7 +242,7 @@ const GameControls = React.memo(({
         }}
       >
         <div>DEBUG: myId={myId?.slice(-4)}, socket.id={myId?.slice(-4)},</div>
-        <div>players={players.length}, username={myPlayer?.username}</div>
+        <div>players={players.length}, username={myPlayer?.username || 'N/A'}</div>
       </Box>
 
       {/* Кнопка банка */}

@@ -160,7 +160,7 @@ function testClientRoutes() {
       return new Promise((routeResolve) => {
         const req = http.request({
           hostname: 'localhost',
-          port: 3000,
+          port: 5000, // Исправлено: проверяем порт 5000 (сервер)
           path: route.path,
           method: 'GET',
           timeout: 5000

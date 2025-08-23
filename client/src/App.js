@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import SimpleAuth from './components/SimpleAuth';
 import SimpleRoomSelection from './components/SimpleRoomSelection';
@@ -12,9 +12,34 @@ import './websocket-fix.js';
 // Компонент-обертка для использования useNavigate
 function AppContent() {
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState(null);
-  const [currentRoom, setCurrentRoom] = useState(null);
+  const [currentUser, setCurrentUser] = useState(() => {
+    // Восстанавливаем пользователя из localStorage
+    const savedUser = localStorage.getItem('cashflow_currentUser');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+  const [currentRoom, setCurrentRoom] = useState(() => {
+    // Восстанавливаем комнату из localStorage
+    const savedRoom = localStorage.getItem('cashflow_currentRoom');
+    return savedRoom ? JSON.parse(savedRoom) : null;
+  });
   const { logout } = useLogout();
+
+  // Сохраняем состояние в localStorage при изменении
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('cashflow_currentUser', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('cashflow_currentUser');
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentRoom) {
+      localStorage.setItem('cashflow_currentRoom', JSON.stringify(currentRoom));
+    } else {
+      localStorage.removeItem('cashflow_currentRoom');
+    }
+  }, [currentRoom]);
 
   // Обработка регистрации нового пользователя
   const handleUserRegister = (userData) => {
@@ -129,6 +154,7 @@ function AppContent() {
             currentUser ? (
               <GameBoardWrapper 
                 playerData={currentUser}
+                currentRoom={currentRoom}
                 onExitGame={handleExitGame}
               />
             ) : (

@@ -89,6 +89,38 @@ app.get('/api/admin/rooms', (req, res) => {
   }
 });
 
+// Команда для просмотра конкретной комнаты
+app.get('/api/admin/rooms/:roomId', (req, res) => {
+  try {
+    const { roomId } = req.params;
+    
+    if (!rooms[roomId]) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+    
+    const room = rooms[roomId];
+    const roomInfo = {
+      roomId,
+      status: room.status,
+      maxPlayers: room.maxPlayers,
+      currentPlayers: room.currentPlayers.length,
+      players: room.currentPlayers.map(p => ({
+        id: p.id,
+        username: p.username,
+        socketId: p.socketId,
+        ready: p.ready,
+        offline: p.offline
+      }))
+    };
+    
+    res.json(roomInfo);
+    console.log(`📊 [ADMIN] Room ${roomId} info requested`);
+  } catch (error) {
+    console.error('❌ [ADMIN] Error getting room info:', error);
+    res.status(500).json({ error: 'Failed to get room info' });
+  }
+});
+
 // Команда для очистки дублей во всех комнатах (админ)
 app.post('/api/admin/cleanup-duplicates', async (req, res) => {
   try {
@@ -1454,7 +1486,7 @@ function getSortedRoomsList() {
       roomId: r.roomId,  // Уникальный ID (room1, room2, lobby...)
       displayName: r.displayName || r.roomName || `Комната ${r.roomId}`, // Отображаемое название с fallback
       originalRequestedId: r.originalRequestedId || r.roomId, // Запрошенный пользователем ID с fallback
-      currentPlayers: r.currentPlayers.length, 
+      currentPlayers: Array.isArray(r.currentPlayers) ? r.currentPlayers : [], // ✅ ИСПРАВЛЕНО: гарантируем массив
       maxPlayers: r.maxPlayers,
       createdAt: r.createdAt,
       status: r.status
@@ -1464,7 +1496,7 @@ function getSortedRoomsList() {
     roomId: r.roomId,
     displayName: r.displayName,
     originalRequestedId: r.originalRequestedId,
-    players: r.currentPlayers
+    currentPlayers: r.currentPlayers
   })));
   
   return roomsList;
@@ -1683,8 +1715,17 @@ app.get('/api/health', (req, res) => {
 });
 
 // Serve client files (moved here after all API routes)
+// Только для не-API маршрутов
 app.use(express.static(path.join(__dirname, '../client/build')));
+
+// Catch-all handler for client routes (React Router)
 app.get('*', (req, res) => {
+  // Не обрабатываем API маршруты
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
+  
+  // Для всех остальных маршрутов отдаем React приложение
   res.sendFile(path.join(__dirname, '../client/build/index.html'));
 });
 

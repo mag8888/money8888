@@ -28,61 +28,58 @@ import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 
 // Конфигурация клеток игрового поля
 const CELL_CONFIG = {
-  // Внешний круг (0-23)
-  outer: [
-    { type: 'deal', icon: <HomeIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ShoppingCartIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <StoreIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ChildCareIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <BusinessIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ShoppingCartIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <HomeIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ShoppingCartIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <StoreIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ChildCareIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <BusinessIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ShoppingCartIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <HomeIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ShoppingCartIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <StoreIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ChildCareIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <BusinessIcon />, color: '#4CAF50' }
+  // Малый круг - 24 клетки (0-23) - Крысиные Бега
+  innerCircle: [
+    { type: 'payday', icon: <AttachMoneyIcon />, color: '#4CAF50', name: 'Зарплата' },
+    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3', name: 'Рынок' },
+    { type: 'smallDeal', icon: <HomeIcon />, color: '#4CAF50', name: 'Малая Сделка' },
+    { type: 'bigDeal', icon: <BusinessIcon />, color: '#FF9800', name: 'Большая Сделка' },
+    { type: 'doodad', icon: <ShoppingCartIcon />, color: '#F44336', name: 'Покупка' },
+    { type: 'charity', icon: <VolunteerActivismIcon />, color: '#E91E63', name: 'Благотворительность' },
+    { type: 'child', icon: <ChildCareIcon />, color: '#9C27B0', name: 'Ребенок' },
+    { type: 'downsized', icon: <WorkOutlineIcon />, color: '#795548', name: 'Сокращение' },
+    { type: 'payday', icon: <AttachMoneyIcon />, color: '#4CAF50', name: 'Зарплата' },
+    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3', name: 'Рынок' },
+    { type: 'smallDeal', icon: <HomeIcon />, color: '#4CAF50', name: 'Малая Сделка' },
+    { type: 'bigDeal', icon: <BusinessIcon />, color: '#FF9800', name: 'Большая Сделка' },
+    { type: 'doodad', icon: <ShoppingCartIcon />, color: '#F44336', name: 'Покупка' },
+    { type: 'charity', icon: <VolunteerActivismIcon />, color: '#E91E63', name: 'Благотворительность' },
+    { type: 'child', icon: <ChildCareIcon />, color: '#9C27B0', name: 'Ребенок' },
+    { type: 'downsized', icon: <WorkOutlineIcon />, color: '#795548', name: 'Сокращение' },
+    { type: 'payday', icon: <AttachMoneyIcon />, color: '#4CAF50', name: 'Зарплата' },
+    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3', name: 'Рынок' },
+    { type: 'smallDeal', icon: <HomeIcon />, color: '#4CAF50', name: 'Малая Сделка' },
+    { type: 'bigDeal', icon: <BusinessIcon />, color: '#FF9800', name: 'Большая Сделка' }
   ],
-  // Внутренний круг (24-47)
-  inner: [
-    { type: 'deal', icon: <HomeIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ShoppingCartIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <StoreIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ChildCareIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <BusinessIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ShoppingCartIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <HomeIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ShoppingCartIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <StoreIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ChildCareIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <BusinessIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ShoppingCartIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <HomeIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ShoppingCartIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <StoreIcon />, color: '#4CAF50' },
-    { type: 'expense', icon: <ChildCareIcon />, color: '#FF9800' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3' },
-    { type: 'deal', icon: <BusinessIcon />, color: '#4CAF50' }
+  // Внешний квадрат - 50 клеток Быстрый Путь
+  outerSquare: [
+    { type: 'cashflowDay', icon: <AttachMoneyIcon />, color: '#4CAF50', name: 'День Потока' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
+    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' }
   ]
 };
 
@@ -194,10 +191,10 @@ const GameField = React.memo(({
   const cellPositions = useMemo(() => {
     const positions = [];
     
-    // Внешний круг (0-23)
+    // Малый круг - 24 клетки (0-23) - по кругу
     for (let i = 0; i < 24; i++) {
-      const angle = (i * 15) * (Math.PI / 180); // 15 градусов между клетками
-      const radius = 120;
+      const angle = (i * 15) * (Math.PI / 180); // 15 градусов между клетками (360/24)
+      const radius = 120; // Радиус малого круга
       const x = Math.cos(angle) * radius;
       const y = Math.sin(angle) * radius;
       
@@ -205,22 +202,52 @@ const GameField = React.memo(({
         position: i,
         x: x + 200, // Центр поля
         y: y + 200,
-        ...CELL_CONFIG.outer[i]
+        ...CELL_CONFIG.innerCircle[i]
       });
     }
     
-    // Внутренний круг (24-47)
-    for (let i = 0; i < 24; i++) {
-      const angle = (i * 15) * (Math.PI / 180);
-      const radius = 80;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-      
+    // Внешний квадрат - клетки по периметру (24+) - по квадрату
+    const squareSize = 160; // Размер внешнего квадрата
+    const cellsPerSide = 6; // 6 клеток на сторону (24 клетки всего)
+    const cellSpacing = squareSize / cellsPerSide; // Расстояние между клетками
+    
+    // Верхняя сторона (24-29)
+    for (let i = 0; i < 6; i++) {
       positions.push({
         position: i + 24,
-        x: x + 200,
-        y: y + 200,
-        ...CELL_CONFIG.inner[i]
+        x: 120 + i * cellSpacing,
+        y: 40,
+        ...CELL_CONFIG.outerSquare[i]
+      });
+    }
+    
+    // Правая сторона (30-35)
+    for (let i = 0; i < 6; i++) {
+      positions.push({
+        position: i + 30,
+        x: 360,
+        y: 120 + i * cellSpacing,
+        ...CELL_CONFIG.outerSquare[i + 6]
+      });
+    }
+    
+    // Нижняя сторона (36-41)
+    for (let i = 0; i < 6; i++) {
+      positions.push({
+        position: i + 36,
+        x: 360 - i * cellSpacing,
+        y: 360,
+        ...CELL_CONFIG.outerSquare[i + 12]
+      });
+    }
+    
+    // Левая сторона (42-47)
+    for (let i = 0; i < 6; i++) {
+      positions.push({
+        position: i + 42,
+        x: 40,
+        y: 360 - i * cellSpacing,
+        ...CELL_CONFIG.outerSquare[i + 18]
       });
     }
     
@@ -259,7 +286,7 @@ const GameField = React.memo(({
         }}
       >
         <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-          CASHFLOW
+                      ПОТОК ДЕНЕГ
         </Typography>
         
         {/* Кнопка броска кубиков */}
