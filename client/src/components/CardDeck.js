@@ -170,47 +170,80 @@ const CardDeck = ({
           onMouseLeave={() => setShowTooltip(false)}
         >
           {/* Иконка колоды */}
-          <Typography variant="h4" sx={{ 
-            color: '#FFFFFF', 
-            mb: 1,
-            textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
-            filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.8))'
-          }}>
-            {getDeckIcon()}
-          </Typography>
+          <Box
+            sx={{
+              backgroundColor: 'rgba(255,255,255,0.95)',
+              borderRadius: '50%',
+              width: 50,
+              height: 50,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mb: 1,
+              border: '3px solid #000000',
+              boxShadow: '0 3px 10px rgba(0,0,0,0.8)'
+            }}
+          >
+            <Typography variant="h4" sx={{ 
+              color: getDeckColor(),
+              fontWeight: 'bold',
+              textShadow: 'none'
+            }}>
+              {getDeckIcon()}
+            </Typography>
+          </Box>
           
           {/* Название колоды */}
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              color: '#FFFFFF', 
-              textAlign: 'center',
-              fontWeight: 'bold',
-              fontSize: '0.75rem',
-              lineHeight: 1.2,
+          <Box
+            sx={{
+              backgroundColor: 'rgba(255,255,255,0.95)',
+              borderRadius: 1,
               px: 1,
-              textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-              textStroke: '1px black',
-              WebkitTextStroke: '1px black'
+              py: 0.5,
+              mb: 1,
+              border: '2px solid #000000'
             }}
           >
-            {getDeckName()}
-          </Typography>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: '#000000', 
+                textAlign: 'center',
+                fontWeight: 'bold',
+                fontSize: '0.8rem',
+                lineHeight: 1.2,
+                letterSpacing: '0.5px'
+              }}
+            >
+              {getDeckName()}
+            </Typography>
+          </Box>
           
           {/* Количество карт */}
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              color: '#FFFFFF', 
-              fontWeight: 'bold',
-              mt: 1,
-              textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
-              textStroke: '1px black',
-              WebkitTextStroke: '1px black'
+          <Box
+            sx={{
+              backgroundColor: 'rgba(255,255,255,0.95)',
+              borderRadius: '50%',
+              width: 40,
+              height: 40,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '3px solid #000000',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.8)'
             }}
           >
-            {remainingCards}
-          </Typography>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                color: '#000000', 
+                fontWeight: 'bold',
+                textShadow: 'none'
+              }}
+            >
+              {remainingCards}
+            </Typography>
+          </Box>
           
           {/* Индикатор низкого количества карт */}
           {isLowCards && !isEmpty && (

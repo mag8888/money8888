@@ -2266,43 +2266,42 @@
   },
   "room6": {
     "roomId": "room6",
-    "displayName": "Clean Test Room",
-    "originalRequestedId": "clean_test_1755920938307",
+    "displayName": "435255",
+    "originalRequestedId": "room1_304148",
     "maxPlayers": 2,
     "currentPlayers": [
       {
-        "id": "XdJqzgAk9f8FIJW-AAAf",
-        "username": "Гость-AAAf",
-        "email": "",
-        "displayId": "",
+        "id": "HDJ8Cywbo8R9lyNFAAAz",
+        "username": "test1",
+        "email": "test1@cashflow.com",
+        "displayId": 113,
         "ready": false,
         "offline": true,
         "socketId": null,
-        "joinedAt": 1755920938402,
-        "readyAt": 1755920938413,
+        "joinedAt": 1755930320019,
+        "readyAt": 1755930321504,
         "seat": null
       },
       {
-        "id": "wxQRm-tlU3VXd1vwAAAh",
-        "username": "Гость-AAAh",
-        "email": "",
-        "displayId": "",
-        "ready": false,
-        "offline": true,
-        "socketId": null,
-        "joinedAt": 1755920938407,
-        "readyAt": 1755920938420,
-        "seat": null
+        "id": "LnBZrDkfkA8adgNKAAAx",
+        "username": "test2",
+        "email": "test2@cashflow.com",
+        "displayId": 15,
+        "ready": true,
+        "offline": false,
+        "socketId": "LnBZrDkfkA8adgNKAAAx",
+        "joinedAt": 1755930325610,
+        "readyAt": 1755930327303
       }
     ],
     "status": "started",
-    "password": null,
-    "hostId": "XdJqzgAk9f8FIJW-AAAf",
+    "password": "",
+    "hostId": "HDJ8Cywbo8R9lyNFAAAz",
     "timer": {
-      "hours": 10,
-      "remaining": 34673
+      "hours": 3,
+      "remaining": 10478
     },
-    "currentTurn": "XdJqzgAk9f8FIJW-AAAf",
+    "currentTurn": "HDJ8Cywbo8R9lyNFAAAz",
     "board": {
       "ratRace": {
         "cells": 20,
@@ -2341,7 +2340,7 @@
         ]
       }
     },
-    "createdAt": 1755920938394
+    "createdAt": 1755930319972
   },
   "room7": {
     "roomId": "room7",
@@ -2823,7 +2822,7 @@
     "maxPlayers": 2,
     "currentPlayers": [
       {
-        "id": "t2H1u2s9MlfD4It-AAAX",
+        "id": "FBEjGNzkcInbENEGAAAl",
         "username": "test1",
         "email": "test1@cashflow.com",
         "displayId": 506,
