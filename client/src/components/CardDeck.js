@@ -4,6 +4,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import StyleIcon from '@mui/icons-material/Style';
 
+// Добавляем CSS анимации
+const styles = `
+  @keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+`;
+
+// Вставляем стили в head
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = styles;
+  document.head.appendChild(styleSheet);
+}
+
 // Компонент стопки карточек
 const CardDeck = ({ 
   deckType, 
@@ -35,17 +51,17 @@ const CardDeck = ({
   const getDeckColor = () => {
     switch (deckType) {
       case 'smallDeal':
-        return '#4CAF50'; // Зеленый
+        return '#2E7D32'; // Темно-зеленый для лучшего контраста
       case 'bigDeal':
-        return '#FF9800'; // Оранжевый
+        return '#E65100'; // Темно-оранжевый для лучшего контраста
       case 'market':
-        return '#2196F3'; // Синий
+        return '#1565C0'; // Темно-синий для лучшего контраста
       case 'doodad':
-        return '#F44336'; // Красный
+        return '#C62828'; // Темно-красный для лучшего контраста
       case 'charity':
-        return '#E91E63'; // Розовый
+        return '#AD1457'; // Темно-розовый для лучшего контраста
       default:
-        return '#9C27B0'; // Фиолетовый
+        return '#4A148C'; // Темно-фиолетовый для лучшего контраста
     }
   };
 
@@ -139,11 +155,13 @@ const CardDeck = ({
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            border: `3px solid ${isLowCards ? '#FFD700' : '#fff'}`,
+            border: `3px solid ${isLowCards ? '#FFD700' : '#FFFFFF'}`,
             position: 'relative',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
             '&:hover': {
               transform: 'translateY(-5px)',
-              boxShadow: 12
+              boxShadow: '0 8px 30px rgba(0,0,0,0.8)',
+              border: `3px solid ${isLowCards ? '#FFEB3B' : '#F0F0F0'}`
             },
             transition: 'all 0.3s ease'
           }}
@@ -152,7 +170,12 @@ const CardDeck = ({
           onMouseLeave={() => setShowTooltip(false)}
         >
           {/* Иконка колоды */}
-          <Typography variant="h4" sx={{ color: '#fff', mb: 1 }}>
+          <Typography variant="h4" sx={{ 
+            color: '#FFFFFF', 
+            mb: 1,
+            textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
+            filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.8))'
+          }}>
             {getDeckIcon()}
           </Typography>
           
@@ -160,12 +183,15 @@ const CardDeck = ({
           <Typography 
             variant="caption" 
             sx={{ 
-              color: '#fff', 
+              color: '#FFFFFF', 
               textAlign: 'center',
               fontWeight: 'bold',
-              fontSize: '0.7rem',
+              fontSize: '0.75rem',
               lineHeight: 1.2,
-              px: 1
+              px: 1,
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+              textStroke: '1px black',
+              WebkitTextStroke: '1px black'
             }}
           >
             {getDeckName()}
@@ -175,10 +201,12 @@ const CardDeck = ({
           <Typography 
             variant="h6" 
             sx={{ 
-              color: '#fff', 
+              color: '#FFFFFF', 
               fontWeight: 'bold',
               mt: 1,
-              textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
+              textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
+              textStroke: '1px black',
+              WebkitTextStroke: '1px black'
             }}
           >
             {remainingCards}
@@ -198,10 +226,12 @@ const CardDeck = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                animation: 'pulse 2s infinite'
+                animation: 'pulse 2s infinite',
+                border: '2px solid #000000',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.6)'
               }}
             >
-              <Typography variant="caption" sx={{ color: '#000', fontWeight: 'bold' }}>
+              <Typography variant="caption" sx={{ color: '#000000', fontWeight: 'bold', fontSize: '0.6rem' }}>
                 ⚠️
               </Typography>
             </Box>
@@ -220,10 +250,12 @@ const CardDeck = ({
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                border: '2px solid #000000',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.6)'
               }}
             >
-              <Typography variant="caption" sx={{ color: '#fff', fontWeight: 'bold' }}>
+              <Typography variant="caption" sx={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: '0.6rem' }}>
                 ∅
               </Typography>
             </Box>
@@ -246,10 +278,17 @@ const CardDeck = ({
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              backgroundColor: 'rgba(0,0,0,0.8)',
-              color: '#fff',
+              backgroundColor: 'rgba(0,0,0,0.9)',
+              color: '#FFFFFF',
+              border: '2px solid #FFFFFF',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.8)',
               '&:hover': {
-                backgroundColor: 'rgba(0,0,0,0.9)'
+                backgroundColor: 'rgba(0,0,0,1)',
+                transform: 'translate(-50%, -50%) scale(1.1)',
+                boxShadow: '0 6px 16px rgba(0,0,0,0.9)'
+              },
+              '&:disabled': {
+                opacity: 0.7
               }
             }}
           >
