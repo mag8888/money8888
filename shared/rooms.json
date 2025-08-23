@@ -2000,59 +2000,6 @@
     },
     "createdAt": 1755884346078
   },
-  "room2": {
-    "roomId": "room2",
-    "displayName": "Комната Тест Активов",
-    "originalRequestedId": "Тест Активов",
-    "maxPlayers": 2,
-    "currentPlayers": [],
-    "status": "waiting",
-    "hostId": "OxGkhKZP2m4JAgQbAAAM",
-    "timer": {
-      "hours": 3,
-      "remaining": 10800
-    },
-    "currentTurn": null,
-    "board": {
-      "ratRace": {
-        "cells": 20,
-        "layout": [
-          "payday",
-          "market",
-          "smallDeal",
-          "bigDeal",
-          "doodad",
-          "charity",
-          "child",
-          "downsized",
-          "payday",
-          "market",
-          "smallDeal",
-          "bigDeal",
-          "doodad",
-          "charity",
-          "child",
-          "downsized",
-          "payday",
-          "market",
-          "smallDeal",
-          "bigDeal"
-        ]
-      },
-      "fastTrack": {
-        "cells": 50,
-        "layout": [
-          "cashflowDay",
-          "bigDeal",
-          "charity",
-          "cashflowDay",
-          "bigDeal",
-          "charity"
-        ]
-      }
-    },
-    "createdAt": 1755925591369
-  },
   "room3": {
     "roomId": "room3",
     "displayName": "98767896",
@@ -2283,15 +2230,16 @@
         "seat": null
       },
       {
-        "id": "LnBZrDkfkA8adgNKAAAx",
+        "id": "g2dR7wdbr5C8Qfe8AABv",
         "username": "test2",
         "email": "test2@cashflow.com",
         "displayId": 15,
-        "ready": true,
-        "offline": false,
-        "socketId": "LnBZrDkfkA8adgNKAAAx",
+        "ready": false,
+        "offline": true,
+        "socketId": null,
         "joinedAt": 1755930325610,
-        "readyAt": 1755930327303
+        "readyAt": 1755930327303,
+        "seat": null
       }
     ],
     "status": "started",
@@ -2299,7 +2247,7 @@
     "hostId": "HDJ8Cywbo8R9lyNFAAAz",
     "timer": {
       "hours": 3,
-      "remaining": 10478
+      "remaining": 2956
     },
     "currentTurn": "HDJ8Cywbo8R9lyNFAAAz",
     "board": {

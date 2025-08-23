@@ -13,30 +13,34 @@ import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 import CasinoIcon from '@mui/icons-material/Casino';
 import CardDeck from './CardDeck';
 
-// Конфигурация клеток игрового поля
+// Конфигурация клеток игрового поля согласно списку
 const CELL_CONFIG = {
   // Малый круг - 24 клетки (0-23) - Крысиные Бега
   innerCircle: [
-    { type: 'payday', icon: <AttachMoneyIcon />, color: '#4CAF50', name: 'Зарплата' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3', name: 'Рынок' },
-    { type: 'smallDeal', icon: <HomeIcon />, color: '#4CAF50', name: 'Малая Сделка' },
-    { type: 'bigDeal', icon: <BusinessIcon />, color: '#FF9800', name: 'Большая Сделка' },
-    { type: 'doodad', icon: <ShoppingCartIcon />, color: '#F44336', name: 'Покупка' },
-    { type: 'charity', icon: <VolunteerActivismIcon />, color: '#E91E63', name: 'Благотворительность' },
-    { type: 'child', icon: <ChildCareIcon />, color: '#9C27B0', name: 'Ребенок' },
-    { type: 'downsized', icon: <WorkOutlineIcon />, color: '#795548', name: 'Сокращение' },
-    { type: 'payday', icon: <AttachMoneyIcon />, color: '#4CAF50', name: 'Зарплата' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3', name: 'Рынок' },
-    { type: 'smallDeal', icon: <HomeIcon />, color: '#4CAF50', name: 'Малая Сделка' },
-    { type: 'bigDeal', icon: <BusinessIcon />, color: '#FF9800', name: 'Большая Сделка' },
-    { type: 'doodad', icon: <ShoppingCartIcon />, color: '#F44336', name: 'Покупка' },
-    { type: 'charity', icon: <VolunteerActivismIcon />, color: '#E91E63', name: 'Благотворительность' },
-    { type: 'child', icon: <ChildCareIcon />, color: '#9C27B0', name: 'Ребенок' },
-    { type: 'downsized', icon: <WorkOutlineIcon />, color: '#795548', name: 'Сокращение' },
-    { type: 'payday', icon: <AttachMoneyIcon />, color: '#4CAF50', name: 'Зарплата' },
-    { type: 'market', icon: <TrendingUpIcon />, color: '#2196F3', name: 'Рынок' },
-    { type: 'smallDeal', icon: <HomeIcon />, color: '#4CAF50', name: 'Малая Сделка' },
-    { type: 'bigDeal', icon: <BusinessIcon />, color: '#FF9800', name: 'Большая Сделка' }
+    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 0 🟢 Зеленая возможность малая/большая
+    { type: 'doodad', icon: <ShoppingCartIcon />, color: '#E91E63', name: 'Всякая всячина' }, // 1 🟡 Розовая всякая всячина (траты 100-4000$)
+    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 2 🟢 Зеленая возможность малая/большая
+    { type: 'charity', icon: <VolunteerActivismIcon />, color: '#FF9800', name: 'Благотворительность' }, // 3 🟠 Оранжевая Благотворительность ❤️
+    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 4 🟢 Зеленая возможность малая/большая
+    { type: 'payday', icon: <AttachMoneyIcon />, color: '#FFD700', name: 'PayDay' }, // 5 🟡 Желтая PayDay 💰
+    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 6 🟢 Зеленая возможность малая/большая
+    { type: 'market', icon: <TrendingUpIcon />, color: '#00BCD4', name: 'Рынок' }, // 7 🔵 Голубая рынок
+    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 8 🟢 Зеленая возможность малая/большая
+    { type: 'doodad', icon: <ShoppingCartIcon />, color: '#E91E63', name: 'Всякая всячина' }, // 9 🟡 Розовая всякая всячина (траты 100-4000$)
+    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 10 🟢 Зеленая возможность малая/большая
+    { type: 'child', icon: <ChildCareIcon />, color: '#9C27B0', name: 'Ребенок' }, // 11 🟣 Фиолетовая Ребенок 👶
+    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 12 🟢 Зеленая возможность малая/большая
+    { type: 'payday', icon: <AttachMoneyIcon />, color: '#FFD700', name: 'PayDay' }, // 13 🟡 Желтая PayDay 💰
+    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 14 🟢 Зеленая возможность малая/большая
+    { type: 'market', icon: <TrendingUpIcon />, color: '#00BCD4', name: 'Рынок' }, // 15 🔵 Рынок
+    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 16 🟢 Зеленая возможность малая/большая
+    { type: 'doodad', icon: <ShoppingCartIcon />, color: '#E91E63', name: 'Всякая всячина' }, // 17 🟡 Розовая всякая всячина (траты 100-4000$)
+    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 18 🟢 Зеленая возможность малая/большая
+    { type: 'downsized', icon: <WorkOutlineIcon />, color: '#000000', name: 'Потеря' }, // 19 ⚫ Черная Потеря 💸
+    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 20 🟢 Зеленая возможность малая/большая
+    { type: 'payday', icon: <AttachMoneyIcon />, color: '#FFD700', name: 'PayDay' }, // 21 🟡 Желтая PayDay 💰
+    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 22 🟢 Зеленая возможность малая/большая
+    { type: 'market', icon: <TrendingUpIcon />, color: '#00BCD4', name: 'Рынок' } // 23 🔵 Рынок
   ],
   // Внешний квадрат - 50 клеток Быстрый Путь
   outerSquare: [
@@ -79,33 +83,32 @@ const GameCell = React.memo(({
   isPlayerHere, 
   playerColor, 
   playerInitial,
-  onClick 
+  onClick,
+  number
 }) => {
   return (
     <motion.div
-      whileHover={{ scale: 1.05 }}
+      whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.95 }}
       onClick={() => onClick?.(position, type)}
       style={{
-        position: 'absolute',
-        width: 40,
-        height: 40,
-        borderRadius: 8,
+        width: 42,
+        height: 42,
+        borderRadius: 7,
         backgroundColor: color,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         cursor: 'pointer',
-        border: '2px solid #fff',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-        zIndex: isPlayerHere ? 10 : 1
+        border: '3px solid #FFFFFF',
+        boxShadow: '0 3px 8px rgba(0,0,0,0.4)'
       }}
     >
       {isPlayerHere ? (
         <Box
           sx={{
-            width: 32,
-            height: 32,
+            width: 28,
+            height: 28,
             borderRadius: '50%',
             backgroundColor: playerColor,
             display: 'flex',
@@ -119,32 +122,35 @@ const GameCell = React.memo(({
           {playerInitial}
         </Box>
       ) : (
-        <Box sx={{ color: 'white', fontSize: '20px' }}>
+        <Box sx={{ color: 'white', fontSize: '22px' }}>
           {icon}
         </Box>
       )}
       
-      {/* Номер позиции */}
-      <Typography
-        variant="caption"
-        sx={{
-          position: 'absolute',
-          top: -8,
-          right: -8,
-          backgroundColor: '#333',
-          color: 'white',
-          borderRadius: '50%',
-          width: 16,
-          height: 16,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '10px',
-          fontWeight: 'bold'
-        }}
-      >
-        {position}
-      </Typography>
+      {/* Номер клетки */}
+      {number && (
+        <Typography
+          variant="caption"
+          sx={{
+            position: 'absolute',
+            top: -10,
+            right: -10,
+            backgroundColor: '#FFD700',
+            color: '#000000',
+            borderRadius: '50%',
+            width: 22,
+            height: 22,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '13px',
+            fontWeight: 'bold',
+            border: '1px solid #000000'
+          }}
+        >
+          {number}
+        </Typography>
+      )}
     </motion.div>
   );
 });
@@ -220,67 +226,26 @@ const GameField = ({
   // Вычисляем позиции клеток
   const cellPositions = useMemo(() => {
     const positions = [];
-    
-    // Малый круг - 24 клетки (0-23) - по кругу
+    const fieldCenter = 495 / 2;
+    const cellSize = 42;
+    const cellHalf = cellSize / 2;
+
+    // Внешний круг - клетки по кругу (0-23)
     for (let i = 0; i < 24; i++) {
-      const angle = (i * 15) * (Math.PI / 180); // 15 градусов между клетками (360/24)
-      const radius = 120; // Радиус малого круга
+      // Начинаем с верха и идем по часовой стрелке
+      const angle = (i * 15 - 90) * (Math.PI / 180); // -90 чтобы начать сверху
+      const radius = 240;
       const x = Math.cos(angle) * radius;
       const y = Math.sin(angle) * radius;
       
       positions.push({
         position: i,
-        x: x + 200, // Центр поля
-        y: y + 200,
-        ...CELL_CONFIG.innerCircle[i]
+        x: x + 247.5 - 21,
+        y: y + 247.5 - 21,
+        ...CELL_CONFIG.innerCircle[i % CELL_CONFIG.innerCircle.length],
+        number: i + 1 // Нумерация от 1 до 24
       });
     }
-    
-    // Внешний квадрат - клетки по периметру (24+) - по квадрату
-    const squareSize = 160; // Размер внешнего квадрата
-    const cellsPerSide = 6; // 6 клеток на сторону (24 клетки всего)
-    const cellSpacing = squareSize / cellsPerSide; // Расстояние между клетками
-    
-    // Верхняя сторона (24-29)
-    for (let i = 0; i < 6; i++) {
-      positions.push({
-        position: i + 24,
-        x: 120 + i * cellSpacing,
-        y: 40,
-        ...CELL_CONFIG.outerSquare[i]
-      });
-    }
-    
-    // Правая сторона (30-35)
-    for (let i = 0; i < 6; i++) {
-      positions.push({
-        position: i + 30,
-        x: 360,
-        y: 120 + i * cellSpacing,
-        ...CELL_CONFIG.outerSquare[i + 6]
-      });
-    }
-    
-    // Нижняя сторона (36-41)
-    for (let i = 0; i < 6; i++) {
-      positions.push({
-        position: i + 36,
-        x: 360 - i * cellSpacing,
-        y: 360,
-        ...CELL_CONFIG.outerSquare[i + 12]
-      });
-    }
-    
-    // Левая сторона (42-47)
-    for (let i = 0; i < 6; i++) {
-      positions.push({
-        position: i + 42,
-        x: 40,
-        y: 360 - i * cellSpacing,
-        ...CELL_CONFIG.outerSquare[i + 18]
-      });
-    }
-    
     return positions;
   }, []);
 
@@ -288,8 +253,8 @@ const GameField = ({
     <Box
       sx={{
         position: 'relative',
-        width: 400,
-        height: 400,
+        width: 495, // 550 * 0.9 = 495 - поле уменьшено на 10%
+        height: 495, // 550 * 0.9 = 495 - поле уменьшено на 10%
         backgroundColor: '#2F1B40',
         borderRadius: '50%',
         border: '4px solid #6E4D92',
@@ -299,12 +264,50 @@ const GameField = ({
         overflow: 'visible'
       }}
     >
+      {/* Кнопка броска кубиков */}
+      {isMyTurn && (
+        <motion.div
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={onRollDice}
+          style={{ 
+            position: 'absolute',
+            top: -50,
+            right: 20,
+            cursor: 'pointer',
+            zIndex: 30
+          }}
+        >
+          <CasinoIcon sx={{ fontSize: 32, color: '#FFD700' }} />
+        </motion.div>
+      )}
+
+      {/* Значение кубиков */}
+      {diceValue > 0 && (
+        <Typography 
+          variant="h3" 
+          sx={{ 
+            position: 'absolute',
+            top: -50,
+            right: 60,
+            color: '#FFD700', 
+            fontWeight: 'bold',
+            zIndex: 30,
+            textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+          }}
+        >
+          {diceValue}
+        </Typography>
+      )}
+
+
+
       {/* Центральная область */}
       <Box
         sx={{
           position: 'absolute',
-          width: 80,
-          height: 80,
+          width: 90,
+          height: 90,
           backgroundColor: '#6E4D92',
           borderRadius: '50%',
           display: 'flex',
@@ -315,47 +318,34 @@ const GameField = ({
           zIndex: 20
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, fontSize: '0.9rem' }}>
+        <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'center', lineHeight: 1.1 }}>
           ПОТОК ДЕНЕГ
         </Typography>
-        
-        {/* Кнопка броска кубиков */}
-        {isMyTurn && (
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={onRollDice}
-            style={{ cursor: 'pointer' }}
-          >
-            <CasinoIcon sx={{ fontSize: 24, color: '#FFD700' }} />
-          </motion.div>
-        )}
-        
-        {/* Значение кубиков */}
-        {diceValue > 0 && (
-          <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 'bold', fontSize: '1.2rem' }}>
-            {diceValue}
-          </Typography>
-        )}
       </Box>
 
       {/* Клетки игрового поля */}
-      {cellPositions.map(({ position, x, y, type, icon, color }) => (
-        <GameCell
+      {cellPositions.map(({ position, x, y, type, icon, color, number }) => (
+        <Box
           key={position}
-          position={position}
-          type={type}
-          icon={icon}
-          color={color}
-          isPlayerHere={!!playerPositions[position]}
-          playerColor={playerPositions[position]?.color}
-          playerInitial={playerPositions[position]?.initial}
-          onClick={onCellClick}
-          style={{
+          sx={{
+            position: 'absolute',
             left: x,
-            top: y
+            top: y,
+            zIndex: 100
           }}
-        />
+        >
+          <GameCell
+            position={position}
+            type={type}
+            icon={icon}
+            color={color}
+            number={number}
+            isPlayerHere={!!playerPositions[position]}
+            playerColor={playerPositions[position]?.color}
+            playerInitial={playerPositions[position]?.initial}
+            onClick={onCellClick}
+          />
+        </Box>
       ))}
 
       {/* Соединительные линии между кругами */}

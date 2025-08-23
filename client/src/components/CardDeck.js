@@ -35,15 +35,15 @@ const CardDeck = ({
   const getPositionStyles = () => {
     switch (position) {
       case 'top':
-        return { top: 20, left: '50%', transform: 'translateX(-50%)' };
+        return { top: 50, left: '50%', transform: 'translateX(-50%)' }; // 20 + 30 = 50 (сдвиг внутрь на 10%)
       case 'bottom':
-        return { bottom: 20, left: '50%', transform: 'translateX(-50%)' };
+        return { bottom: 50, left: '50%', transform: 'translateX(-50%)' }; // 20 + 30 = 50 (сдвиг внутрь на 10%)
       case 'left':
-        return { left: 20, top: '50%', transform: 'translateY(-50%)' };
+        return { left: 50, top: '50%', transform: 'translateY(-50%)' }; // 20 + 30 = 50 (сдвиг внутрь на 10%)
       case 'right':
-        return { right: 20, top: '50%', transform: 'translateY(-50%)' };
+        return { right: 50, top: '50%', transform: 'translateY(-50%)' }; // 20 + 30 = 50 (сдвиг внутрь на 10%)
       default:
-        return { top: 20, left: '50%', transform: 'translateX(-50%)' };
+        return { top: 50, left: '50%', transform: 'translateX(-50%)' };
     }
   };
 
@@ -53,7 +53,7 @@ const CardDeck = ({
       case 'smallDeal':
         return '#1B5E20'; // Очень темно-зеленый
       case 'bigDeal':
-        return '#BF360C'; // Очень темно-оранжевый
+        return '#00695C'; // Бирюзовый
       case 'market':
         return '#0D47A1'; // Очень темно-синий
       case 'doodad':
@@ -103,7 +103,6 @@ const CardDeck = ({
 
   // Анимация карточек в стопке
   const cardVariants = {
-    hidden: { scale: 0.8, opacity: 0 },
     visible: { scale: 1, opacity: 1 },
     exit: { scale: 0.8, opacity: 0 }
   };
@@ -157,10 +156,10 @@ const CardDeck = ({
             cursor: 'pointer',
             border: `4px solid ${isLowCards ? '#FFD700' : '#FFFFFF'}`,
             position: 'relative',
-            boxShadow: '0 6px 24px rgba(0,0,0,0.8), inset 0 2px 8px rgba(255,255,255,0.1)',
+            boxShadow: '0 6px 24px rgba(0,0,0,0.8)',
             '&:hover': {
               transform: 'translateY(-5px)',
-              boxShadow: '0 10px 35px rgba(0,0,0,0.9), inset 0 2px 8px rgba(255,255,255,0.2)',
+              boxShadow: '0 10px 35px rgba(0,0,0,0.9)',
               border: `4px solid ${isLowCards ? '#FFEB3B' : '#F0F0F0'}`
             },
             transition: 'all 0.3s ease'
@@ -330,64 +329,7 @@ const CardDeck = ({
         </motion.div>
       )}
 
-      {/* Визуализация нескольких карт в стопке */}
-      <AnimatePresence>
-        {remainingCards > 1 && (
-          <>
-            {/* Вторая карта */}
-            <motion.div
-              variants={cardVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              style={{
-                position: 'absolute',
-                top: 2,
-                left: 2,
-                zIndex: 9
-              }}
-            >
-              <Paper
-                elevation={4}
-                sx={{
-                  width: 80,
-                  height: 120,
-                  backgroundColor: getDeckColor(),
-                  borderRadius: 2,
-                  opacity: 0.8
-                }}
-              />
-            </motion.div>
-            
-            {/* Третья карта */}
-            {remainingCards > 2 && (
-              <motion.div
-                variants={cardVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                style={{
-                  position: 'absolute',
-                  top: 4,
-                  left: 4,
-                  zIndex: 8
-                }}
-              >
-                <Paper
-                  elevation={2}
-                  sx={{
-                    width: 80,
-                    height: 120,
-                    backgroundColor: getDeckColor(),
-                    borderRadius: 2,
-                    opacity: 0.6
-                  }}
-                />
-              </motion.div>
-            )}
-          </>
-        )}
-      </AnimatePresence>
+
 
       {/* Tooltip с информацией */}
       <Tooltip
