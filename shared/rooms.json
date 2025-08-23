@@ -2134,16 +2134,15 @@
   },
   "room4": {
     "roomId": "room4",
-    "displayName": "Test Events Room",
-    "originalRequestedId": "test_events_1755920356392",
+    "displayName": "Комната Тест Активов",
+    "originalRequestedId": "Тест Активов",
     "maxPlayers": 2,
     "currentPlayers": [],
     "status": "waiting",
-    "password": null,
-    "hostId": "_EAuEONoUHkovAv6AAAV",
+    "hostId": "pGBjFUHfhdpFXxAjAAAa",
     "timer": {
-      "hours": 10,
-      "remaining": 36000
+      "hours": 3,
+      "remaining": 10800
     },
     "currentTurn": null,
     "board": {
@@ -2184,7 +2183,7 @@
         ]
       }
     },
-    "createdAt": 1755920356394
+    "createdAt": 1755927603212
   },
   "room5": {
     "roomId": "room5",
@@ -2824,7 +2823,7 @@
     "maxPlayers": 2,
     "currentPlayers": [
       {
-        "id": "_MbrmDAyQMUavignAAAJ",
+        "id": "t2H1u2s9MlfD4It-AAAX",
         "username": "test1",
         "email": "test1@cashflow.com",
         "displayId": 506,

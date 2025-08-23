@@ -217,6 +217,24 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
           />
           
           {/* Управление игрой под полем */}
+          {/* <GameControls
+            isMyTurn={gameState.isMyTurn}
+            currentTurn={gameState.currentTurn}
+            players={gameState.players}
+            myId={gameState.myId}
+            onEndTurn={handleEndTurn}
+            onBankClick={handleBankClick}
+            onProfessionClick={handleProfessionClick}
+            onFreedomClick={handleFreedomClick}
+            onExitClick={handleExitClick}
+            timer={turnTimerState.timer}
+            isTimerActive={turnTimerState.isActive}
+            turnBanner={gameState.turnBanner}
+          /> */}
+        </Box>
+
+        {/* Правая панель - Управление */}
+        <Box sx={{ width: 300 }}>
           <GameControls
             isMyTurn={gameState.isMyTurn}
             currentTurn={gameState.currentTurn}
@@ -230,12 +248,8 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
             timer={turnTimerState.timer}
             isTimerActive={turnTimerState.isActive}
             turnBanner={gameState.turnBanner}
+            currentPlayer={currentPlayer}
           />
-        </Box>
-
-        {/* Правая панель - Управление */}
-        <Box sx={{ width: 300 }}>
-          <Hud playerAssets={currentPlayer?.assets || []} />
         </Box>
       </Box>
 

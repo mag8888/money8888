@@ -1,30 +1,17 @@
-import React, { useMemo } from 'react';
-import { Box, Typography } from '@mui/material';
+import React, { useMemo, useState } from 'react';
+import { Box, Typography, Avatar } from '@mui/material';
 import { motion } from 'framer-motion';
-import CasinoIcon from '@mui/icons-material/Casino';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import EuroIcon from '@mui/icons-material/Euro';
 import HomeIcon from '@mui/icons-material/Home';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import BalanceIcon from '@mui/icons-material/Balance';
-import ChildCareIcon from '@mui/icons-material/ChildCare';
-import StoreIcon from '@mui/icons-material/Store';
 import BusinessIcon from '@mui/icons-material/Business';
-import AutorenewIcon from '@mui/icons-material/Autorenew';
-import MoneyOffIcon from '@mui/icons-material/MoneyOff';
-import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
-import GavelIcon from '@mui/icons-material/Gavel';
-import BuildIcon from '@mui/icons-material/Build';
-import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
-import SchoolIcon from '@mui/icons-material/School';
-import LocalPoliceIcon from '@mui/icons-material/LocalPolice';
-import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
-import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
+import ChildCareIcon from '@mui/icons-material/ChildCare';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
+import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
+import CasinoIcon from '@mui/icons-material/Casino';
+import CardDeck from './CardDeck';
 
 // Конфигурация клеток игрового поля
 const CELL_CONFIG = {
@@ -163,15 +150,58 @@ const GameCell = React.memo(({
 });
 
 // Основной компонент игрового поля
-const GameField = React.memo(({ 
+const GameField = ({ 
   players, 
   currentTurn, 
-  onCellClick,
-  onRollDice,
-  isMyTurn,
-  diceValue,
+  onCellClick, 
+  onRollDice, 
+  isMyTurn, 
+  diceValue, 
   isRolling 
 }) => {
+  // Состояние стопок карточек
+  const [cardDecks, setCardDecks] = useState({
+    smallDeal: { remaining: 24, total: 24, isShuffling: false },
+    bigDeal: { remaining: 24, total: 24, isShuffling: false },
+    market: { remaining: 24, total: 24, isShuffling: false },
+    doodad: { remaining: 24, total: 24, isShuffling: false },
+    charity: { remaining: 24, total: 24, isShuffling: false }
+  });
+
+  // Функция перетасовки колоды
+  const handleShuffleDeck = (deckType) => {
+    setCardDecks(prev => ({
+      ...prev,
+      [deckType]: {
+        ...prev[deckType],
+        isShuffling: true,
+        remaining: prev[deckType].total
+      }
+    }));
+
+    // Имитация перетасовки
+    setTimeout(() => {
+      setCardDecks(prev => ({
+        ...prev,
+        [deckType]: {
+          ...prev[deckType],
+          isShuffling: false
+        }
+      }));
+    }, 600);
+  };
+
+  // Функция взятия карты из колоды
+  const drawCard = (deckType) => {
+    setCardDecks(prev => ({
+      ...prev,
+      [deckType]: {
+        ...prev[deckType],
+        remaining: Math.max(0, prev[deckType].remaining - 1)
+      }
+    }));
+  };
+
   // Вычисляем позиции игроков
   const playerPositions = useMemo(() => {
     const positions = {};
@@ -359,9 +389,46 @@ const GameField = React.memo(({
           return null;
         })}
       </svg>
+
+      {/* Стопки карточек */}
+      <CardDeck
+        deckType="smallDeal"
+        remainingCards={cardDecks.smallDeal.remaining}
+        totalCards={cardDecks.smallDeal.total}
+        onShuffle={handleShuffleDeck}
+        isShuffling={cardDecks.smallDeal.isShuffling}
+        position="top"
+      />
+      
+      <CardDeck
+        deckType="bigDeal"
+        remainingCards={cardDecks.bigDeal.remaining}
+        totalCards={cardDecks.bigDeal.total}
+        onShuffle={handleShuffleDeck}
+        isShuffling={cardDecks.bigDeal.isShuffling}
+        position="bottom"
+      />
+      
+      <CardDeck
+        deckType="market"
+        remainingCards={cardDecks.market.remaining}
+        totalCards={cardDecks.market.total}
+        onShuffle={handleShuffleDeck}
+        isShuffling={cardDecks.market.isShuffling}
+        position="left"
+      />
+      
+      <CardDeck
+        deckType="doodad"
+        remainingCards={cardDecks.doodad.remaining}
+        totalCards={cardDecks.doodad.total}
+        onShuffle={handleShuffleDeck}
+        isShuffling={cardDecks.doodad.isShuffling}
+        position="right"
+      />
     </Box>
   );
-});
+};
 
 GameField.displayName = 'GameField';
 GameCell.displayName = 'GameCell';

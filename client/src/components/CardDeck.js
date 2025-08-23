@@ -1,0 +1,352 @@
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Paper, IconButton, Tooltip } from '@mui/material';
+import { motion, AnimatePresence } from 'framer-motion';
+import ShuffleIcon from '@mui/icons-material/Shuffle';
+import StyleIcon from '@mui/icons-material/Style';
+
+// Компонент стопки карточек
+const CardDeck = ({ 
+  deckType, 
+  remainingCards, 
+  totalCards, 
+  onShuffle, 
+  isShuffling = false,
+  position = 'top' // 'top', 'bottom', 'left', 'right'
+}) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  
+  // Определяем позицию стопки
+  const getPositionStyles = () => {
+    switch (position) {
+      case 'top':
+        return { top: 20, left: '50%', transform: 'translateX(-50%)' };
+      case 'bottom':
+        return { bottom: 20, left: '50%', transform: 'translateX(-50%)' };
+      case 'left':
+        return { left: 20, top: '50%', transform: 'translateY(-50%)' };
+      case 'right':
+        return { right: 20, top: '50%', transform: 'translateY(-50%)' };
+      default:
+        return { top: 20, left: '50%', transform: 'translateX(-50%)' };
+    }
+  };
+
+  // Определяем цвет стопки по типу
+  const getDeckColor = () => {
+    switch (deckType) {
+      case 'smallDeal':
+        return '#4CAF50'; // Зеленый
+      case 'bigDeal':
+        return '#FF9800'; // Оранжевый
+      case 'market':
+        return '#2196F3'; // Синий
+      case 'doodad':
+        return '#F44336'; // Красный
+      case 'charity':
+        return '#E91E63'; // Розовый
+      default:
+        return '#9C27B0'; // Фиолетовый
+    }
+  };
+
+  // Определяем название колоды
+  const getDeckName = () => {
+    switch (deckType) {
+      case 'smallDeal':
+        return 'Малые Сделки';
+      case 'bigDeal':
+        return 'Большие Сделки';
+      case 'market':
+        return 'Рынок';
+      case 'doodad':
+        return 'Расходы';
+      case 'charity':
+        return 'Благотворительность';
+      default:
+        return deckType;
+    }
+  };
+
+  // Определяем иконку колоды
+  const getDeckIcon = () => {
+    switch (deckType) {
+      case 'smallDeal':
+        return '🏠';
+      case 'bigDeal':
+        return '🏢';
+      case 'market':
+        return '📈';
+      case 'doodad':
+        return '🛒';
+      case 'charity':
+        return '❤️';
+      default:
+        return '🎴';
+    }
+  };
+
+  // Анимация карточек в стопке
+  const cardVariants = {
+    hidden: { scale: 0.8, opacity: 0 },
+    visible: { scale: 1, opacity: 1 },
+    exit: { scale: 0.8, opacity: 0 }
+  };
+
+  // Анимация перетасовки
+  const shuffleVariants = {
+    initial: { rotate: 0, scale: 1 },
+    shuffle: { 
+      rotate: [0, -10, 10, -5, 5, 0],
+      scale: [1, 1.1, 1, 1.05, 1],
+      transition: { duration: 0.6, ease: "easeInOut" }
+    }
+  };
+
+  // Обработчик перетасовки
+  const handleShuffle = () => {
+    if (onShuffle && !isShuffling) {
+      onShuffle(deckType);
+    }
+  };
+
+  // Показываем предупреждение когда карт мало
+  const isLowCards = remainingCards <= Math.ceil(totalCards * 0.2);
+  const isEmpty = remainingCards === 0;
+
+  return (
+    <Box
+      sx={{
+        position: 'absolute',
+        ...getPositionStyles(),
+        zIndex: 10
+      }}
+    >
+      {/* Основная стопка карточек */}
+      <motion.div
+        variants={shuffleVariants}
+        initial="initial"
+        animate={isShuffling ? "shuffle" : "initial"}
+      >
+        <Paper
+          elevation={8}
+          sx={{
+            width: 80,
+            height: 120,
+            backgroundColor: getDeckColor(),
+            borderRadius: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            border: `3px solid ${isLowCards ? '#FFD700' : '#fff'}`,
+            position: 'relative',
+            '&:hover': {
+              transform: 'translateY(-5px)',
+              boxShadow: 12
+            },
+            transition: 'all 0.3s ease'
+          }}
+          onClick={handleShuffle}
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+        >
+          {/* Иконка колоды */}
+          <Typography variant="h4" sx={{ color: '#fff', mb: 1 }}>
+            {getDeckIcon()}
+          </Typography>
+          
+          {/* Название колоды */}
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              color: '#fff', 
+              textAlign: 'center',
+              fontWeight: 'bold',
+              fontSize: '0.7rem',
+              lineHeight: 1.2,
+              px: 1
+            }}
+          >
+            {getDeckName()}
+          </Typography>
+          
+          {/* Количество карт */}
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              color: '#fff', 
+              fontWeight: 'bold',
+              mt: 1,
+              textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
+            }}
+          >
+            {remainingCards}
+          </Typography>
+          
+          {/* Индикатор низкого количества карт */}
+          {isLowCards && !isEmpty && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: -5,
+                right: -5,
+                width: 20,
+                height: 20,
+                backgroundColor: '#FFD700',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                animation: 'pulse 2s infinite'
+              }}
+            >
+              <Typography variant="caption" sx={{ color: '#000', fontWeight: 'bold' }}>
+                ⚠️
+              </Typography>
+            </Box>
+          )}
+          
+          {/* Индикатор пустой колоды */}
+          {isEmpty && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: -5,
+                right: -5,
+                width: 20,
+                height: 20,
+                backgroundColor: '#F44336',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Typography variant="caption" sx={{ color: '#fff', fontWeight: 'bold' }}>
+                ∅
+              </Typography>
+            </Box>
+          )}
+        </Paper>
+      </motion.div>
+
+      {/* Кнопка перетасовки */}
+      {remainingCards === 0 && (
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <IconButton
+            onClick={handleShuffle}
+            disabled={isShuffling}
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              backgroundColor: 'rgba(0,0,0,0.8)',
+              color: '#fff',
+              '&:hover': {
+                backgroundColor: 'rgba(0,0,0,0.9)'
+              }
+            }}
+          >
+            <ShuffleIcon />
+          </IconButton>
+        </motion.div>
+      )}
+
+      {/* Визуализация нескольких карт в стопке */}
+      <AnimatePresence>
+        {remainingCards > 1 && (
+          <>
+            {/* Вторая карта */}
+            <motion.div
+              variants={cardVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              style={{
+                position: 'absolute',
+                top: 2,
+                left: 2,
+                zIndex: 9
+              }}
+            >
+              <Paper
+                elevation={4}
+                sx={{
+                  width: 80,
+                  height: 120,
+                  backgroundColor: getDeckColor(),
+                  borderRadius: 2,
+                  opacity: 0.8
+                }}
+              />
+            </motion.div>
+            
+            {/* Третья карта */}
+            {remainingCards > 2 && (
+              <motion.div
+                variants={cardVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                style={{
+                  position: 'absolute',
+                  top: 4,
+                  left: 4,
+                  zIndex: 8
+                }}
+              >
+                <Paper
+                  elevation={2}
+                  sx={{
+                    width: 80,
+                    height: 120,
+                    backgroundColor: getDeckColor(),
+                    borderRadius: 2,
+                    opacity: 0.6
+                  }}
+                />
+              </motion.div>
+            )}
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Tooltip с информацией */}
+      <Tooltip
+        open={showTooltip}
+        title={
+          <Box>
+            <Typography variant="body2">
+              <strong>{getDeckName()}</strong>
+            </Typography>
+            <Typography variant="caption">
+              Осталось карт: {remainingCards} из {totalCards}
+            </Typography>
+            {isLowCards && (
+              <Typography variant="caption" sx={{ color: '#FFD700', display: 'block' }}>
+                ⚠️ Карт мало! Скоро нужна перетасовка
+              </Typography>
+            )}
+            {isEmpty && (
+              <Typography variant="caption" sx={{ color: '#F44336', display: 'block' }}>
+                🚫 Колода пуста! Нажмите для перетасовки
+              </Typography>
+            )}
+          </Box>
+        }
+        placement="top"
+        arrow
+      >
+        <Box />
+      </Tooltip>
+    </Box>
+  );
+};
+
+export default CardDeck;
