@@ -303,8 +303,8 @@ const GameField = ({
       <Box
         sx={{
           position: 'absolute',
-          width: 100,
-          height: 100,
+          width: 80,
+          height: 80,
           backgroundColor: '#6E4D92',
           borderRadius: '50%',
           display: 'flex',
@@ -315,8 +315,8 @@ const GameField = ({
           zIndex: 20
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                      ПОТОК ДЕНЕГ
+        <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, fontSize: '0.9rem' }}>
+          ПОТОК ДЕНЕГ
         </Typography>
         
         {/* Кнопка броска кубиков */}
@@ -327,13 +327,13 @@ const GameField = ({
             onClick={onRollDice}
             style={{ cursor: 'pointer' }}
           >
-            <CasinoIcon sx={{ fontSize: 32, color: '#FFD700' }} />
+            <CasinoIcon sx={{ fontSize: 24, color: '#FFD700' }} />
           </motion.div>
         )}
         
         {/* Значение кубиков */}
         {diceValue > 0 && (
-          <Typography variant="h4" sx={{ color: '#FFD700', fontWeight: 'bold' }}>
+          <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 'bold', fontSize: '1.2rem' }}>
             {diceValue}
           </Typography>
         )}

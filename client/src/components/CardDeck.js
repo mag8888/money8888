@@ -51,17 +51,17 @@ const CardDeck = ({
   const getDeckColor = () => {
     switch (deckType) {
       case 'smallDeal':
-        return '#2E7D32'; // Темно-зеленый для лучшего контраста
+        return '#1B5E20'; // Очень темно-зеленый
       case 'bigDeal':
-        return '#E65100'; // Темно-оранжевый для лучшего контраста
+        return '#BF360C'; // Очень темно-оранжевый
       case 'market':
-        return '#1565C0'; // Темно-синий для лучшего контраста
+        return '#0D47A1'; // Очень темно-синий
       case 'doodad':
-        return '#C62828'; // Темно-красный для лучшего контраста
+        return '#B71C1C'; // Очень темно-красный
       case 'charity':
-        return '#AD1457'; // Темно-розовый для лучшего контраста
+        return '#880E4F'; // Очень темно-розовый
       default:
-        return '#4A148C'; // Темно-фиолетовый для лучшего контраста
+        return '#311B92'; // Очень темно-фиолетовый
     }
   };
 
@@ -146,22 +146,22 @@ const CardDeck = ({
         <Paper
           elevation={8}
           sx={{
-            width: 80,
-            height: 120,
-            backgroundColor: getDeckColor(),
-            borderRadius: 2,
+            width: 100,
+            height: 140,
+            background: `linear-gradient(135deg, ${getDeckColor()} 0%, ${getDeckColor()} 60%, rgba(0,0,0,0.8) 100%)`,
+            borderRadius: 3,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            border: `3px solid ${isLowCards ? '#FFD700' : '#FFFFFF'}`,
+            border: `4px solid ${isLowCards ? '#FFD700' : '#FFFFFF'}`,
             position: 'relative',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+            boxShadow: '0 6px 24px rgba(0,0,0,0.8), inset 0 2px 8px rgba(255,255,255,0.1)',
             '&:hover': {
               transform: 'translateY(-5px)',
-              boxShadow: '0 8px 30px rgba(0,0,0,0.8)',
-              border: `3px solid ${isLowCards ? '#FFEB3B' : '#F0F0F0'}`
+              boxShadow: '0 10px 35px rgba(0,0,0,0.9), inset 0 2px 8px rgba(255,255,255,0.2)',
+              border: `4px solid ${isLowCards ? '#FFEB3B' : '#F0F0F0'}`
             },
             transition: 'all 0.3s ease'
           }}
