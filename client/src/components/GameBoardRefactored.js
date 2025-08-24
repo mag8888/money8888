@@ -53,7 +53,9 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
     getCurrentPlayer: getCurrentPlayerLogic,
     canAffordPurchase,
     calculateMaxLoan,
-    calculateAvailableCredit
+    calculateAvailableCredit,
+    pauseTurnTimer,
+    resumeTurnTimer
   } = useGameLogic(roomId, gameState, updateGameState);
 
   // Используем централизованный хук для выхода
@@ -249,9 +251,13 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
             isTimerActive={turnTimerState.isActive}
             turnBanner={gameState.turnBanner}
             currentPlayer={currentPlayer}
-            diceValue={diceState.displayDice}
+            diceValue={diceState.timerDice}
             playerProfession={currentPlayer?.profession}
             playerBalance={currentPlayer?.balance}
+            onPauseTimer={pauseTurnTimer}
+            onResumeTimer={resumeTurnTimer}
+            isHost={gameState.hostId === gameState.myId}
+            timerPaused={turnTimerState.paused}
           />
         </Box>
       </Box>

@@ -191,7 +191,11 @@ const GameControls = React.memo(({
   currentPlayer,
   playerProfession,
   playerBalance,
-  diceValue
+  diceValue,
+  onPauseTimer,
+  onResumeTimer,
+  isHost,
+  timerPaused
 }) => {
   const [assetsModalOpen, setAssetsModalOpen] = React.useState(false);
   
@@ -526,6 +530,54 @@ const GameControls = React.memo(({
         isMyTurn={isMyTurn}
         diceValue={diceValue}
       />
+
+      {/* Управление таймером для хоста */}
+      {isHost && (
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 1, 
+          justifyContent: 'center',
+          mb: 1
+        }}>
+          {timerPaused ? (
+            <Button
+              variant="contained"
+              size="small"
+              onClick={onResumeTimer}
+              sx={{
+                backgroundColor: '#4CAF50',
+                color: 'white',
+                '&:hover': { backgroundColor: '#45a049' }
+              }}
+            >
+              ▶️ Возобновить
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              size="small"
+              onClick={onPauseTimer}
+              sx={{
+                backgroundColor: '#FF9800',
+                color: 'white',
+                '&:hover': { backgroundColor: '#F57C00' }
+              }}
+            >
+              ⏸️ Пауза
+            </Button>
+          )}
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              color: 'rgba(255,255,255,0.6)',
+              alignSelf: 'center',
+              fontSize: '0.7rem'
+            }}
+          >
+            Только хост
+          </Typography>
+        </Box>
+      )}
 
       {/* Кнопка следующего игрока */}
       <NextPlayerButton

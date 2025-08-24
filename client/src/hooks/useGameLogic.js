@@ -43,53 +43,55 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
     }
   }, [gameState.isMyTurn, gameStartTime]);
 
-  // Таймер хода
+  // Слушаем серверные события таймера
   useEffect(() => {
-    if (gameState.isMyTurn && turnTimerState.isActive) {
-      timerIntervalRef.current = setInterval(() => {
-        setTurnTimerState(prev => {
-          const newTimer = prev.timer - 1;
-          
-          if (newTimer <= 0) {
-            // Время вышло, автоматически передаем ход
-            handleEndTurn();
-            return { timer: 120, isActive: false };
-          }
-          
-          // Звуковые уведомления
-          if (newTimer === 10 && audioRef.current) {
-            try {
-              audioRef.current.play().catch(e => console.log('Не удалось воспроизвести звук:', e));
-            } catch (error) {
-              console.warn('Audio play failed:', error);
-            }
-          }
-          
-          return { ...prev, timer: newTimer };
-        });
-      }, 1000);
-    } else {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
+    const handleTurnTimerUpdate = (data) => {
+      console.log('⏰ [useGameLogic] Turn timer update:', data);
+      setTurnTimerState({
+        timer: data.remaining,
+        isActive: data.isActive,
+        paused: data.paused || false
+      });
+      
+      // Звуковые уведомления
+      if (data.remaining === 10 && audioRef.current && gameState.isMyTurn) {
+        try {
+          audioRef.current.play().catch(e => console.log('Не удалось воспроизвести звук:', e));
+        } catch (error) {
+          console.warn('Audio play failed:', error);
+        }
       }
     };
-  }, [gameState.isMyTurn, turnTimerState.isActive]);
+
+    socket.on('turnTimerUpdate', handleTurnTimerUpdate);
+
+    return () => {
+      socket.off('turnTimerUpdate', handleTurnTimerUpdate);
+    };
+  }, [gameState.isMyTurn]);
 
   // Сброс таймера при изменении хода
   useEffect(() => {
     if (gameState.isMyTurn) {
       setTurnTimerState({ timer: 120, isActive: true });
+      console.log('⏰ [useGameLogic] Таймер запущен для игрока:', gameState.myId);
     } else {
       setTurnTimerState({ timer: 120, isActive: false });
+      console.log('⏸️ [useGameLogic] Таймер остановлен');
     }
-  }, [gameState.isMyTurn]);
+  }, [gameState.isMyTurn, gameState.myId]);
+
+  // Автоматический запуск таймера при инициализации игры
+  useEffect(() => {
+    if (gameState.players && gameState.players.length > 0 && !gameState.isMyTurn) {
+      // Если есть игроки, но ход не определен, назначаем первого игрока
+      const firstPlayer = gameState.players[0];
+      if (firstPlayer && firstPlayer.id === gameState.myId) {
+        console.log('🎯 [useGameLogic] Автоматически назначаем первого игрока:', firstPlayer.username);
+        // Здесь должна быть логика обновления gameState
+      }
+    }
+  }, [gameState.players, gameState.myId, gameState.isMyTurn]);
 
   // Бросок кубиков
   const rollDice = useCallback(() => {
@@ -285,6 +287,21 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
     }));
   }, []);
 
+  // Функции управления таймером для хоста
+  const pauseTurnTimer = useCallback(() => {
+    if (roomId) {
+      console.log('⏸️ [useGameLogic] Pausing turn timer');
+      socket.emit('pauseTurnTimer', roomId);
+    }
+  }, [roomId]);
+
+  const resumeTurnTimer = useCallback(() => {
+    if (roomId) {
+      console.log('▶️ [useGameLogic] Resuming turn timer');
+      socket.emit('resumeTurnTimer', roomId);
+    }
+  }, [roomId]);
+
   return {
     // Состояние
     diceState,
@@ -299,6 +316,8 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
     handleSkipDeal,
     handleGameEnd,
     updatePassiveIncome,
+    pauseTurnTimer,
+    resumeTurnTimer,
     
     // Утилиты
     getCurrentPlayer,

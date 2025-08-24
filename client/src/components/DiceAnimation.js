@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const DiceAnimation = ({ value, isRolling, onAnimationComplete }) => {
+const DiceAnimation = ({ value, isRolling, onAnimationComplete, onClick }) => {
   const [currentFace, setCurrentFace] = useState(1);
   const [animationPhase, setAnimationPhase] = useState('idle'); // idle, rolling, showing
 
@@ -97,7 +97,7 @@ const DiceAnimation = ({ value, isRolling, onAnimationComplete }) => {
       flexDirection: 'column', 
       alignItems: 'center', 
       mb: 2,
-      cursor: animationPhase === 'idle' ? 'pointer' : 'default',
+      cursor: onClick && animationPhase === 'idle' ? 'pointer' : 'default',
       zIndex: 1,
       position: 'relative'
     }}>
@@ -108,6 +108,7 @@ const DiceAnimation = ({ value, isRolling, onAnimationComplete }) => {
           perspective: '1000px',
           transformStyle: 'preserve-3d'
         }}
+        onClick={onClick && animationPhase === 'idle' ? onClick : undefined}
       >
         <Box
           sx={{

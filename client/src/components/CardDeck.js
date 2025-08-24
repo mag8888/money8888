@@ -35,32 +35,8 @@ const CardDeck = ({
   const getPositionStyles = () => {
     switch (position) {
       case 'top-left':
-        return { 
-          position: 'relative',
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        };
       case 'top-right':
-        return { 
-          position: 'relative',
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        };
       case 'bottom-left':
-        return { 
-          position: 'relative',
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        };
       case 'bottom-right':
         return { 
           position: 'relative',
@@ -168,7 +144,13 @@ const CardDeck = ({
     <Box
       sx={{
         ...getPositionStyles(),
-        zIndex: 9999
+        zIndex: 999999,
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}
     >
       {/* Основная стопка карточек */}
@@ -192,10 +174,12 @@ const CardDeck = ({
             border: `4px solid ${isLowCards ? '#FFD700' : '#FFFFFF'}`,
             position: 'relative',
             boxShadow: '0 6px 24px rgba(0,0,0,0.8)',
+            zIndex: 999999,
             '&:hover': {
               transform: 'translateY(-5px)',
               boxShadow: '0 10px 35px rgba(0,0,0,0.9)',
-              border: `4px solid ${isLowCards ? '#FFEB3B' : '#F0F0F0'}`
+              border: `4px solid ${isLowCards ? '#FFEB3B' : '#F0F0F0'}`,
+              zIndex: 1000000
             },
             transition: 'all 0.3s ease'
           }}
@@ -349,10 +333,12 @@ const CardDeck = ({
               color: '#FFFFFF',
               border: '2px solid #FFFFFF',
               boxShadow: '0 4px 12px rgba(0,0,0,0.8)',
+              zIndex: 1000001,
               '&:hover': {
                 backgroundColor: 'rgba(0,0,0,1)',
                 transform: 'translate(-50%, -50%) scale(1.1)',
-                boxShadow: '0 6px 16px rgba(0,0,0,0.9)'
+                boxShadow: '0 6px 16px rgba(0,0,0,0.9)',
+                zIndex: 1000002
               },
               '&:disabled': {
                 opacity: 0.7

@@ -173,6 +173,8 @@ const GameField = ({
   currentTurn, 
   onCellClick, 
   onRollDice, 
+  isMyTurn,
+  diceValue,
   isRolling 
 }) => {
   // Состояние стопок карточек
@@ -203,17 +205,17 @@ const GameField = ({
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0); // Индекс текущего игрока
   const [diceResults, setDiceResults] = useState({}); // Результаты бросков кубиков
   const [turnTimer, setTurnTimer] = useState(120); // 2 минуты в секундах
-  const [isMyTurn, setIsMyTurn] = useState(false); // Мой ли сейчас ход
+  const [localIsMyTurn, setLocalIsMyTurn] = useState(false); // Мой ли сейчас ход
   
   // Состояние кубика
-  const [diceValue, setDiceValue] = useState(0); // Значение кубика (0 = не брошен)
+  const [localDiceValue, setLocalDiceValue] = useState(0); // Значение кубика (0 = не брошен)
   const [isDiceRolling, setIsDiceRolling] = useState(false); // Анимация броска кубика
   
   console.log('🚀 [GameField] Компонент инициализирован с пропсами:', {
     players: players?.length || 0,
     currentTurn,
-    isMyTurn,
-    diceValue
+    localIsMyTurn,
+    localDiceValue
   });
   
   console.log('📊 [GameField] Состояния компонента:', {
@@ -223,7 +225,7 @@ const GameField = ({
     gamePhase,
     currentPlayerIndex,
     turnTimer,
-    isMyTurn
+    localIsMyTurn
   });
 
   // Функция перетасовки колоды
@@ -271,7 +273,7 @@ const GameField = ({
     const randomNumber = Math.floor(Math.random() * 6) + 1;
     
     // Устанавливаем значение для анимации
-    setDiceValue(randomNumber);
+    setLocalDiceValue(randomNumber);
     console.log('🎲 [GameField] Кубик выброшен:', randomNumber);
   };
 
@@ -320,10 +322,15 @@ const GameField = ({
         // После назначения профессии запускаем игру
         setGamePhase('diceRoll');
         
+        // Запускаем первый ход
+        setLocalIsMyTurn(true);
+        setTurnTimer(120);
+        
         console.log('🎯 [GameField] Профессия назначена:', randomProfession.name);
         console.log('💰 [GameField] Баланс игрока:', totalBalance, '(зарплата:', randomProfession.salary, '+ сбережения:', savings, ')');
         console.log('✅ [GameField] Состояние обновлено:', { playerProfession: randomProfession, playerBalance: totalBalance, gameStarted: true });
         console.log('🎮 [GameField] Игра запущена, фаза: diceRoll');
+        console.log('⏰ [GameField] Первый ход запущен, таймер: 2:00');
         
       } catch (error) {
         console.error('❌ [GameField] Ошибка при назначении профессии:', error);
@@ -348,7 +355,7 @@ const GameField = ({
   const startTurn = useCallback(() => {
     console.log('🔄 [GameField] Начинается ход игрока:', currentPlayerIndex);
     setTurnTimer(120); // Сброс таймера на 2 минуты
-    setIsMyTurn(true);
+    setLocalIsMyTurn(true);
     
     // Уведомляем о начале хода
     console.log(`⏰ [GameField] Таймер запущен: 2:00 для игрока ${currentPlayerIndex}`);
@@ -356,10 +363,10 @@ const GameField = ({
 
   const endTurn = useCallback(() => {
     console.log('⏭️ [GameField] Завершается ход игрока:', currentPlayerIndex);
-    setIsMyTurn(false);
+    setLocalIsMyTurn(false);
     
     // Сброс кубика при переходе хода
-    setDiceValue(0);
+    setLocalDiceValue(0);
     
     // Переход к следующему игроку
     const nextPlayerIndex = (currentPlayerIndex + 1) % playerOrder.length;
@@ -378,7 +385,7 @@ const GameField = ({
   useEffect(() => {
     let interval;
     
-    if (gamePhase === 'playing' && isMyTurn && turnTimer > 0) {
+    if ((gamePhase === 'playing' || gamePhase === 'diceRoll') && localIsMyTurn && turnTimer > 0) {
       interval = setInterval(() => {
         setTurnTimer(prev => {
           if (prev <= 1) {
@@ -394,7 +401,7 @@ const GameField = ({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [gamePhase, isMyTurn, turnTimer, endTurn]);
+  }, [gamePhase, localIsMyTurn, turnTimer, endTurn]);
 
   // Функция получения описания клетки
   const getCellDescription = (cellType) => {
@@ -633,9 +640,9 @@ const GameField = ({
               textAlign: 'center'
             }}
           >
-            {Math.floor(turnTimer / 60)}:{(turnTimer % 60).toString().padStart(2, '0')} || {diceValue > 0 ? diceValue : '🎲'}
+            {Math.floor(turnTimer / 60)}:{(turnTimer % 60).toString().padStart(2, '0')} || {localDiceValue > 0 ? localDiceValue : '🎲'}
           </Typography>
-          {isMyTurn && (
+          {localIsMyTurn && (
             <Button
               variant="contained"
               size="small"
@@ -681,7 +688,7 @@ const GameField = ({
               mb: 1
             }}
           >
-            ⏳ Ожидание || {diceValue > 0 ? diceValue : '🎲'}
+            ⏳ Ожидание || {localDiceValue > 0 ? localDiceValue : '🎲'}
           </Typography>
           
 
@@ -689,7 +696,7 @@ const GameField = ({
       )}
 
       {/* Кнопка броска кубиков для хода */}
-      {gamePhase === 'playing' && isMyTurn && (
+      {gamePhase === 'playing' && localIsMyTurn && (
         <motion.div
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -733,13 +740,12 @@ const GameField = ({
 
         
         {/* 3D Анимированный кубик */}
-        <Box onClick={rollDice}>
-          <DiceAnimation 
-            value={diceValue}
-            isRolling={isDiceRolling}
-            onAnimationComplete={handleDiceAnimationComplete}
-          />
-        </Box>
+        <DiceAnimation 
+          value={diceValue}
+          isRolling={isRolling}
+          onAnimationComplete={handleDiceAnimationComplete}
+          onClick={onRollDice}
+        />
         
 
       </Box>
@@ -803,19 +809,22 @@ const GameField = ({
         })}
       </svg>
 
-      {/* Стопки карточек - размещены по квадрату */}
+      {/* Стопки карточек - размещены по центру в сетке 2x2 */}
       <Box sx={{
         position: 'absolute',
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        width: 400,
-        height: 400,
+        width: 350,
+        height: 350,
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
         gridTemplateRows: '1fr 1fr',
-        gap: 2,
-        zIndex: 15
+        gap: 8,
+        zIndex: 500,
+        alignItems: 'center',
+        justifyContent: 'center',
+        placeItems: 'center'
       }}>
         {/* Верхний левый - Small Deal */}
         <CardDeck

@@ -189,6 +189,7 @@ const rooms = {}; // { roomId: { maxPlayers, currentPlayers: [...], status, pass
 
 // Timer management for rooms
 const roomTimers = new Map(); // { roomId: { gameTimer, cleanupTimer } }
+const turnTimers = new Map(); // { roomId: { timer: intervalId, remaining: seconds, playerId: currentPlayer } }
 
 // Helper to create a default room when none exist
 function createDefaultRoom() {
@@ -737,6 +738,9 @@ io.on('connection', (socket) => {
         // Persist room state
         persistRooms();
         
+        // Start turn timer for first player
+        startTurnTimer(roomId, room.currentTurn);
+        
         // Start game timer
         const timerInterval = setInterval(() => {
           const r = rooms[roomId];
@@ -977,6 +981,9 @@ io.on('connection', (socket) => {
       return;
     }
     
+    // Stop current turn timer
+    stopTurnTimer(roomId);
+    
     // Find current player index and move to next
     const currentPlayerIndex = room.currentPlayers.findIndex(p => p.id === playerId);
     if (currentPlayerIndex === -1) return;
@@ -1003,7 +1010,24 @@ io.on('connection', (socket) => {
       currentTurn: room.currentTurn 
     });
     
+    // Start timer for next player
+    startTurnTimer(roomId, nextPlayer.id);
+    
     persistRooms();
+  });
+
+  // Host can pause turn timer
+  socket.on('pauseTurnTimer', (roomId) => {
+    console.log('pauseTurnTimer received:', { roomId, socketId: socket.id });
+    const success = pauseTurnTimer(roomId, socket.id);
+    socket.emit('pauseTurnTimerResult', { success, roomId });
+  });
+
+  // Host can resume turn timer
+  socket.on('resumeTurnTimer', (roomId) => {
+    console.log('resumeTurnTimer received:', { roomId, socketId: socket.id });
+    const success = resumeTurnTimer(roomId, socket.id);
+    socket.emit('resumeTurnTimerResult', { success, roomId });
   });
 
   // Выбор типа сделки
@@ -1476,6 +1500,210 @@ function clearRoomTimers(roomId) {
     if (timers.cleanupTimer) clearTimeout(timers.cleanupTimer);
     roomTimers.delete(roomId);
   }
+}
+
+// Start turn timer for a player
+function startTurnTimer(roomId, playerId) {
+  console.log('⏰ [SERVER] Starting turn timer for player:', playerId, 'in room:', roomId);
+  
+  // Clear existing timer if any
+  stopTurnTimer(roomId);
+  
+  const room = rooms[roomId];
+  if (!room) {
+    console.warn('⏰ [SERVER] Room not found for timer:', roomId);
+    return;
+  }
+  
+  let remaining = 120; // 2 minutes in seconds
+  
+  const timer = setInterval(() => {
+    remaining--;
+    
+    // Emit timer update to all players in room
+    io.to(roomId).emit('turnTimerUpdate', { 
+      playerId, 
+      remaining,
+      isActive: true 
+    });
+    
+    // Timer expired
+    if (remaining <= 0) {
+      console.log('⏰ [SERVER] Turn timer expired for player:', playerId);
+      
+      // Auto end turn
+      autoEndTurn(roomId, playerId);
+      
+      // Clear timer
+      stopTurnTimer(roomId);
+    }
+  }, 1000);
+  
+  // Store timer info
+  turnTimers.set(roomId, {
+    timer,
+    remaining,
+    playerId
+  });
+  
+  // Initial timer update
+  io.to(roomId).emit('turnTimerUpdate', { 
+    playerId, 
+    remaining,
+    isActive: true 
+  });
+}
+
+// Stop turn timer for a room
+function stopTurnTimer(roomId) {
+  const timerInfo = turnTimers.get(roomId);
+  if (timerInfo) {
+    clearInterval(timerInfo.timer);
+    turnTimers.delete(roomId);
+    
+    // Emit timer stopped
+    io.to(roomId).emit('turnTimerUpdate', { 
+      playerId: timerInfo.playerId, 
+      remaining: 0,
+      isActive: false 
+    });
+    
+    console.log('⏰ [SERVER] Turn timer stopped for room:', roomId);
+  }
+}
+
+// Auto end turn when timer expires
+function autoEndTurn(roomId, playerId) {
+  console.log('⏰ [SERVER] Auto ending turn for player:', playerId, 'in room:', roomId);
+  
+  const room = rooms[roomId];
+  if (!room || room.status !== 'started') return;
+  
+  if (room.currentTurn !== playerId) {
+    console.warn('⏰ [SERVER] Auto end turn rejected: not current turn', { 
+      roomId, 
+      currentTurn: room.currentTurn, 
+      playerId 
+    });
+    return;
+  }
+  
+  // Find current player index and move to next
+  const currentPlayerIndex = room.currentPlayers.findIndex(p => p.id === playerId);
+  if (currentPlayerIndex === -1) return;
+  
+  // Move to next player (cycle through players)
+  const nextPlayerIndex = (currentPlayerIndex + 1) % room.currentPlayers.length;
+  const nextPlayer = room.currentPlayers[nextPlayerIndex];
+  
+  room.currentTurn = nextPlayer.id;
+  console.log('⏰ [SERVER] Auto turn change:', { 
+    currentPlayer: playerId, 
+    nextPlayer: nextPlayer.id, 
+    username: nextPlayer.username 
+  });
+  
+  // Emit turn change to all players
+  io.to(roomId).emit('turnChanged', nextPlayer.id);
+  io.to(roomId).emit('roomData', { 
+    roomId: room.roomId, 
+    maxPlayers: room.maxPlayers, 
+    status: room.status, 
+    hostId: room.hostId, 
+    timer: room.timer, 
+    currentTurn: room.currentTurn 
+  });
+  
+  // Start timer for next player
+  startTurnTimer(roomId, nextPlayer.id);
+  
+  persistRooms();
+}
+
+// Host can pause/resume turn timer
+function pauseTurnTimer(roomId, hostId) {
+  const room = rooms[roomId];
+  if (!room || room.hostId !== hostId) {
+    console.warn('⏰ [SERVER] Pause timer rejected: not host or room not found');
+    return false;
+  }
+  
+  const timerInfo = turnTimers.get(roomId);
+  if (timerInfo) {
+    clearInterval(timerInfo.timer);
+    
+    // Keep the remaining time but stop the countdown
+    turnTimers.set(roomId, {
+      ...timerInfo,
+      timer: null,
+      paused: true
+    });
+    
+    // Emit paused state
+    io.to(roomId).emit('turnTimerUpdate', { 
+      playerId: timerInfo.playerId, 
+      remaining: timerInfo.remaining,
+      isActive: false,
+      paused: true
+    });
+    
+    console.log('⏰ [SERVER] Turn timer paused by host in room:', roomId);
+    return true;
+  }
+  
+  return false;
+}
+
+// Resume paused timer
+function resumeTurnTimer(roomId, hostId) {
+  const room = rooms[roomId];
+  if (!room || room.hostId !== hostId) {
+    console.warn('⏰ [SERVER] Resume timer rejected: not host or room not found');
+    return false;
+  }
+  
+  const timerInfo = turnTimers.get(roomId);
+  if (timerInfo && timerInfo.paused) {
+    let remaining = timerInfo.remaining;
+    
+    const timer = setInterval(() => {
+      remaining--;
+      
+      // Update stored remaining time
+      turnTimers.set(roomId, {
+        ...timerInfo,
+        remaining,
+        paused: false
+      });
+      
+      // Emit timer update
+      io.to(roomId).emit('turnTimerUpdate', { 
+        playerId: timerInfo.playerId, 
+        remaining,
+        isActive: true,
+        paused: false
+      });
+      
+      // Timer expired
+      if (remaining <= 0) {
+        console.log('⏰ [SERVER] Resumed timer expired for player:', timerInfo.playerId);
+        autoEndTurn(roomId, timerInfo.playerId);
+        stopTurnTimer(roomId);
+      }
+    }, 1000);
+    
+    // Update timer info
+    turnTimers.set(roomId, {
+      ...timerInfo,
+      timer,
+      paused: false
+    });
+    
+    console.log('⏰ [SERVER] Turn timer resumed by host in room:', roomId);
+    return true;
+  }
+  
+  return false;
 }
 
 // Get sorted rooms list (newest first)
