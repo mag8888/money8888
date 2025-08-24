@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Box, Typography, Avatar, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { Box, Typography, Avatar, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip } from '@mui/material';
 import { motion } from 'framer-motion';
 import HomeIcon from '@mui/icons-material/Home';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -12,6 +12,11 @@ import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 import CasinoIcon from '@mui/icons-material/Casino';
 import CardDeck from './CardDeck';
+import { getRandomProfession } from '../data/professions';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import SkipNextIcon from '@mui/icons-material/SkipNext';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import DiceAnimation from './DiceAnimation';
 
 // Конфигурация клеток игрового поля согласно списку
 const CELL_CONFIG = {
@@ -85,8 +90,12 @@ const GameCell = React.memo(({
   playerColor, 
   playerInitial,
   onClick,
-  number
+  number,
+  isInner
 }) => {
+  // Используем цвета по таблице типов клеток
+  let cellColor = color;
+  
   return (
     <motion.div
       whileHover={{ scale: 1.1 }}
@@ -98,7 +107,7 @@ const GameCell = React.memo(({
         width: 42,
         height: 42,
         borderRadius: 7,
-        backgroundColor: color,
+        backgroundColor: cellColor,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -164,8 +173,6 @@ const GameField = ({
   currentTurn, 
   onCellClick, 
   onRollDice, 
-  isMyTurn, 
-  diceValue, 
   isRolling 
 }) => {
   // Состояние стопок карточек
@@ -185,10 +192,39 @@ const GameField = ({
     cellType: ''
   });
 
-  // Убираем состояние профессии - теперь она приходит из пропсов
-  // const [professionDialogOpen, setProfessionDialogOpen] = useState(false);
-  // const [playerProfession, setPlayerProfession] = useState(null);
-  // const [gameStarted, setGameStarted] = useState(false);
+  // Состояние профессии и баланса игрока
+  const [playerProfession, setPlayerProfession] = useState(null);
+  const [playerBalance, setPlayerBalance] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
+  
+  // Состояние системы ходов
+  const [gamePhase, setGamePhase] = useState('waiting'); // waiting, diceRoll, playing, finished
+  const [playerOrder, setPlayerOrder] = useState([]); // Порядок игроков
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0); // Индекс текущего игрока
+  const [diceResults, setDiceResults] = useState({}); // Результаты бросков кубиков
+  const [turnTimer, setTurnTimer] = useState(120); // 2 минуты в секундах
+  const [isMyTurn, setIsMyTurn] = useState(false); // Мой ли сейчас ход
+  
+  // Состояние кубика
+  const [diceValue, setDiceValue] = useState(0); // Значение кубика (0 = не брошен)
+  const [isDiceRolling, setIsDiceRolling] = useState(false); // Анимация броска кубика
+  
+  console.log('🚀 [GameField] Компонент инициализирован с пропсами:', {
+    players: players?.length || 0,
+    currentTurn,
+    isMyTurn,
+    diceValue
+  });
+  
+  console.log('📊 [GameField] Состояния компонента:', {
+    playerProfession: playerProfession?.name || 'null',
+    playerBalance,
+    gameStarted,
+    gamePhase,
+    currentPlayerIndex,
+    turnTimer,
+    isMyTurn
+  });
 
   // Функция перетасовки колоды
   const handleShuffleDeck = (deckType) => {
@@ -223,6 +259,142 @@ const GameField = ({
       }
     }));
   };
+
+  // Функция броска кубика с анимацией
+  const rollDice = () => {
+    if (isDiceRolling) return; // Предотвращаем повторные клики во время анимации
+    
+    setIsDiceRolling(true);
+    console.log('🎲 [GameField] Начинаем анимацию броска кубика...');
+    
+    // Генерируем случайное число (в будущем будет приходить с сервера)
+    const randomNumber = Math.floor(Math.random() * 6) + 1;
+    
+    // Устанавливаем значение для анимации
+    setDiceValue(randomNumber);
+    console.log('🎲 [GameField] Кубик выброшен:', randomNumber);
+  };
+
+  // Обработчик завершения анимации кубика
+  const handleDiceAnimationComplete = () => {
+    setIsDiceRolling(false);
+    console.log('✅ [GameField] Анимация кубика завершена');
+  };
+
+  // Автоматическое назначение профессии при запуске игры
+  useEffect(() => {
+    console.log('🔍 [GameField] useEffect сработал:', { gameStarted, playerProfession });
+    
+    if (!gameStarted && !playerProfession) {
+      console.log('✅ [GameField] Условия выполнены, назначаем профессию...');
+      
+      try {
+        // Назначаем случайную профессию
+        const randomProfession = getRandomProfession();
+        console.log('🎯 [GameField] Получена профессия:', randomProfession);
+        
+        if (!randomProfession) {
+          console.error('❌ [GameField] getRandomProfession вернул null/undefined');
+          return;
+        }
+        
+        setPlayerProfession(randomProfession);
+        console.log('✅ [GameField] playerProfession установлен');
+        
+        // Рассчитываем баланс: зарплата + 15-20% сбережений
+        const savingsPercentage = 15 + Math.random() * 5; // 15-20%
+        const savings = Math.floor(randomProfession.salary * (savingsPercentage / 100));
+        const totalBalance = randomProfession.balance + savings;
+        
+        console.log('💰 [GameField] Расчет баланса:', {
+          salary: randomProfession.salary,
+          balance: randomProfession.balance,
+          savingsPercentage,
+          savings,
+          totalBalance
+        });
+        
+        setPlayerBalance(totalBalance);
+        setGameStarted(true);
+        
+        // После назначения профессии запускаем игру
+        setGamePhase('diceRoll');
+        
+        console.log('🎯 [GameField] Профессия назначена:', randomProfession.name);
+        console.log('💰 [GameField] Баланс игрока:', totalBalance, '(зарплата:', randomProfession.salary, '+ сбережения:', savings, ')');
+        console.log('✅ [GameField] Состояние обновлено:', { playerProfession: randomProfession, playerBalance: totalBalance, gameStarted: true });
+        console.log('🎮 [GameField] Игра запущена, фаза: diceRoll');
+        
+      } catch (error) {
+        console.error('❌ [GameField] Ошибка при назначении профессии:', error);
+      }
+    } else {
+      console.log('⏭️ [GameField] Условия не выполнены:', { gameStarted, playerProfession });
+    }
+  }, [gameStarted, playerProfession]);
+
+  // Функции для системы ходов
+  const rollDiceForOrder = useCallback(() => {
+    const diceValue = Math.floor(Math.random() * 6) + 1;
+    console.log('🎲 [GameField] Бросок кубика для очередности:', diceValue);
+    
+    // Здесь должна быть логика отправки результата на сервер
+    // Пока что просто логируем
+    setDiceResults(prev => ({ ...prev, [Date.now()]: diceValue }));
+    
+    return diceValue;
+  }, []);
+
+  const startTurn = useCallback(() => {
+    console.log('🔄 [GameField] Начинается ход игрока:', currentPlayerIndex);
+    setTurnTimer(120); // Сброс таймера на 2 минуты
+    setIsMyTurn(true);
+    
+    // Уведомляем о начале хода
+    console.log(`⏰ [GameField] Таймер запущен: 2:00 для игрока ${currentPlayerIndex}`);
+  }, [currentPlayerIndex]);
+
+  const endTurn = useCallback(() => {
+    console.log('⏭️ [GameField] Завершается ход игрока:', currentPlayerIndex);
+    setIsMyTurn(false);
+    
+    // Сброс кубика при переходе хода
+    setDiceValue(0);
+    
+    // Переход к следующему игроку
+    const nextPlayerIndex = (currentPlayerIndex + 1) % playerOrder.length;
+    setCurrentPlayerIndex(nextPlayerIndex);
+    
+    // Запуск хода следующего игрока
+    setTimeout(() => startTurn(), 1000);
+  }, [currentPlayerIndex, playerOrder.length, startTurn]);
+
+  const skipTurn = useCallback(() => {
+    console.log('⏭️ [GameField] Ход пропущен игроком:', currentPlayerIndex);
+    endTurn();
+  }, [currentPlayerIndex, endTurn]);
+
+  // Таймер хода
+  useEffect(() => {
+    let interval;
+    
+    if (gamePhase === 'playing' && isMyTurn && turnTimer > 0) {
+      interval = setInterval(() => {
+        setTurnTimer(prev => {
+          if (prev <= 1) {
+            console.log('⏰ [GameField] Время хода истекло! Автоматический переход хода');
+            endTurn();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [gamePhase, isMyTurn, turnTimer, endTurn]);
 
   // Функция получения описания клетки
   const getCellDescription = (cellType) => {
@@ -283,20 +455,19 @@ const GameField = ({
     return positions;
   }, [players]);
 
-  // Вычисляем позиции клеток
+  // Вычисляем позиции клеток для дизайна как на изображении
   const cellPositions = useMemo(() => {
     const positions = [];
-    const fieldCenter = 495 / 2;
     const cellSize = 42;
-    const cellHalf = cellSize / 2;
 
-    // Внутренний контур - 24 клетки по кругу, центр в 350px (700/2)
-    const outerFieldSize = 700; // Размер внешнего поля
-    const innerRadius = 150; // Радиус внутреннего круга
-    const innerCenter = 350; // Центр внутреннего круга = центр внешнего поля (700/2)
+    // Внутренний круг: 24 клетки (1-24) по кругу, строго вписанные в большой квадрат
+    // Фиксированный размер: радиус = половина стороны квадрата минус размер клетки, уменьшенный на 10%
+    const squareSize = 13 * (cellSize + 2); // Размер стороны квадрата (13×13 клеток)
+    const innerRadius = ((squareSize / 2) - (cellSize / 2)) * 0.9; // Радиус вписанного круга, уменьшенный на 10%
+    const innerCenter = 350; // Центр игрового поля
     
     for (let i = 0; i < 24; i++) {
-      // Начинаем с верха и идем по часовой стрелке
+      // Начинаем с верхнего левого угла и идем по часовой стрелке
       const angle = (i * 15 - 90) * (Math.PI / 180); // -90 чтобы начать сверху
       const x = Math.cos(angle) * innerRadius;
       const y = Math.sin(angle) * innerRadius;
@@ -306,63 +477,66 @@ const GameField = ({
         x: x + innerCenter - cellSize/2,
         y: y + innerCenter - cellSize/2,
         ...CELL_CONFIG.innerCircle[i % CELL_CONFIG.innerCircle.length],
-        number: i + 1 // Нумерация от 1 до 24
+        number: i + 1, // Нумерация от 1 до 24
+        isInner: true
       });
     }
     
-    // Внешний контур - квадрат 12×12 клеток, сдвинутый вверх и влево
-    const marginX = -90; // Еще 20px влево (-70 - 20)
-    const marginY = -55; // Еще 5px вверх (-50 - 5)
+    // Внешний квадрат: 56 клеток по периметру (14 + 14 + 14 + 14)
+    // Позиционируем так чтобы малый круг был строго по центру большого
+    const outerFieldSize = 700;
+    const innerCircleRadius = 150; // Радиус малого круга
+    const outerSquareSize = 14 * (cellSize + 2); // Размер стороны квадрата (14×14)
     
-    // Верхняя сторона (12 клеток) с отступом 2px между клетками
-    for (let i = 0; i < 12; i++) {
-      const x = marginX + i * (cellSize + 2);
-      const y = marginY;
+    // Вычисляем отступы так чтобы большой квадрат описывал малый круг
+    const marginX = 350 - (outerSquareSize / 2); // Центрируем по X
+    const marginY = 350 - (outerSquareSize / 2) - 20; // Поднимаем на 20px вверх
+    
+    // Верхний ряд (1-14): 14 клеток
+    for (let i = 0; i < 14; i++) {
       positions.push({
         position: 24 + i,
-        x: x,
-        y: y,
+        x: marginX + i * (cellSize + 2),
+        y: marginY,
         ...CELL_CONFIG.outerSquare[i % CELL_CONFIG.outerSquare.length],
-        number: 25 + i // Нумерация от 25 до 36
+        number: i + 1, // Нумерация от 1 до 14
+        isInner: false
       });
     }
     
-    // Правая сторона (12 клеток)
-    for (let i = 0; i < 12; i++) {
-      const x = outerFieldSize - cellSize + marginX;
-      const y = marginY + cellSize + i * (outerFieldSize - 3 * cellSize) / 11;
+    // Правый столбец (15-28): 14 клеток - строго под 14
+    for (let i = 0; i < 14; i++) {
       positions.push({
-        position: 36 + i,
-        x: x,
-        y: y,
-        ...CELL_CONFIG.outerSquare[(12 + i) % CELL_CONFIG.outerSquare.length],
-        number: 37 + i // Нумерация от 37 до 48
+        position: 38 + i,
+        x: marginX + (13 * (cellSize + 2)), // x координата клетки 14
+        y: marginY + (i + 1) * (cellSize + 2),
+        ...CELL_CONFIG.outerSquare[(14 + i) % CELL_CONFIG.outerSquare.length],
+        number: i + 15, // Нумерация от 15 до 28
+        isInner: false
       });
     }
     
-    // Нижняя сторона (12 клеток) - начинается напротив клеток 62 и 47
-    for (let i = 0; i < 12; i++) {
-      const x = marginX + (11 - i) * (cellSize + 2);
-      const y = outerFieldSize - cellSize + marginY;
+    // Нижний ряд (29-42): 14 клеток - в самом низу квадрата
+    for (let i = 0; i < 14; i++) {
       positions.push({
-        position: 48 + i,
-        x: x,
-        y: y,
-        ...CELL_CONFIG.outerSquare[(24 + i) % CELL_CONFIG.outerSquare.length],
-        number: 49 + i // Нумерация от 49 до 60
+        position: 52 + i,
+        x: marginX + (13 - i) * (cellSize + 2),
+        y: marginY + (14 * (cellSize + 2)), // y координата клетки 28
+        ...CELL_CONFIG.outerSquare[(28 + i) % CELL_CONFIG.outerSquare.length],
+        number: i + 29, // Нумерация от 29 до 42
+        isInner: false
       });
     }
     
-    // Левая сторона (12 клеток)
-    for (let i = 0; i < 12; i++) {
-      const x = marginX;
-      const y = outerFieldSize - cellSize - cellSize + marginY - i * (outerFieldSize - 3 * cellSize) / 11;
+    // Левый столбец (43-56): 14 клеток - строго под 1
+    for (let i = 0; i < 14; i++) {
       positions.push({
-        position: 60 + i,
-        x: x,
-        y: y,
-        ...CELL_CONFIG.outerSquare[(36 + i) % CELL_CONFIG.outerSquare.length],
-        number: 61 + i // Нумерация от 61 до 72
+        position: 66 + i,
+        x: marginX, // x координата клетки 1
+        y: marginY + (i + 1) * (cellSize + 2),
+        ...CELL_CONFIG.outerSquare[(42 + i) % CELL_CONFIG.outerSquare.length],
+        number: i + 43, // Нумерация от 43 до 56
+        isInner: false
       });
     }
     
@@ -382,23 +556,140 @@ const GameField = ({
         overflow: 'visible'
       }}
     >
-      {/* Внутренний круг - привязан к круглому полю */}
-      <Box
-        sx={{
-          position: 'absolute',
-          width: 495,
-          height: 495,
-          backgroundColor: '#2F1B40',
-          borderRadius: '50%',
-          border: '4px solid #6E4D92',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10
-        }}
-      >
-      {/* Кнопка броска кубиков */}
-      {isMyTurn && (
+
+      {/* Система ходов и таймер */}
+      {gamePhase === 'diceRoll' && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: -80,
+            right: 20,
+            backgroundColor: '#6E4D92',
+            borderRadius: 2,
+            px: 2,
+            py: 1,
+            border: '2px solid #FFD700',
+            zIndex: 30
+          }}
+        >
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: '#FFD700',
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+              mb: 1
+            }}
+          >
+            🎲 Определение очередности
+          </Typography>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={rollDiceForOrder}
+            sx={{
+              backgroundColor: '#FFD700',
+              color: '#000',
+              fontWeight: 'bold',
+              '&:hover': { backgroundColor: '#FFC107' }
+            }}
+          >
+            Бросить кубик
+          </Button>
+        </Box>
+      )}
+
+      {/* Таймер хода */}
+      {gamePhase === 'playing' && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: -80,
+            right: 20,
+            backgroundColor: '#6E4D92',
+            borderRadius: 2,
+            px: 2,
+            py: 1,
+            border: '2px solid #FFD700',
+            zIndex: 30
+          }}
+        >
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: '#FFD700',
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+              mb: 1
+            }}
+          >
+            ⏰ Ход игрока {currentPlayerIndex + 1}
+          </Typography>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              color: turnTimer <= 30 ? '#FF5722' : '#4CAF50',
+              fontWeight: 'bold',
+              textAlign: 'center'
+            }}
+          >
+            {Math.floor(turnTimer / 60)}:{(turnTimer % 60).toString().padStart(2, '0')} || {diceValue > 0 ? diceValue : '🎲'}
+          </Typography>
+          {isMyTurn && (
+            <Button
+              variant="contained"
+              size="small"
+              onClick={skipTurn}
+              sx={{
+                backgroundColor: '#FF9800',
+                color: '#fff',
+                fontWeight: 'bold',
+                mt: 1,
+                '&:hover': { backgroundColor: '#F57C00' }
+              }}
+            >
+              <SkipNextIcon sx={{ mr: 0.5 }} />
+              Переход хода
+            </Button>
+          )}
+          
+
+        </Box>
+      )}
+
+      {/* Статус ожидания */}
+      {gamePhase === 'waiting' && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: -80,
+            right: 20,
+            backgroundColor: '#6E4D92',
+            borderRadius: 2,
+            px: 2,
+            py: 1,
+            border: '2px solid #FFD700',
+            zIndex: 30
+          }}
+        >
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: '#FFD700',
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+              mb: 1
+            }}
+          >
+            ⏳ Ожидание || {diceValue > 0 ? diceValue : '🎲'}
+          </Typography>
+          
+
+        </Box>
+      )}
+
+      {/* Кнопка броска кубиков для хода */}
+      {gamePhase === 'playing' && isMyTurn && (
         <motion.div
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -415,53 +706,46 @@ const GameField = ({
         </motion.div>
       )}
 
-      {/* Убираем кнопку выбора профессии - теперь она назначается при регистрации */}
-
-      {/* Значение кубиков */}
-      {diceValue > 0 && (
-        <Typography 
-          variant="h3" 
-          sx={{ 
-            position: 'absolute',
-            top: -50,
-            right: 60,
-            color: '#FFD700', 
-            fontWeight: 'bold',
-            zIndex: 30,
-            textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
-          }}
-        >
-          {diceValue}
-        </Typography>
-      )}
-
-      {/* Убираем отображение профессии - теперь она показывается в другом месте */}
 
 
+      {/* Убираем отображение профессии - теперь она показывается в правой панели */}
 
-      {/* Центральная область */}
+      {/* Центральная область - кубики и колоды карт */}
       <Box
         sx={{
           position: 'absolute',
-          width: 90,
-          height: 90,
-          backgroundColor: '#6E4D92',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 280,
+          height: 280,
+          backgroundColor: '#E1BEE7',
           borderRadius: '50%',
+          border: '4px solid #9C27B0',
+          zIndex: 20,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'white',
-          zIndex: 20
+          gap: 1
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'center', lineHeight: 1.1 }}>
-          ПОТОК ДЕНЕГ
-        </Typography>
+
+        
+        {/* 3D Анимированный кубик */}
+        <Box onClick={rollDice}>
+          <DiceAnimation 
+            value={diceValue}
+            isRolling={isDiceRolling}
+            onAnimationComplete={handleDiceAnimationComplete}
+          />
+        </Box>
+        
+
       </Box>
 
       {/* Клетки игрового поля */}
-      {cellPositions.map(({ position, x, y, type, icon, color, number }) => (
+      {cellPositions.map(({ position, x, y, type, icon, color, number, isInner }) => (
         <Box
           key={position}
           sx={{
@@ -476,12 +760,13 @@ const GameField = ({
             type={type}
             icon={icon}
             color={color}
-            name={name}
+            name={type}
             number={number}
             isPlayerHere={!!playerPositions[position]}
             playerColor={playerPositions[position]?.color}
             playerInitial={playerPositions[position]?.initial}
             onClick={handleCellClick}
+            isInner={isInner}
           />
         </Box>
       ))}
@@ -518,42 +803,59 @@ const GameField = ({
         })}
       </svg>
 
-      {/* Стопки карточек */}
-      <CardDeck
-        deckType="smallDeal"
-        remainingCards={cardDecks.smallDeal.remaining}
-        totalCards={cardDecks.smallDeal.total}
-        onShuffle={handleShuffleDeck}
-        isShuffling={cardDecks.smallDeal.isShuffling}
-        position="top"
-      />
-      
-      <CardDeck
-        deckType="bigDeal"
-        remainingCards={cardDecks.bigDeal.remaining}
-        totalCards={cardDecks.bigDeal.total}
-        onShuffle={handleShuffleDeck}
-        isShuffling={cardDecks.bigDeal.isShuffling}
-        position="bottom"
-      />
-      
-      <CardDeck
-        deckType="market"
-        remainingCards={cardDecks.market.remaining}
-        totalCards={cardDecks.market.total}
-        onShuffle={handleShuffleDeck}
-        isShuffling={cardDecks.market.isShuffling}
-        position="left"
-      />
-      
-      <CardDeck
-        deckType="doodad"
-        remainingCards={cardDecks.doodad.remaining}
-        totalCards={cardDecks.doodad.total}
-        onShuffle={handleShuffleDeck}
-        isShuffling={cardDecks.doodad.isShuffling}
-        position="right"
-      />
+      {/* Стопки карточек - размещены по квадрату */}
+      <Box sx={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 400,
+        height: 400,
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gridTemplateRows: '1fr 1fr',
+        gap: 2,
+        zIndex: 15
+      }}>
+        {/* Верхний левый - Small Deal */}
+        <CardDeck
+          deckType="smallDeal"
+          remainingCards={cardDecks.smallDeal.remaining}
+          totalCards={cardDecks.smallDeal.total}
+          onShuffle={handleShuffleDeck}
+          isShuffling={cardDecks.smallDeal.isShuffling}
+          position="top-left"
+        />
+        
+        {/* Верхний правый - Big Deal */}
+        <CardDeck
+          deckType="bigDeal"
+          remainingCards={cardDecks.bigDeal.remaining}
+          totalCards={cardDecks.bigDeal.total}
+          onShuffle={handleShuffleDeck}
+          isShuffling={cardDecks.bigDeal.isShuffling}
+          position="top-right"
+        />
+        
+        {/* Нижний левый - Market */}
+        <CardDeck
+          deckType="market"
+          remainingCards={cardDecks.market.remaining}
+          totalCards={cardDecks.market.total}
+          onShuffle={handleShuffleDeck}
+          isShuffling={cardDecks.market.isShuffling}
+          position="bottom-left"
+        />
+        
+        {/* Нижний правый - Doodad */}
+        <CardDeck
+          deckType="doodad"
+          remainingCards={cardDecks.doodad.remaining}
+          totalCards={cardDecks.doodad.total}
+          onShuffle={handleShuffleDeck}
+          isShuffling={cardDecks.doodad.isShuffling}
+          position="bottom-right"
+        />
       </Box>
 
       {/* Всплывающее окно с информацией о клетке */}

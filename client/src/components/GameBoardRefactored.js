@@ -249,6 +249,9 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
             isTimerActive={turnTimerState.isActive}
             turnBanner={gameState.turnBanner}
             currentPlayer={currentPlayer}
+            diceValue={diceState.displayDice}
+            playerProfession={currentPlayer?.profession}
+            playerBalance={currentPlayer?.balance}
           />
         </Box>
       </Box>

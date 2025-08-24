@@ -42,9 +42,7 @@ const AssetsPanel = ({ assets = [] }) => {
         <Typography variant="caption" sx={{ opacity: 0.5 }}>
           Покупайте карточки на игровом поле
         </Typography>
-        <Typography variant="caption" sx={{ opacity: 0.3, display: 'block', mt: 1 }}>
-          DEBUG: assets = {JSON.stringify(assets)}
-        </Typography>
+
       </Box>
     );
   }
@@ -55,18 +53,7 @@ const AssetsPanel = ({ assets = [] }) => {
         Ваши активы ({assets.length})
       </Typography>
       
-      {/* Отладочная информация */}
-      <Box sx={{ 
-        bgcolor: 'rgba(255,0,0,0.1)', 
-        p: 1, 
-        mb: 2, 
-        borderRadius: 1,
-        fontSize: '0.7rem'
-      }}>
-        <Typography variant="caption" sx={{ color: '#ff6b6b' }}>
-          DEBUG: assets = {JSON.stringify(assets, null, 2)}
-        </Typography>
-      </Box>
+
       
       <Grid container spacing={1}>
         {assets.map((asset, index) => (
@@ -117,18 +104,7 @@ const AssetsPanel = ({ assets = [] }) => {
                   </Typography>
                 )}
                 
-                {/* Отладочная информация для актива */}
-                <Box sx={{ 
-                  bgcolor: 'rgba(0,0,0,0.3)', 
-                  p: 0.5, 
-                  mt: 1, 
-                  borderRadius: 0.5,
-                  fontSize: '0.6rem'
-                }}>
-                  <Typography variant="caption" sx={{ color: '#888' }}>
-                    {JSON.stringify(asset)}
-                  </Typography>
-                </Box>
+
               </CardContent>
             </Card>
           </Grid>

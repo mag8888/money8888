@@ -34,14 +34,50 @@ const CardDeck = ({
   // Определяем позицию стопки
   const getPositionStyles = () => {
     switch (position) {
+      case 'top-left':
+        return { 
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        };
+      case 'top-right':
+        return { 
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        };
+      case 'bottom-left':
+        return { 
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        };
+      case 'bottom-right':
+        return { 
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        };
       case 'top':
-        return { top: 50, left: '50%', transform: 'translateX(-50%)' }; // 20 + 30 = 50 (сдвиг внутрь на 10%)
+        return { top: 50, left: '50%', transform: 'translateX(-50%)' };
       case 'bottom':
-        return { bottom: 50, left: '50%', transform: 'translateX(-50%)' }; // 20 + 30 = 50 (сдвиг внутрь на 10%)
+        return { bottom: 50, left: '50%', transform: 'translateX(-50%)' };
       case 'left':
-        return { left: 50, top: '50%', transform: 'translateY(-50%)' }; // 20 + 30 = 50 (сдвиг внутрь на 10%)
+        return { left: 50, top: '50%', transform: 'translateY(-50%)' };
       case 'right':
-        return { right: 50, top: '50%', transform: 'translateY(-50%)' }; // 20 + 30 = 50 (сдвиг внутрь на 10%)
+        return { right: 50, top: '50%', transform: 'translateY(-50%)' };
       default:
         return { top: 50, left: '50%', transform: 'translateX(-50%)' };
     }
@@ -131,9 +167,8 @@ const CardDeck = ({
   return (
     <Box
       sx={{
-        position: 'absolute',
         ...getPositionStyles(),
-        zIndex: 10
+        zIndex: 9999
       }}
     >
       {/* Основная стопка карточек */}

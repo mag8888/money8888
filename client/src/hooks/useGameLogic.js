@@ -7,7 +7,8 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
     displayDice: 0,
     displayD1: 0,
     displayD2: 0,
-    lastRoll: 0
+    lastRoll: 0,
+    timerDice: 0 // Значение кубика для отображения в таймере (с задержкой)
   });
 
   const [turnTimerState, setTurnTimerState] = useState({
@@ -115,19 +116,29 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
       const d2 = Math.floor(Math.random() * 6) + 1;
       const total = d1 + d2;
       
-      setDiceState({
+      setDiceState(prev => ({
+        ...prev,
         isRolling: false,
         displayDice: total,
         displayD1: d1,
         displayD2: d2,
         lastRoll: total
-      });
+      }));
 
       // Отправляем результат на сервер
       socket.emit('rollDice', roomId, gameState.myId, total);
       
       // Обновляем состояние игры
       updateGameState({ dice: total });
+
+      // Переносим значение кубика в таймер через 2 секунды
+      setTimeout(() => {
+        setDiceState(prev => ({
+          ...prev,
+          timerDice: total
+        }));
+        console.log('🎲 [useGameLogic] Перенесли значение кубика в таймер:', total);
+      }, 2000);
     }, 1000);
   }, [diceState.isRolling, gameState.isMyTurn, gameState.myId, roomId, updateGameState]);
 

@@ -5,7 +5,8 @@ export const PROFESSIONS = [
     salary: 2000,
     expenses: 800,
     balance: 1000,
-    description: "Работа по уборке территории"
+    description: "Работа по уборке территории",
+    charity: false
   },
   {
     id: 2,
@@ -13,7 +14,8 @@ export const PROFESSIONS = [
     salary: 2500,
     expenses: 900,
     balance: 1200,
-    description: "Доставка товаров и документов"
+    description: "Доставка товаров и документов",
+    charity: false
   },
   {
     id: 3,
@@ -21,7 +23,8 @@ export const PROFESSIONS = [
     salary: 3000,
     expenses: 1000,
     balance: 1500,
-    description: "Работа в магазине"
+    description: "Работа в магазине",
+    charity: false
   },
   {
     id: 4,
@@ -29,7 +32,8 @@ export const PROFESSIONS = [
     salary: 3500,
     expenses: 1100,
     balance: 1800,
-    description: "Управление транспортным средством"
+    description: "Управление транспортным средством",
+    charity: false
   },
   {
     id: 5,
@@ -37,7 +41,8 @@ export const PROFESSIONS = [
     salary: 4000,
     expenses: 1200,
     balance: 2000,
-    description: "Обслуживание в ресторане"
+    description: "Обслуживание в ресторане",
+    charity: false
   },
   {
     id: 6,
@@ -45,7 +50,8 @@ export const PROFESSIONS = [
     salary: 4500,
     expenses: 1300,
     balance: 2200,
-    description: "Административная работа"
+    description: "Административная работа",
+    charity: false
   },
   {
     id: 7,
@@ -53,7 +59,8 @@ export const PROFESSIONS = [
     salary: 5000,
     expenses: 1400,
     balance: 2500,
-    description: "Преподавание в школе"
+    description: "Преподавание в школе",
+    charity: false
   },
   {
     id: 8,
@@ -61,7 +68,8 @@ export const PROFESSIONS = [
     salary: 5500,
     expenses: 1500,
     balance: 2800,
-    description: "Медицинский персонал"
+    description: "Медицинский персонал",
+    charity: false
   },
   {
     id: 9,
@@ -69,7 +77,8 @@ export const PROFESSIONS = [
     salary: 6000,
     expenses: 1600,
     balance: 3000,
-    description: "Ведение финансовой отчетности"
+    description: "Ведение финансовой отчетности",
+    charity: false
   },
   {
     id: 10,
@@ -77,7 +86,8 @@ export const PROFESSIONS = [
     salary: 7000,
     expenses: 1800,
     balance: 3500,
-    description: "Техническое проектирование"
+    description: "Техническое проектирование",
+    charity: false
   },
   {
     id: 11,
@@ -85,7 +95,8 @@ export const PROFESSIONS = [
     salary: 8000,
     expenses: 2000,
     balance: 4000,
-    description: "Медицинская практика"
+    description: "Медицинская практика",
+    charity: false
   },
   {
     id: 12,
@@ -93,7 +104,8 @@ export const PROFESSIONS = [
     salary: 9000,
     expenses: 2200,
     balance: 4500,
-    description: "Правовая консультация"
+    description: "Правовая консультация",
+    charity: false
   },
   {
     id: 13,
@@ -101,7 +113,8 @@ export const PROFESSIONS = [
     salary: 10000,
     expenses: 2500,
     balance: 5000,
-    description: "Управление командой"
+    description: "Управление командой",
+    charity: false
   },
   {
     id: 14,
@@ -109,7 +122,8 @@ export const PROFESSIONS = [
     salary: 12000,
     expenses: 3000,
     balance: 6000,
-    description: "Руководство компанией"
+    description: "Руководство компанией",
+    charity: false
   },
   {
     id: 15,
@@ -117,7 +131,8 @@ export const PROFESSIONS = [
     salary: 15000,
     expenses: 4000,
     balance: 7500,
-    description: "Владелец бизнеса"
+    description: "Владелец бизнеса",
+    charity: false
   }
 ];
 
@@ -130,4 +145,15 @@ export const getRandomProfession = () => {
 // Функция для получения профессии по ID
 export const getProfessionById = (id) => {
   return PROFESSIONS.find(profession => profession.id === id);
+};
+
+// Функция для покупки благотворительности
+export const buyCharity = (profession) => {
+  if (profession && !profession.charity) {
+    return {
+      ...profession,
+      charity: true
+    };
+  }
+  return profession;
 };
