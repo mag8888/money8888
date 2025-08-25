@@ -165,11 +165,11 @@ const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
     console.log('🔄 [RoomSetup] Connecting to room:', roomId);
     
     // Используем простой уникальный ID для каждого браузера
-    let playerId = localStorage.getItem('cashflow_playerId');
+          let playerId = localStorage.getItem('potok-deneg_playerId');
     if (!playerId) {
       // Генерируем простой ID на основе времени
       playerId = `P${Date.now().toString().slice(-6)}`;
-      localStorage.setItem('cashflow_playerId', playerId);
+              localStorage.setItem('potok-deneg_playerId', playerId);
     }
     
     // Создаем объект игрока с простым ID

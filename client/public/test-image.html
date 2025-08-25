@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест SVG изображения</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #2F1B40;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .test-circle {
+            width: 280px;
+            height: 280px;
+            background: #E1BEE7;
+            border: 4px solid #9C27B0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .logo-container {
+            width: 200px;
+            height: 200px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .logo-text {
+            position: absolute;
+            bottom: 20px;
+            color: #6E4D92;
+            font-weight: bold;
+            font-size: 1.2rem;
+            text-align: center;
+            width: 100%;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .status {
+            background: #6E4D92;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 Тест центрального логотипа Поток Денег</h1>
+    
+    <div class="status">
+        ✅ SVG файл: /images/center-logo.svg
+    </div>
+    
+    <div class="test-circle">
+        <div class="logo-container">
+            <img 
+                src="/images/center-logo.svg" 
+                alt="Cashflow Logo" 
+                style="width: 100%; height: 100%; object-fit: contain;"
+                onload="console.log('✅ SVG загружен успешно')"
+                onerror="console.log('❌ Ошибка загрузки SVG')"
+            />
+        </div>
+        <div class="logo-text">CASHFLOW</div>
+    </div>
+    
+    <div class="status">
+        🔍 Проверьте консоль браузера для статуса загрузки
+    </div>
+    
+    <script>
+        console.log('🎯 Тестовая страница загружена');
+        console.log('🔍 Проверяем SVG изображение...');
+        
+        // Проверяем доступность SVG
+        fetch('/images/center-logo.svg')
+            .then(response => {
+                if (response.ok) {
+                    console.log('✅ SVG файл доступен по URL');
+                } else {
+                    console.log('❌ SVG файл недоступен по URL');
+                }
+            })
+            .catch(error => {
+                console.log('❌ Ошибка при проверке SVG:', error);
+            });
+    </script>
+</body>
+</html>
+

@@ -15,12 +15,12 @@ function AppContent() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(() => {
     // Восстанавливаем пользователя из localStorage
-    const savedUser = localStorage.getItem('cashflow_currentUser');
+    const savedUser = localStorage.getItem('potok-deneg_currentUser');
     return savedUser ? JSON.parse(savedUser) : null;
   });
   const [currentRoom, setCurrentRoom] = useState(() => {
     // Восстанавливаем комнату из localStorage
-    const savedRoom = localStorage.getItem('cashflow_currentRoom');
+          const savedRoom = localStorage.getItem('potok-deneg_currentRoom');
     return savedRoom ? JSON.parse(savedRoom) : null;
   });
   const { logout } = useLogout();
@@ -28,17 +28,17 @@ function AppContent() {
   // Сохраняем состояние в localStorage при изменении
   useEffect(() => {
     if (currentUser) {
-      localStorage.setItem('cashflow_currentUser', JSON.stringify(currentUser));
+              localStorage.setItem('potok-deneg_currentUser', JSON.stringify(currentUser));
     } else {
-      localStorage.removeItem('cashflow_currentUser');
+              localStorage.removeItem('potok-deneg_currentUser');
     }
   }, [currentUser]);
 
   useEffect(() => {
     if (currentRoom) {
-      localStorage.setItem('cashflow_currentRoom', JSON.stringify(currentRoom));
+              localStorage.setItem('potok-deneg_currentRoom', JSON.stringify(currentRoom));
     } else {
-      localStorage.removeItem('cashflow_currentRoom');
+              localStorage.removeItem('potok-deneg_currentRoom');
     }
   }, [currentRoom]);
 
@@ -158,10 +158,9 @@ function AppContent() {
         <Route 
           path="/room/:roomId" 
           element={
-            currentUser && currentRoom ? (
+            currentUser ? (
               <RoomSetupWrapper 
                 playerData={currentUser}
-                roomId={currentRoom.roomId}
                 onExitGame={handleExitGame}
               />
             ) : (

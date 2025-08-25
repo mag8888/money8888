@@ -179,7 +179,7 @@ const Top3Players = ({ players, category, formatNumber, formatTime, formatWinRat
 // Компонент таблицы рейтингов
 const RatingsTable = ({ ratings, category, formatNumber, formatTime, formatWinRate }) => {
   const getCategoryScore = (player) => {
-    if (category === 'overall') return player.overallScore;
+    if (category === 'overall') return player.ratingPoints || 0; // Для общего рейтинга используем рейтинговые очки
     return player.categories?.[category]?.score || 0;
   };
 
@@ -188,7 +188,16 @@ const RatingsTable = ({ ratings, category, formatNumber, formatTime, formatWinRa
     return player.categories?.[category]?.rank || 0;
   };
 
-  const sortedRatings = [...ratings].sort((a, b) => getCategoryScore(b) - getCategoryScore(a));
+  const sortedRatings = [...ratings].sort((a, b) => {
+    if (category === 'overall') {
+      // Для общего рейтинга сначала по рейтинговым очкам, потом по общему счету
+      const aPoints = a.ratingPoints || 0;
+      const bPoints = b.ratingPoints || 0;
+      if (aPoints !== bPoints) return bPoints - aPoints;
+      return (b.overallScore || 0) - (a.overallScore || 0);
+    }
+    return getCategoryScore(b) - getCategoryScore(a);
+  });
 
   return (
     <TableContainer component={Paper} sx={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
@@ -197,7 +206,12 @@ const RatingsTable = ({ ratings, category, formatNumber, formatTime, formatWinRa
           <TableRow sx={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Место</TableCell>
             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Игрок</TableCell>
-            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Рейтинг</TableCell>
+            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
+              {category === 'overall' ? 'Рейтинг' : 'Счет'}
+            </TableCell>
+            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
+              {category === 'overall' ? 'Рейтинг. очки' : 'Очки'}
+            </TableCell>
             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Игр</TableCell>
             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Побед</TableCell>
             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>% Побед</TableCell>
@@ -243,6 +257,12 @@ const RatingsTable = ({ ratings, category, formatNumber, formatTime, formatWinRa
               </TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
                 {formatNumber(getCategoryScore(player))}
+              </TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 'bold', color: '#FFD700' }}>
+                {category === 'overall' 
+                  ? formatNumber(player.ratingPoints || 0)
+                  : formatNumber(player.overallScore || 0)
+                }
               </TableCell>
               <TableCell sx={{ color: 'white' }}>
                 {player.gamesPlayed}
@@ -330,11 +350,22 @@ const RatingsPage = () => {
     <Box sx={{ minHeight: '100vh', backgroundColor: '#1a1a2e', color: 'white', p: 3 }}>
       {/* Заголовок */}
       <Box sx={{ textAlign: 'center', mb: 4 }}>
-        <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 2 }}>
-          🏆 Рейтинг игроков
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+          <img 
+            src="/images/center-logo.svg" 
+            alt="Поток Денег Logo" 
+            style={{
+              width: '60px',
+              height: '60px',
+              marginRight: '16px'
+            }}
+          />
+          <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
+            🏆 Рейтинг игроков
+          </Typography>
+        </Box>
         <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-          Соревнуйтесь с лучшими игроками CASHFLOW
+          Соревнуйтесь с лучшими игроками ПОТОК ДЕНЕГ
         </Typography>
       </Box>
 

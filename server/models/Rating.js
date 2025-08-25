@@ -33,6 +33,11 @@ const ratingSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  // Новое поле для рейтинговых очков
+  ratingPoints: {
+    type: Number,
+    default: 0
+  },
   
   // Финансовые показатели
   totalEarnings: {
@@ -142,12 +147,13 @@ ratingSchema.methods.updateOverallScore = function() {
   const strategyScore = this.categories.strategy.score || 0;
   const consistencyScore = this.categories.consistency.score || 0;
   
-  // Взвешенная формула для общего рейтинга
+  // НОВАЯ ФОРМУЛА: рейтинговые очки имеют больший вес
   this.overallScore = Math.round(
-    (wealthScore * 0.3) +
-    (speedScore * 0.25) +
-    (strategyScore * 0.25) +
-    (consistencyScore * 0.2)
+    (this.ratingPoints * 0.4) + // 40% - рейтинговые очки
+    (wealthScore * 0.2) +        // 20% - богатство
+    (speedScore * 0.15) +        // 15% - скорость
+    (strategyScore * 0.15) +     // 15% - стратегия
+    (consistencyScore * 0.1)     // 10% - консистентность
   );
   
   return this.overallScore;
@@ -163,7 +169,9 @@ ratingSchema.methods.addGameResult = function(gameData) {
     gameTime: gameData.gameTime || 0,
     dealsCompleted: gameData.dealsCompleted || 0,
     passiveIncome: gameData.passiveIncome || 0,
-    won: gameData.won || false
+    won: gameData.won || false,
+    position: gameData.position || 1, // Позиция в игре
+    totalPlayers: gameData.totalPlayers || 1 // Общее количество игроков
   });
   
   // Обновляем общие показатели
@@ -179,6 +187,14 @@ ratingSchema.methods.addGameResult = function(gameData) {
   
   this.dealsCompleted += gameData.dealsCompleted || 0;
   this.assetsAcquired += gameData.dealsCompleted || 0;
+  
+  // НОВАЯ ЛОГИКА РЕЙТИНГА: очки = количество игроков, которых обошел
+  if (gameData.position && gameData.totalPlayers) {
+    const ratingPointsEarned = gameData.totalPlayers - gameData.position;
+    this.ratingPoints += ratingPointsEarned;
+    
+    console.log(`🏆 [Rating] Игрок ${this.username} получил ${ratingPointsEarned} очков за ${gameData.position}-е место из ${gameData.totalPlayers} игроков`);
+  }
   
   if (gameData.won) {
     this.financialFreedomAchieved += 1;
@@ -226,8 +242,8 @@ ratingSchema.methods.updateCategoryScores = function() {
 
 // Статические методы для работы с рейтингами
 ratingSchema.statics.updateAllRanks = async function() {
-  // Обновляем общий рейтинг
-  const overallRankings = await this.find().sort({ overallScore: -1 });
+  // Обновляем общий рейтинг по рейтинговым очкам
+  const overallRankings = await this.find().sort({ ratingPoints: -1, overallScore: -1 });
   overallRankings.forEach((rating, index) => {
     rating.overallRank = index + 1;
     rating.save();
@@ -275,8 +291,11 @@ ratingSchema.statics.getTopPlayers = async function(limit = 10, category = 'over
     case 'consistency':
       sortCriteria = { 'categories.consistency.score': -1 };
       break;
+    case 'rating':
+      sortCriteria = { ratingPoints: -1, overallScore: -1 };
+      break;
     default:
-      sortCriteria = { overallScore: -1 };
+      sortCriteria = { ratingPoints: -1, overallScore: -1 }; // По умолчанию по рейтинговым очкам
   }
   
   return await this.find().sort(sortCriteria).limit(limit);

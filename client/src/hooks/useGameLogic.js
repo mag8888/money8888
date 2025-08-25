@@ -83,47 +83,109 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
 
   // Автоматический запуск таймера при инициализации игры
   useEffect(() => {
-    if (gameState.players && gameState.players.length > 0 && !gameState.isMyTurn) {
-      // Если есть игроки, но ход не определен, назначаем первого игрока
-      const firstPlayer = gameState.players[0];
-      if (firstPlayer && firstPlayer.id === gameState.myId) {
-        console.log('🎯 [useGameLogic] Автоматически назначаем первого игрока:', firstPlayer.username);
-        // Здесь должна быть логика обновления gameState
+    if (gameState.players && gameState.players.length > 0) {
+      console.log('🎯 [useGameLogic] Проверяем игроков:', {
+        playersCount: gameState.players.length,
+        myId: gameState.myId,
+        currentTurn: gameState.currentTurn,
+        isMyTurn: gameState.isMyTurn
+      });
+      
+      // Проверяем, чей сейчас ход
+      if (gameState.myId && gameState.currentTurn) {
+        const isMyTurn = gameState.currentTurn === gameState.myId;
+        console.log('🎯 [useGameLogic] Проверяем ход:', { 
+          myId: gameState.myId, 
+          currentTurn: gameState.currentTurn, 
+          isMyTurn 
+        });
+        
+        updateGameState({ 
+          isMyTurn,
+          turnBanner: isMyTurn ? 'Ваш ход' : 'Ожидание хода'
+        });
       }
     }
-  }, [gameState.players, gameState.myId, gameState.isMyTurn]);
+  }, [gameState.players, gameState.myId, updateGameState]);
 
   // Бросок кубиков
   const rollDice = useCallback(() => {
-    if (diceState.isRolling || !gameState.isMyTurn) return;
+    console.log('🎲 [useGameLogic] rollDice вызвана!', {
+      isRolling: diceState.isRolling,
+      isMyTurn: gameState.isMyTurn,
+      myId: gameState.myId,
+      players: gameState.players?.length || 0,
+      diceState: diceState,
+      gameState: {
+        players: gameState.players?.length || 0,
+        isMyTurn: gameState.isMyTurn,
+        currentTurn: gameState.currentTurn
+      }
+    });
 
+    if (diceState.isRolling) {
+      console.log('❌ [useGameLogic] Кубик уже бросается');
+      return;
+    }
+    
+    // Убираем проверку isMyTurn - кубик можно бросать всегда
+    console.log('✅ [useGameLogic] Начинаем бросок кубика...');
     setDiceState(prev => ({ ...prev, isRolling: true }));
+
+    // Получаем текущего игрока для проверки благотворительности
+    const currentPlayer = gameState.players?.find(p => p.id === gameState.myId);
+    const hasCharity = currentPlayer?.charity || false;
 
     // Анимация броска
     const rollAnimation = setInterval(() => {
-      setDiceState(prev => ({
-        ...prev,
-        displayD1: Math.floor(Math.random() * 6) + 1,
-        displayD2: Math.floor(Math.random() * 6) + 1,
-        displayDice: Math.floor(Math.random() * 6) + 1
-      }));
+      if (hasCharity) {
+        // Анимация для 2 кубиков
+        const d1 = Math.floor(Math.random() * 6) + 1;
+        const d2 = Math.floor(Math.random() * 6) + 1;
+        setDiceState(prev => ({
+          ...prev,
+          displayD1: d1,
+          displayD2: d2,
+          displayDice: d1 + d2
+        }));
+      } else {
+        // Анимация для 1 кубика
+        const dice = Math.floor(Math.random() * 6) + 1;
+        setDiceState(prev => ({
+          ...prev,
+          displayD1: dice,
+          displayD2: 0,
+          displayDice: dice
+        }));
+      }
     }, 100);
 
     // Останавливаем анимацию через 1 секунду
-    setTimeout(() => {
+    const stopAnimationTimer = setTimeout(() => {
       clearInterval(rollAnimation);
       
-      // Финальный бросок
-      const d1 = Math.floor(Math.random() * 6) + 1;
-      const d2 = Math.floor(Math.random() * 6) + 1;
-      const total = d1 + d2;
+      // Получаем текущего игрока для проверки благотворительности
+      const currentPlayer = gameState.players?.find(p => p.id === gameState.myId);
+      const hasCharity = currentPlayer?.charity || false;
+      
+      // Финальный бросок - если есть благотворительность, то 2 кубика (2-12), иначе 1 кубик (1-6)
+      let total;
+      if (hasCharity) {
+        const d1 = Math.floor(Math.random() * 6) + 1;
+        const d2 = Math.floor(Math.random() * 6) + 1;
+        total = d1 + d2;
+        console.log('🎲 [useGameLogic] Бросок с благотворительностью (2 кубика):', { d1, d2, total });
+      } else {
+        total = Math.floor(Math.random() * 6) + 1;
+        console.log('🎲 [useGameLogic] Обычный бросок (1 кубик):', total);
+      }
       
       setDiceState(prev => ({
         ...prev,
         isRolling: false,
         displayDice: total,
-        displayD1: d1,
-        displayD2: d2,
+        displayD1: hasCharity ? Math.floor(total / 2) : total,
+        displayD2: hasCharity ? Math.ceil(total / 2) : 0,
         lastRoll: total
       }));
 
@@ -134,14 +196,20 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
       updateGameState({ dice: total });
 
       // Переносим значение кубика в таймер через 2 секунды
-      setTimeout(() => {
+      const transferTimer = setTimeout(() => {
         setDiceState(prev => ({
           ...prev,
           timerDice: total
         }));
         console.log('🎲 [useGameLogic] Перенесли значение кубика в таймер:', total);
       }, 2000);
+      
+      // Очищаем таймер при размонтировании
+      return () => clearTimeout(transferTimer);
     }, 1000);
+    
+    // Очищаем таймер при размонтировании
+    return () => clearTimeout(stopAnimationTimer);
   }, [diceState.isRolling, gameState.isMyTurn, gameState.myId, roomId, updateGameState]);
 
   // Завершение хода

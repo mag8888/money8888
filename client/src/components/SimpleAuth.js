@@ -68,7 +68,13 @@ const SimpleAuth = ({ onRegister, onLogin }) => {
   const handleTestLogin = (testEmail) => {
     setEmail(testEmail);
     setPassword('test123');
-    setDisplayName(testEmail.split('@')[0]);
+    // Исправляем имена чтобы они совпадали с отображаемыми в игре
+    const usernameMap = {
+            'test1@potok-deneg.com': 'test1',
+      'test2@potok-deneg.com': 'test2',
+      'test3@potok-deneg.com': 'test3'
+    };
+    setDisplayName(usernameMap[testEmail] || testEmail.split('@')[0]);
     setIsLogin(true);
   };
 
@@ -80,14 +86,24 @@ const SimpleAuth = ({ onRegister, onLogin }) => {
       fontFamily: 'Arial, sans-serif'
     }}>
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-        <h1 style={{ 
-          fontSize: '2rem', 
-          color: '#1976D2', 
-          marginBottom: '8px',
-          margin: 0
-        }}>
-          🎮 Cashflow Game
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+          <img 
+            src="/images/center-logo.svg" 
+            alt="Поток Денег Logo" 
+            style={{
+              width: '50px',
+              height: '50px',
+              marginRight: '16px'
+            }}
+          />
+          <h1 style={{ 
+            fontSize: '2rem', 
+            color: '#1976D2', 
+            margin: 0
+          }}>
+            🎮 Поток Денег Game
+          </h1>
+        </div>
         <p style={{ color: '#666', fontSize: '1.1rem', margin: 0 }}>
           {isLogin ? 'Вход в игру' : 'Регистрация'}
         </p>
@@ -119,7 +135,7 @@ const SimpleAuth = ({ onRegister, onLogin }) => {
           </p>
           
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {['test1@cashflow.com', 'test2@cashflow.com', 'test3@cashflow.com'].map((testEmail) => (
+            {['test1@potok-deneg.com', 'test2@potok-deneg.com', 'test3@potok-deneg.com'].map((testEmail) => (
               <button
                 key={testEmail}
                 style={{

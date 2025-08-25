@@ -24,14 +24,30 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
   // Обработчик подключения
   const handleConnect = useCallback(() => {
     console.log('🔄 [Socket] Connected, syncing game state');
+    console.log('🔄 [Socket] RoomId:', roomId);
+    
+    // Запрашиваем данные комнаты и игроков
     socket.emit('getRoom', roomId);
     socket.emit('getPlayers', roomId);
+    
+    // НЕ вызываем joinRoom без playerData - это может создавать тестовых игроков
+    // socket.emit('joinRoom', roomId);
+    
+    // Дополнительно запрашиваем список игроков через некоторое время
+    setTimeout(() => {
+      console.log('🔄 [Socket] Requesting players list again...');
+      socket.emit('getPlayers', roomId);
+    }, 1000);
   }, [roomId]);
 
   // Обработчик отключения
   const handleDisconnect = useCallback((reason) => {
     console.log('🔄 [Socket] Disconnected:', reason);
-    updateGameState({ isMyTurn: false, currentTurn: null });
+    updateGameState(prevState => ({
+      ...prevState, // Сохраняем все существующие данные
+      isMyTurn: false, 
+      currentTurn: null 
+    }));
   }, [updateGameState]);
 
   // Обработчик ошибки подключения
@@ -41,31 +57,78 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
 
   // Обработчик списка игроков
   const handlePlayersList = useCallback((playersList) => {
-    console.log('[playersList] received:', playersList);
+    console.log('🎯 [playersList] received:', playersList);
+    console.log('🎯 [playersList] type:', typeof playersList);
+    console.log('🎯 [playersList] isArray:', Array.isArray(playersList));
+    console.log('🎯 [playersList] length:', playersList?.length);
+    console.log('🎯 [playersList] roomId:', roomId);
+    console.log('🎯 [playersList] socket.id:', socket.id);
     
-    // Синхронизируем myId с socket.id если они различаются
-    const actualMyId = socket.id;
-    let myId = actualMyId;
+    // Определяем myId по username из localStorage или по первому игроку
+    let myId = null;
+    let currentPlayer = null;
     
-    // Ищем игрока по socket.id
-    const currentPlayer = playersList.find(p => p.socketId === actualMyId);
-    if (currentPlayer) {
-      myId = currentPlayer.id;
-      console.log('[playersList] Found current player:', currentPlayer.username);
-    } else {
-      console.log('[playersList] Current player not found in list');
+    // Пытаемся найти игрока по username из localStorage
+    const savedUsername = localStorage.getItem('potok-deneg_username');
+    console.log('🎯 [playersList] Saved username from localStorage:', savedUsername);
+    
+    if (savedUsername) {
+      currentPlayer = playersList.find(p => p.username === savedUsername);
+      if (currentPlayer) {
+        myId = currentPlayer.id;
+        console.log('🎯 [playersList] Found player by username:', currentPlayer.username, 'ID:', myId);
+      } else {
+        console.log('🎯 [playersList] Username not found in players list');
+      }
     }
     
-    updateGameState({
-      players: playersList,
-      myId: myId,
-      isMyTurn: currentPlayer ? currentPlayer.id === updateGameState.currentTurn : false
+    // Если не нашли, берем первого игрока (для тестирования)
+    if (!myId && playersList.length > 0) {
+      currentPlayer = playersList[0];
+      myId = currentPlayer.id;
+      console.log('🎯 [playersList] Using first player as current:', currentPlayer.username, 'ID:', myId);
+      
+      // Сохраняем username в localStorage для будущих подключений
+      localStorage.setItem('potok-deneg_username', currentPlayer.username);
+      console.log('🎯 [playersList] Saved username to localStorage:', currentPlayer.username);
+    }
+    
+    console.log('🎯 [playersList] Final myId:', myId, 'currentPlayer:', currentPlayer?.username);
+    console.log('🎯 [playersList] Players list:', playersList.map(p => ({ username: p.username, id: p.id })));
+    
+    updateGameState((prevState) => {
+      const isMyTurn = currentPlayer ? currentPlayer.id === prevState.currentTurn : false;
+      console.log('🎯 [playersList] Обновляем состояние:', { 
+        playersCount: playersList.length,
+        myId, 
+        currentTurn: prevState.currentTurn,
+        isMyTurn 
+      });
+      
+      const newState = {
+        ...prevState, // Сохраняем все существующие данные
+        players: playersList,
+        myId: myId,
+        isMyTurn: isMyTurn,
+        turnBanner: isMyTurn ? 'Ваш ход' : 'Ожидание хода'
+      };
+      
+      console.log('🎯 [playersList] Новое состояние:', newState);
+      console.log('🎯 [playersList] players type:', typeof newState.players);
+      console.log('🎯 [playersList] players isArray:', Array.isArray(newState.players));
+      console.log('🎯 [playersList] myId:', myId);
+      console.log('🎯 [playersList] isMyTurn:', isMyTurn);
+      
+      return newState;
     });
   }, [updateGameState]);
 
   // Обработчик обновления игроков
   const handlePlayersUpdate = useCallback((playersList) => {
     console.log('[playersUpdate] received:', playersList);
+    console.log('[playersUpdate] type:', typeof playersList);
+    console.log('[playersUpdate] isArray:', Array.isArray(playersList));
+    console.log('[playersUpdate] length:', playersList?.length);
     
     // Добавляем цвета игрокам для визуального различия
     const playersWithColors = playersList.map((player, index) => {
@@ -75,57 +138,159 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
       return player;
     });
     
-    updateGameState({ players: playersWithColors });
+    console.log('[playersUpdate] Обновляем состояние с игроками:', playersWithColors);
+    console.log('[playersUpdate] playersWithColors type:', typeof playersWithColors);
+    console.log('[playersUpdate] playersWithColors isArray:', Array.isArray(playersWithColors));
+    
+    // Определяем myId по username из localStorage или по первому игроку
+    let myId = null;
+    let currentPlayer = null;
+    const savedUsername = localStorage.getItem('potok-deneg_username');
+    console.log('🎯 [playersUpdate] Saved username from localStorage:', savedUsername);
+    
+    if (savedUsername) {
+      currentPlayer = playersWithColors.find(p => p.username === savedUsername);
+      if (currentPlayer) {
+        myId = currentPlayer.id;
+        console.log('🎯 [playersUpdate] Found player by username:', currentPlayer.username, 'ID:', myId);
+      } else {
+        console.log('🎯 [playersUpdate] Username not found in players list');
+      }
+    }
+    
+    // Если не нашли, берем первого игрока (для тестирования)
+    if (!myId && playersWithColors.length > 0) {
+      currentPlayer = playersWithColors[0];
+      myId = currentPlayer.id;
+      console.log('🎯 [playersUpdate] Using first player as current:', currentPlayer.username, 'ID:', myId);
+      
+      // Сохраняем username в localStorage для будущих подключений
+      localStorage.setItem('potok-deneg_username', currentPlayer.username);
+      console.log('🎯 [playersUpdate] Saved username to localStorage:', currentPlayer.username);
+    }
+    
+    console.log('🎯 [playersUpdate] Final myId:', myId, 'currentPlayer:', currentPlayer?.username);
+    console.log('🎯 [playersUpdate] Players list:', playersWithColors.map(p => ({ username: p.username, id: p.id, profession: p.profession?.name })));
+    
+    // Обновляем состояние игры с новым списком игроков
+    updateGameState((prevState) => {
+      const isMyTurn = currentPlayer ? currentPlayer.id === prevState.currentTurn : false;
+      console.log('🎯 [playersUpdate] Обновляем состояние:', { 
+        playersCount: playersWithColors.length,
+        myId, 
+        currentTurn: prevState.currentTurn,
+        isMyTurn 
+      });
+      
+      const newState = {
+        ...prevState, // Сохраняем все существующие данные
+        players: playersWithColors,
+        myId: myId,
+        isMyTurn: isMyTurn,
+        turnBanner: isMyTurn ? 'Ваш ход' : 'Ожидание хода'
+      };
+      
+      console.log('🎯 [playersUpdate] Новое состояние:', newState);
+      console.log('🎯 [playersUpdate] players type:', typeof newState.players);
+      console.log('🎯 [playersUpdate] players isArray:', Array.isArray(newState.players));
+      console.log('🎯 [playersUpdate] myId:', myId);
+      console.log('🎯 [playersUpdate] isMyTurn:', isMyTurn);
+      
+      return newState;
+    });
   }, [updateGameState]);
 
   // Обработчик изменения хода
   const handleTurnChanged = useCallback((playerId) => {
-    console.log('[turnChanged] received:', { playerId, myId: updateGameState.myId, socketId: socket.id });
+    console.log('🔄 [turnChanged] received:', { playerId, socketId: socket.id, roomId });
     
-    const isMyTurn = playerId === updateGameState.myId;
-    updateGameState({
-      currentTurn: playerId,
-      isMyTurn: isMyTurn,
-      turnBanner: isMyTurn ? 'Ваш ход' : `Ход: ${updateGameState.players.find(p => p.id === playerId)?.username || 'Игрок'}`
+    // Получаем актуальное состояние через updateGameState
+    updateGameState((prevState) => {
+      const isMyTurn = playerId === prevState.myId;
+      console.log('🔄 [turnChanged] Обновляем состояние:', { 
+        playerId, 
+        myId: prevState.myId, 
+        isMyTurn,
+        roomId
+      });
+      
+      return {
+        ...prevState, // Сохраняем все существующие данные (включая players)
+        currentTurn: playerId,
+        isMyTurn: isMyTurn,
+        turnBanner: isMyTurn ? 'Ваш ход' : 'Ожидание хода'
+      };
     });
     
-    if (isMyTurn) {
-      // Сбрасываем таймер хода
-      updateGameState({ turnTimer: 120 });
-    }
+    // Сбрасываем таймер хода если это мой ход
+    updateGameState((prevState) => {
+      const newTimerState = { 
+        ...prevState, // Сохраняем все существующие данные
+        turnTimer: 120 
+      };
+      console.log('🔄 [turnChanged] Сбрасываем таймер:', newTimerState);
+      return newTimerState;
+    });
   }, [updateGameState]);
 
   // Обработчик данных комнаты
   const handleRoomData = useCallback((data) => {
     console.log('[roomData] received:', data);
     
-    if (typeof data.currentTurn === 'string' && data.currentTurn) {
-      const isMyTurn = data.currentTurn === updateGameState.myId;
-      updateGameState({
+    updateGameState((prevState) => {
+      const isMyTurn = data.currentTurn === prevState.myId;
+      console.log('🏠 [roomData] Обновляем состояние:', { 
+        currentTurn: data.currentTurn, 
+        myId: prevState.myId, 
+        isMyTurn,
+        roomId,
+        playersCount: data.players?.length || 0
+      });
+      
+      const newState = {
+        ...prevState, // Сохраняем все существующие данные (включая players)
         currentTurn: data.currentTurn,
         isMyTurn: isMyTurn,
         turnTimer: 120,
-        turnBanner: isMyTurn ? 'Ваш ход' : `Ход: ${updateGameState.players.find(p => p.id === data.currentTurn)?.username || 'Игрок'}`
-      });
-    }
+        turnBanner: isMyTurn ? 'Ваш ход' : 'Ожидание хода'
+      };
+      
+      // Если в данных комнаты есть список игроков, обновляем его
+      if (data.players && Array.isArray(data.players)) {
+        newState.players = data.players;
+        console.log('🏠 [roomData] Обновляем список игроков:', data.players);
+      }
+      
+      console.log('🏠 [roomData] Новое состояние:', newState);
+      return newState;
+    });
   }, [updateGameState]);
 
   // Обработчик начала игры
   const handleGameStarted = useCallback(() => {
-    console.log('[gameStarted] received');
+    console.log('🎮 [gameStarted] received for room:', roomId);
     
-    // Перезапрашиваем данные через небольшую задержку
+    // Перезапрашиваем данные игроков и комнаты
+    console.log('🎮 [gameStarted] Requesting players and room data...');
+    socket.emit('getPlayers', roomId);
+    socket.emit('getRoom', roomId);
+    
+    // Также запрашиваем обновленный список игроков
+    socket.emit('getPlayers', roomId);
+    
+    // Добавляем небольшую задержку и снова запрашиваем
     setTimeout(() => {
-      socket.emit('getRoom', roomId);
+      console.log('🎮 [gameStarted] Delayed request for players...');
       socket.emit('getPlayers', roomId);
-    }, 100);
+    }, 500);
   }, [roomId]);
 
   // Обработчик выбора сделки
   const handleDealChoice = useCallback(({ playerId, cellType, position, balance, monthlyCashflow }) => {
     console.log('dealChoice received:', { playerId, myId: updateGameState.myId });
     
-    updateGameState({
+    updateGameState(prevState => ({
+      ...prevState, // Сохраняем все существующие данные
       modal: {
         type: 'dealChoice',
         details: {
@@ -136,14 +301,15 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
           maxLoan: monthlyCashflow * 10
         }
       }
-    });
+    }));
   }, [updateGameState]);
 
   // Обработчик карты сделки
   const handleDealCard = useCallback(({ card, type, playerId, balance, maxLoan, canAfford, needsLoan }) => {
     console.log('dealCard received:', { playerId, myId: updateGameState.myId });
     
-    updateGameState({
+    updateGameState(prevState => ({
+      ...prevState, // Сохраняем все существующие данные
       modal: {
         type: 'dealCard',
         details: {
@@ -155,12 +321,13 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
           needsLoan
         }
       }
-    });
+    }));
   }, [updateGameState]);
 
   // Обработчик купленной сделки
   const handleDealBought = useCallback(({ playerId, card, newBalance, newPassiveIncome }) => {
-    updateGameState({
+    updateGameState(prevState => ({
+      ...prevState, // Сохраняем все существующие данные
       modal: {
         type: 'dealBought',
         details: {
@@ -169,28 +336,49 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
           newPassiveIncome
         }
       }
-    });
+    }));
   }, [updateGameState]);
 
   // Обработчик ошибки сделки
   const handleDealError = useCallback(({ message }) => {
-    updateGameState({
+    updateGameState(prevState => ({
+      ...prevState, // Сохраняем все существующие данные
       modal: {
         type: 'error',
         details: { message }
       }
-    });
+    }));
   }, [updateGameState]);
 
   // Обработчик события сделки
   const handleDealEvent = useCallback(({ card, type }) => {
-    updateGameState({
+    updateGameState(prevState => ({
+      ...prevState, // Сохраняем все существующие данные
       modal: {
         type: 'deal',
         details: { card, dealType: type }
       }
-    });
+    }));
   }, [updateGameState]);
+
+  // Обработчик обновления таймера хода
+  const handleTurnTimerUpdate = useCallback((data) => {
+    console.log('⏰ [turnTimerUpdate] received:', data);
+    console.log('⏰ [turnTimerUpdate] roomId:', roomId);
+    console.log('⏰ [turnTimerUpdate] socket.id:', socket.id);
+    
+    updateGameState(prev => {
+      const newState = {
+        ...prev, // Сохраняем все существующие данные (включая players)
+        turnTimer: data.remaining,
+        isTimerActive: data.isActive,
+        currentTurn: data.playerId
+      };
+      
+      console.log('⏰ [turnTimerUpdate] Обновляем состояние:', newState);
+      return newState;
+    });
+  }, [updateGameState, roomId]);
 
   // Обработчик обновления игрока
   const handlePlayerUpdated = useCallback((player) => {
@@ -202,7 +390,10 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
         ? prev.players.map(p => (p.id === player.id ? player : p))
         : [...prev.players, player];
       
-      return { players: newPlayers };
+      return { 
+        ...prev, // Сохраняем все существующие данные
+        players: newPlayers 
+      };
     });
   }, [updateGameState]);
 
@@ -211,6 +402,7 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
     console.log('[playerPositionUpdated]', { playerId, position, cellType });
     
     updateGameState(prev => ({
+      ...prev, // Сохраняем все существующие данные
       players: prev.players.map(p => p.id === playerId ? { ...p, position } : p)
     }));
     
@@ -227,6 +419,28 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
     }
   }, [updateGameState]);
 
+  // Обработчик начала определения очередности
+  const handleOrderDeterminationStarted = useCallback((orderData) => {
+    console.log('🎯 [orderDeterminationStarted] received:', orderData);
+    
+    if (orderData.players && Array.isArray(orderData.players)) {
+      // Преобразуем данные игроков в нужный формат
+      const players = orderData.players.map(p => ({
+        id: p.id,
+        username: p.username,
+        ready: true,
+        roomId: roomId
+      }));
+      
+      console.log('🎯 [orderDeterminationStarted] Обновляем список игроков:', players);
+      
+      updateGameState(prev => ({
+        ...prev,
+        players: players
+      }));
+    }
+  }, [updateGameState, roomId]);
+
   // Регистрация всех обработчиков событий
   useEffect(() => {
     registerEventHandler('connect', handleConnect);
@@ -242,8 +456,10 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
     registerEventHandler('dealBought', handleDealBought);
     registerEventHandler('dealError', handleDealError);
     registerEventHandler('dealEvent', handleDealEvent);
+    registerEventHandler('turnTimerUpdate', handleTurnTimerUpdate);
     registerEventHandler('playerUpdated', handlePlayerUpdated);
     registerEventHandler('playerPositionUpdated', handlePlayerPositionUpdated);
+    registerEventHandler('orderDeterminationStarted', handleOrderDeterminationStarted);
 
     // Очистка при размонтировании
     return () => {
@@ -268,8 +484,10 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
     handleDealBought,
     handleDealError,
     handleDealEvent,
+    handleTurnTimerUpdate,
     handlePlayerUpdated,
-    handlePlayerPositionUpdated
+    handlePlayerPositionUpdated,
+    handleOrderDeterminationStarted
   ]);
 
   return {

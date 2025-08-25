@@ -5,6 +5,7 @@ import { useLogout } from '../hooks/useLogout';
 import { useGameState } from '../hooks/useGameState';
 import { useSocketEvents } from '../hooks/useSocketEvents';
 import { useGameLogic } from '../hooks/useGameLogic';
+import socket from '../socket';
 import GameField from './GameField';
 import GameControls from './GameControls';
 import Hud from './Hud';
@@ -30,6 +31,36 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
     getCurrentPlayer,
     getTransferablePlayers
   } = useGameState(roomId);
+
+  // Принудительно запрашиваем список игроков при загрузке компонента
+  useEffect(() => {
+    if (roomId && socket) {
+      console.log('🎮 [GameBoard] Запрашиваем список игроков при загрузке');
+      socket.emit('getPlayers', roomId);
+      socket.emit('getRoom', roomId);
+      
+      // Повторно запрашиваем через небольшую задержку
+      const timer = setTimeout(() => {
+        console.log('🎮 [GameBoard] Повторно запрашиваем список игроков');
+        socket.emit('getPlayers', roomId);
+        socket.emit('getRoom', roomId);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [roomId]);
+
+  // Периодически обновляем список игроков
+  useEffect(() => {
+    if (roomId && socket) {
+      const interval = setInterval(() => {
+        console.log('🎮 [GameBoard] Периодическое обновление списка игроков');
+        socket.emit('getPlayers', roomId);
+      }, 5000); // Каждые 5 секунд
+      
+      return () => clearInterval(interval);
+    }
+  }, [roomId]);
 
   // Используем хук для Socket.IO событий
   useSocketEvents(
@@ -170,18 +201,44 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
         </Box>
 
         {/* Заголовок игры */}
-        <Typography
-          variant="h4"
-          sx={{
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: 2,
+          padding: '8px 16px',
+          backgroundColor: 'rgba(0,0,0,0.3)',
+          borderRadius: 1,
+          border: '1px solid rgba(255,255,255,0.2)'
+        }}>
+          <img 
+            src="/images/center-logo.svg" 
+            alt="Поток Денег Logo" 
+            style={{
+              width: '40px',
+              height: '40px',
+              objectFit: 'contain'
+            }}
+          />
+          <Typography variant="h4" sx={{ 
+            color: '#FFD700', 
             fontWeight: 'bold',
-            background: 'linear-gradient(45deg, #FFD700, #FFA500)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
-          }}
-        >
-                      ПОТОК ДЕНЕГ
-        </Typography>
+            textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
+          }}>
+            ПОТОК ДЕНЕГ
+          </Typography>
+          
+          {/* Информация о комнате для отладки */}
+          <Box sx={{ 
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            color: 'white',
+            padding: '4px 12px',
+            borderRadius: 1,
+            fontSize: '0.8rem'
+          }}>
+            🏠 Комната: {roomId || 'Неизвестно'}
+          </Box>
+        </Box>
 
         {/* Пустое место для баланса */}
         <Box sx={{ width: 120 }} />
@@ -208,6 +265,12 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
             gap: 2
           }}
         >
+          {console.log('🎮 [GameBoard] Передаем в GameField:', {
+            isMyTurn: gameState.isMyTurn,
+            diceValue: diceState.displayDice,
+            isRolling: diceState.isRolling,
+            rollDice: typeof rollDice
+          })}
           <GameField
             players={gameState.players}
             currentTurn={gameState.currentTurn}
@@ -237,6 +300,17 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
 
         {/* Правая панель - Управление */}
         <Box sx={{ width: 300 }}>
+          {console.log('🎮 [GameBoard] Передаем в GameControls:', {
+            isMyTurn: gameState.isMyTurn,
+            currentTurn: gameState.currentTurn,
+            playersCount: gameState.players?.length || 0,
+            players: gameState.players,
+            myId: gameState.myId,
+            turnBanner: gameState.turnBanner,
+            rollDice: typeof rollDice,
+            diceState: diceState,
+            turnTimerState: turnTimerState
+          })}
           <GameControls
             isMyTurn={gameState.isMyTurn}
             currentTurn={gameState.currentTurn}
@@ -252,12 +326,25 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
             turnBanner={gameState.turnBanner}
             currentPlayer={currentPlayer}
             diceValue={diceState.timerDice}
-            playerProfession={currentPlayer?.profession}
-            playerBalance={currentPlayer?.balance}
+            playerProfession={currentPlayer?.profession ? {
+              id: currentPlayer.profession.id,
+              name: currentPlayer.profession.name,
+              salary: currentPlayer.profession.salary,
+              expenses: currentPlayer.profession.expenses,
+              balance: currentPlayer.profession.balance,
+              passiveIncome: currentPlayer.profession.passiveIncome,
+              description: currentPlayer.profession.description,
+              charity: currentPlayer.profession.charity
+            } : null}
+            playerBalance={currentPlayer?.profession?.balance || currentPlayer?.balance || 0}
             onPauseTimer={pauseTurnTimer}
             onResumeTimer={resumeTurnTimer}
             isHost={gameState.hostId === gameState.myId}
             timerPaused={turnTimerState.paused}
+            onRollDice={rollDice}
+            isRolling={diceState.isRolling}
+            hasCharity={currentPlayer?.charity || false}
+            roomId={roomId}
           />
         </Box>
       </Box>

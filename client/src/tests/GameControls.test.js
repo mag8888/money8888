@@ -27,7 +27,7 @@ const mockPlayerProfession = {
   salary: 5000,
   savings: 1000,
   expenses: 3000,
-  cashFlow: 2000
+        potokDeneg: 2000
 };
 
 // Обертка для компонента с темой

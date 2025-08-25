@@ -1,7 +1,7 @@
 {
-  "name": "cashflow-client",
+  "name": "potok-deneg-client",
   "version": "1.0.0",
-  "description": "Frontend for Cashflow Web",
+  "description": "Frontend for Поток Денег Web",
   "main": "index.js",
   "scripts": {
     "start": "react-scripts start",

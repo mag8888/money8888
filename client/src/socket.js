@@ -23,7 +23,7 @@ const socket = io(baseUrl, {
   // Дополнительные настройки для стабильности
   autoConnect: true,
   query: {
-    client: 'cashflow-game',
+    client: 'potok-deneg-game',
     version: '1.0.0'
   }
 });

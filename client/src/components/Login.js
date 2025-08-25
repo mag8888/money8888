@@ -21,8 +21,16 @@ const Login = ({ onLogin }) => {
     <ThemeProvider theme={theme}>
       <Box sx={{ height: '100vh', background: theme.palette.background.default, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-          <Avatar sx={{ bgcolor: 'primary.main', mr: 1, fontSize: 40 }}><CasinoIcon /></Avatar>
-          <Typography variant="h4" sx={{ color: 'white' }}>CashFlow Web</Typography>
+          <img 
+            src="/images/center-logo.svg" 
+            alt="Поток Денег Logo" 
+            style={{
+              width: '60px',
+              height: '60px',
+              marginRight: '16px'
+            }}
+          />
+          <Typography variant="h4" sx={{ color: 'white' }}>Поток Денег Web</Typography>
         </Box>
         <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 300 }}>
           <TextField fullWidth placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} sx={{ mb: 2, background: 'rgba(255,255,255,0.1)', borderRadius: 2, input: { color: 'white' } }} InputProps={{ sx: { '&:before': { borderBottom: 'none' }, '&:after': { borderBottom: 'none' } } }} required />

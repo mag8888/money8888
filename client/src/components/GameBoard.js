@@ -155,12 +155,14 @@ const GameBoard = ({ roomId, onExit }) => {
         setDisplayD2(d2 || 0);
         setDice(dice);
         if (options && options.length > 1) {
-          setTimeout(() => setModal({ type: 'diceChoice', details: { d1, d2, options } }), 1000); // Delay modal
+          setTimeout(function() { 
+            setModal({ type: 'diceChoice', details: { d1, d2, options } }); 
+          }, 1000);
         } else {
-          setTimeout(() => {
+          setTimeout(function() {
             socket.emit('movePlayer', roomId, myId, dice);
-            setDisplayDice(0); // Clear after move
-          }, 1500); // Show result for 1.5s then move
+            setDisplayDice(0);
+          }, 1500);
         }
       }
     });
@@ -229,7 +231,7 @@ const GameBoard = ({ roomId, onExit }) => {
       socket.emit('getRoom', roomId);
       
       // Принудительно запрашиваем текущий ход
-      setTimeout(() => {
+      setTimeout(function() {
         console.log('[gameStarted] Requesting turn info after delay...');
         socket.emit('getRoom', roomId);
       }, 500);
@@ -250,12 +252,12 @@ const GameBoard = ({ roomId, onExit }) => {
         if (isMyTurnNow) {
           setTurnTimer(120);
           setTurnBanner({ text: 'Ваш ход' });
-          setTimeout(() => setTurnBanner(null), 1600);
+          setTimeout(function() { setTurnBanner(null); }, 1600);
         } else {
           // Показываем чей ход
           const playerName = players.find(p => p.id === data.currentTurn)?.username || `Игрок (${data.currentTurn?.slice(-4) || 'N/A'})`;
           setTurnBanner({ text: `Ход: ${playerName}` });
-          setTimeout(() => setTurnBanner(null), 1600);
+          setTimeout(function() { setTurnBanner(null); }, 1600);
         }
       } else {
         console.log('[roomData] currentTurn is not a string or empty:', typeof data.currentTurn, data.currentTurn);
@@ -706,17 +708,7 @@ const GameBoard = ({ roomId, onExit }) => {
         Выйти
       </Button>
       {/* Corner panels */}
-      <Box 
-        sx={{ position: 'absolute', top: 80, left: 16, background: 'linear-gradient(180deg,#F4B336,#E1960D)', borderRadius: 2, px: 1.5, py: 1, minWidth: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, color: '#2e1a3a', fontWeight: 'bold', boxShadow: '0 6px 18px rgba(0,0,0,0.35), inset 0 0 0 2px rgba(255,255,255,0.3)', cursor: 'pointer' }}
-        onClick={() => {
-          console.log('Profession button clicked, current profModalOpen:', profModalOpen);
-          setProfModalOpen(true);
-          console.log('Profession modal should now be open');
-        }}
-      >
-        {renderProfessionIcon(players.find(p => p.id === myId)?.profession)}
-        {players.find(p => p.id === myId)?.profession || 'Профессия'}
-      </Box>
+
       <Box 
         sx={{ position: 'absolute', top: 80, right: 16, background: 'linear-gradient(180deg,#3CAD57,#2E7D32)', borderRadius: 2, p: 1.5, width: 132, textAlign: 'center', color: 'white', fontWeight: 'bold', boxShadow: '0 6px 18px rgba(0,0,0,0.35), inset 0 0 0 2px rgba(255,255,255,0.2)', cursor: 'pointer' }} 
         onClick={() => setBankModalOpen(true)}
@@ -890,7 +882,7 @@ const GameBoard = ({ roomId, onExit }) => {
         </Box>
       ))}
 
-      <Typography variant="h3" sx={{ color: '#FFD54F', fontWeight: '900', zIndex: 1, letterSpacing: 2, textShadow: '0 3px 0 #A06B00, 0 14px 22px rgba(0,0,0,0.45)' }}>CASHFLOW</Typography>
+      <Typography variant="h3" sx={{ color: '#FFD54F', fontWeight: '900', zIndex: 1, letterSpacing: 2, textShadow: '0 3px 0 #A06B00, 0 14px 22px rgba(0,0,0,0.45)' }}>ПОТОК ДЕНЕГ</Typography>
       
       {/* Debug info - временно для отладки */}
       <Box sx={{ 
@@ -1031,11 +1023,11 @@ const GameBoard = ({ roomId, onExit }) => {
           borderRadius: '50%', 
           cursor: 'pointer', 
           zIndex: 3, 
-          border: '3px dashed rgba(255,255,255,0.3)',
+          border: '3px solid rgba(255,255,255,0.3)',
           transition: 'all 0.3s ease',
           '&:hover': { 
             boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.4)',
-            border: '3px dashed rgba(255,255,255,0.6)',
+            border: '3px solid rgba(255,255,255,0.6)',
             transform: 'scale(1.02)'
           }, 
           display: 'flex', 
@@ -1301,40 +1293,7 @@ const GameBoard = ({ roomId, onExit }) => {
         </DialogContent>
       </Dialog>
 
-      {/* Profession Modal */}
-      <Dialog 
-        open={profModalOpen} 
-        onClose={() => {
-          console.log('Closing profession modal');
-          setProfModalOpen(false);
-        }}
-        maxWidth="md"
-        fullWidth
-        sx={{
-          zIndex: 9999,
-          '& .MuiDialog-paper': {
-            margin: '32px',
-            maxHeight: 'calc(100% - 64px)',
-            maxWidth: 'calc(100% - 64px)',
-            zIndex: 9999
-          }
-        }}
-      >
-        <DialogTitle sx={{ 
-          bgcolor: '#6E4D92', 
-          color: 'white',
-          fontWeight: 'bold',
-          fontSize: '1.2rem'
-        }}>
-          🎯 {players.find(p => p.id === myId)?.profession || 'Профессия'}
-        </DialogTitle>
-        <DialogContent sx={{ 
-          p: 3,
-          bgcolor: '#f8f9fa'
-        }}>
-          <ProfessionCard roomId={roomId} />
-        </DialogContent>
-      </Dialog>
+
 
       {/* Freedom Modal */}
       <Dialog open={freedomModalOpen} onClose={() => setFreedomModalOpen(false)}>

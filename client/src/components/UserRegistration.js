@@ -117,13 +117,23 @@ const UserRegistration = ({ onRegister, onLogin, onBack }) => {
       >
           {/* Заголовок */}
           <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography variant="h4" sx={{ 
-              color: colors.primary.main, 
-              fontWeight: 'bold',
-              mb: 1
-            }}>
-              🎮 Вход в игру CASHFLOW
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+              <img 
+                src="/images/center-logo.svg" 
+                alt="Поток Денег Logo" 
+                style={{
+                  width: '50px',
+                  height: '50px',
+                  marginRight: '12px'
+                }}
+              />
+              <Typography variant="h4" sx={{ 
+                color: colors.primary.main, 
+                fontWeight: 'bold'
+              }}>
+                🎮 Вход в игру ПОТОК ДЕНЕГ
+              </Typography>
+            </Box>
             <Typography variant="body1" sx={{ color: textColors.secondary }}>
               Введите email для входа в игру
             </Typography>

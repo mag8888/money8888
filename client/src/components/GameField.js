@@ -16,7 +16,6 @@ import { getRandomProfession } from '../data/professions';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
-import DiceAnimation from './DiceAnimation';
 
 // Конфигурация клеток игрового поля согласно списку
 const CELL_CONFIG = {
@@ -78,6 +77,141 @@ const CELL_CONFIG = {
     { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' }
   ]
 };
+
+// Конфигурация цветов для фишек игроков
+const PLAYER_COLORS = [
+  '#FF6B6B', // Красный
+  '#4ECDC4', // Бирюзовый
+  '#45B7D1', // Синий
+  '#96CEB4', // Зеленый
+  '#FFEAA7', // Желтый
+  '#DDA0DD', // Фиолетовый
+  '#FF8C42', // Оранжевый
+  '#98D8C8'  // Мятный
+];
+
+// Компонент фишки игрока
+const PlayerToken = React.memo(({ 
+  player, 
+  position, 
+  isMoving, 
+  onMoveComplete,
+  cellPositions 
+}) => {
+  const [currentPosition, setCurrentPosition] = useState(() => {
+    // Инициализируем с координатами по умолчанию
+    const defaultCoords = { x: 350, y: 350 }; // Центр поля
+    if (cellPositions && Array.isArray(cellPositions) && position !== undefined) {
+      const cell = cellPositions.find(c => c.position === position);
+              if (cell) {
+          // Позиционируем фишку в правом верхнем углу клетки
+          return { x: cell.x + 30, y: cell.y + 8 };
+        }
+    }
+    return defaultCoords;
+  });
+  
+  const [isAnimating, setIsAnimating] = useState(false);
+  
+  // Получаем координаты текущей позиции
+  const getPositionCoordinates = (pos) => {
+    if (!cellPositions || !Array.isArray(cellPositions)) {
+      return { x: 350, y: 350 }; // Центр поля по умолчанию
+    }
+    
+    const cell = cellPositions.find(c => c.position === pos);
+    if (cell) {
+      // Позиционируем фишку в правом верхнем углу клетки, чтобы не перекрывать содержимое
+      return { x: cell.x + 30, y: cell.y + 8 };
+    }
+    return { x: 350, y: 350 }; // Центр поля по умолчанию
+  };
+  
+  // Анимация движения фишки
+  useEffect(() => {
+    if (isMoving && !isAnimating && position !== undefined) {
+      setIsAnimating(true);
+      
+      // Начинаем с позиции 0 (первая клетка)
+      const startPos = getPositionCoordinates(0);
+      const endPos = getPositionCoordinates(position);
+      
+      // Анимация движения по клеткам
+      const moveStep = (currentStep, totalSteps) => {
+        if (currentStep >= totalSteps) {
+          setIsAnimating(false);
+          onMoveComplete?.();
+          return;
+        }
+        
+        // Вычисляем позицию для текущего шага (двигаемся по клеткам)
+        const currentPos = currentStep;
+        const coords = getPositionCoordinates(currentPos);
+        setCurrentPosition(coords);
+        
+        // Следующий шаг через 500мс (пол секунды)
+        setTimeout(() => moveStep(currentStep + 1, totalSteps), 500);
+      };
+      
+      // Запускаем анимацию
+      moveStep(0, Math.max(1, position + 1));
+    }
+  }, [isMoving, position, isAnimating, cellPositions, onMoveComplete]);
+  
+  // Обновляем позицию при изменении
+  useEffect(() => {
+    if (!isMoving && !isAnimating && position !== undefined) {
+      const coords = getPositionCoordinates(position);
+      setCurrentPosition(coords);
+    }
+  }, [position, isMoving, isAnimating, cellPositions]);
+
+  // Инициализируем позицию при монтировании компонента
+  useEffect(() => {
+    if (position !== undefined && cellPositions && Array.isArray(cellPositions)) {
+      const coords = getPositionCoordinates(position);
+      setCurrentPosition(coords);
+    }
+  }, [position, cellPositions]);
+  
+  return (
+    <motion.div
+      style={{
+        position: 'absolute',
+        left: currentPosition.x - 12,
+        top: currentPosition.y - 12,
+        zIndex: 200,
+        width: 24,
+        height: 24,
+        borderRadius: '50%',
+        backgroundColor: player.color || PLAYER_COLORS[0],
+        border: '2px solid #FFFFFF',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: '12px',
+        cursor: 'pointer'
+      }}
+      animate={{
+        scale: isAnimating ? [1, 1.1, 1] : 1,
+        rotate: isAnimating ? [0, 5, -5, 0] : 0
+      }}
+      transition={{
+        duration: 0.5,
+        repeat: isAnimating ? Infinity : 0
+      }}
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.9 }}
+    >
+      {player.username?.charAt(0)?.toUpperCase() || 'И'}
+    </motion.div>
+  );
+});
+
+PlayerToken.displayName = 'PlayerToken';
 
 // Компонент клетки
 const GameCell = React.memo(({ 
@@ -177,6 +311,15 @@ const GameField = ({
   diceValue,
   isRolling 
 }) => {
+  console.log('🎯 [GameField] Получены пропсы:', {
+    players: players?.length || 0,
+    currentTurn,
+    isMyTurn,
+    diceValue,
+    isRolling,
+    onRollDice: typeof onRollDice
+  });
+
   // Состояние стопок карточек
   const [cardDecks, setCardDecks] = useState({
     smallDeal: { remaining: 24, total: 24, isShuffling: false },
@@ -205,17 +348,18 @@ const GameField = ({
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0); // Индекс текущего игрока
   const [diceResults, setDiceResults] = useState({}); // Результаты бросков кубиков
   const [turnTimer, setTurnTimer] = useState(120); // 2 минуты в секундах
-  const [localIsMyTurn, setLocalIsMyTurn] = useState(false); // Мой ли сейчас ход
   
-  // Состояние кубика
-  const [localDiceValue, setLocalDiceValue] = useState(0); // Значение кубика (0 = не брошен)
-  const [isDiceRolling, setIsDiceRolling] = useState(false); // Анимация броска кубика
+  // Состояние фишек игроков
+  const [playerTokens, setPlayerTokens] = useState({});
+  const [movingPlayers, setMovingPlayers] = useState(new Set());
+  
+  // Убираем localIsMyTurn, используем только isMyTurn из пропсов
   
   console.log('🚀 [GameField] Компонент инициализирован с пропсами:', {
     players: players?.length || 0,
     currentTurn,
-    localIsMyTurn,
-    localDiceValue
+    isMyTurn,
+    diceValue
   });
   
   console.log('📊 [GameField] Состояния компонента:', {
@@ -225,7 +369,7 @@ const GameField = ({
     gamePhase,
     currentPlayerIndex,
     turnTimer,
-    localIsMyTurn
+    isMyTurn
   });
 
   // Функция перетасовки колоды
@@ -262,83 +406,63 @@ const GameField = ({
     }));
   };
 
-  // Функция броска кубика с анимацией
-  const rollDice = () => {
-    if (isDiceRolling) return; // Предотвращаем повторные клики во время анимации
-    
-    setIsDiceRolling(true);
-    console.log('🎲 [GameField] Начинаем анимацию броска кубика...');
-    
-    // Генерируем случайное число (в будущем будет приходить с сервера)
-    const randomNumber = Math.floor(Math.random() * 6) + 1;
-    
-    // Устанавливаем значение для анимации
-    setLocalDiceValue(randomNumber);
-    console.log('🎲 [GameField] Кубик выброшен:', randomNumber);
-  };
-
-  // Обработчик завершения анимации кубика
-  const handleDiceAnimationComplete = () => {
-    setIsDiceRolling(false);
-    console.log('✅ [GameField] Анимация кубика завершена');
-  };
-
   // Автоматическое назначение профессии при запуске игры
-  useEffect(() => {
-    console.log('🔍 [GameField] useEffect сработал:', { gameStarted, playerProfession });
-    
-    if (!gameStarted && !playerProfession) {
-      console.log('✅ [GameField] Условия выполнены, назначаем профессию...');
-      
-      try {
-        // Назначаем случайную профессию
-        const randomProfession = getRandomProfession();
-        console.log('🎯 [GameField] Получена профессия:', randomProfession);
-        
-        if (!randomProfession) {
-          console.error('❌ [GameField] getRandomProfession вернул null/undefined');
-          return;
-        }
-        
-        setPlayerProfession(randomProfession);
-        console.log('✅ [GameField] playerProfession установлен');
-        
-        // Рассчитываем баланс: зарплата + 15-20% сбережений
-        const savingsPercentage = 15 + Math.random() * 5; // 15-20%
-        const savings = Math.floor(randomProfession.salary * (savingsPercentage / 100));
-        const totalBalance = randomProfession.balance + savings;
-        
-        console.log('💰 [GameField] Расчет баланса:', {
-          salary: randomProfession.salary,
-          balance: randomProfession.balance,
-          savingsPercentage,
-          savings,
-          totalBalance
-        });
-        
-        setPlayerBalance(totalBalance);
-        setGameStarted(true);
-        
-        // После назначения профессии запускаем игру
-        setGamePhase('diceRoll');
-        
-        // Запускаем первый ход
-        setLocalIsMyTurn(true);
-        setTurnTimer(120);
-        
-        console.log('🎯 [GameField] Профессия назначена:', randomProfession.name);
-        console.log('💰 [GameField] Баланс игрока:', totalBalance, '(зарплата:', randomProfession.salary, '+ сбережения:', savings, ')');
-        console.log('✅ [GameField] Состояние обновлено:', { playerProfession: randomProfession, playerBalance: totalBalance, gameStarted: true });
-        console.log('🎮 [GameField] Игра запущена, фаза: diceRoll');
-        console.log('⏰ [GameField] Первый ход запущен, таймер: 2:00');
-        
-      } catch (error) {
-        console.error('❌ [GameField] Ошибка при назначении профессии:', error);
-      }
-    } else {
-      console.log('⏭️ [GameField] Условия не выполнены:', { gameStarted, playerProfession });
-    }
-  }, [gameStarted, playerProfession]);
+  // Профессия теперь назначается при входе в комнату, а не автоматически
+  // useEffect(() => {
+  //   console.log('🔍 [GameField] useEffect сработал:', { gameStarted, playerProfession });
+  //   
+  //   if (!gameStarted && !playerProfession) {
+  //     console.log('✅ [GameField] Условия выполнены, назначаем профессию...');
+  //     
+  //     try {
+  //       // Назначаем случайную профессию
+  //       const randomProfession = getRandomProfession();
+  //       console.log('🎯 [GameField] Получена профессия:', randomProfession);
+  //       
+  //       if (!randomProfession) {
+  //         console.error('❌ [GameField] getRandomProfession вернул null/undefined');
+  //         return;
+  //       }
+  //       
+  //       setPlayerProfession(randomProfession);
+  //       console.log('✅ [GameField] playerProfession установлен');
+  //       
+  //       // Рассчитываем баланс: зарплата + 15-20% сбережений
+  //       const savingsPercentage = 15 + Math.random() * 5; // 15-20%
+  //       const savings = Math.floor(randomProfession.salary * (savingsPercentage / 100));
+  //       const totalBalance = randomProfession.balance + savings;
+  //       
+  //       console.log('💰 [GameField] Расчет баланса:', {
+  //         salary: randomProfession.salary,
+  //         balance: randomProfession.balance,
+  //         savingsPercentage,
+  //         savings,
+  //         totalBalance
+  //       });
+  //       
+  //       setPlayerBalance(totalBalance);
+  //       setGameStarted(true);
+  //       
+  //       // После назначения профессии запускаем игру
+  //       setGamePhase('diceRoll');
+  //       
+  //       // Запускаем первый ход
+  //       // setLocalIsMyTurn(true); // Удалено
+  //       setTurnTimer(120);
+  //       
+  //       console.log('🎯 [GameField] Профессия назначена:', randomProfession.name);
+  //       console.log('💰 [GameField] Баланс игрока:', totalBalance, '(зарплата:', randomProfession.salary, '+ сбережения:', savings, ')');
+  //       console.log('✅ [GameField] Состояние обновлено:', { playerProfession: randomProfession, playerBalance: totalBalance, gameStarted: true });
+  //       console.log('🎮 [GameField] Игра запущена, фаза: diceRoll');
+  //       console.log('⏰ [GameField] Первый ход запущен, таймер: 2:00');
+  //       
+  //     } catch (error) {
+  //       console.error('❌ [GameField] Ошибка при назначении профессии:', error);
+  //     }
+  //   } else {
+  //       console.log('⏭️ [GameField] Условия не выполнены:', { gameStarted, playerProfession });
+  //   }
+  // }, [gameStarted, playerProfession]);
 
   // Функции для системы ходов
   const rollDiceForOrder = useCallback(() => {
@@ -355,18 +479,21 @@ const GameField = ({
   const startTurn = useCallback(() => {
     console.log('🔄 [GameField] Начинается ход игрока:', currentPlayerIndex);
     setTurnTimer(120); // Сброс таймера на 2 минуты
-    setLocalIsMyTurn(true);
+    // setLocalIsMyTurn(true); // Удалено
     
-    // Уведомляем о начале хода
-    console.log(`⏰ [GameField] Таймер запущен: 2:00 для игрока ${currentPlayerIndex}`);
-  }, [currentPlayerIndex]);
+    // Сброс кубика при переходе хода
+    // setLocalDiceValue(0); // Удалено
+    
+    // Переход к следующему игроку
+    setCurrentPlayerIndex(prev => (prev + 1) % playerOrder.length);
+  }, [currentPlayerIndex, playerOrder.length]);
 
   const endTurn = useCallback(() => {
     console.log('⏭️ [GameField] Завершается ход игрока:', currentPlayerIndex);
-    setLocalIsMyTurn(false);
+    // setLocalIsMyTurn(false); // Удалено
     
     // Сброс кубика при переходе хода
-    setLocalDiceValue(0);
+    // setLocalDiceValue(0); // Удалено
     
     // Переход к следующему игроку
     const nextPlayerIndex = (currentPlayerIndex + 1) % playerOrder.length;
@@ -381,11 +508,83 @@ const GameField = ({
     endTurn();
   }, [currentPlayerIndex, endTurn]);
 
+  // Функция для движения фишки игрока
+  const movePlayerToken = useCallback((playerId, diceValue) => {
+    console.log(`🎯 [GameField] Движение фишки игрока ${playerId} на ${diceValue} клеток`);
+    
+    // Находим игрока
+    const player = players?.find(p => p.id === playerId);
+    if (!player) {
+      console.error('❌ [GameField] Игрок не найден:', playerId);
+      return;
+    }
+    
+    // Вычисляем новую позицию
+    const currentPos = player.position || 0;
+    const newPos = Math.min(currentPos + diceValue, 23); // Максимум 23 клетки (внутренний круг)
+    
+    console.log(`📍 [GameField] Позиция игрока ${player.username}: ${currentPos} → ${newPos}`);
+    
+    // Обновляем состояние фишек
+    setPlayerTokens(prev => ({
+      ...prev,
+      [playerId]: {
+        ...prev[playerId],
+        position: newPos,
+        isMoving: true
+      }
+    }));
+    
+    // Добавляем игрока в список движущихся
+    setMovingPlayers(prev => new Set([...prev, playerId]));
+    
+    // Через некоторое время завершаем движение
+    const moveDuration = (newPos - currentPos) * 500 + 1000; // Время движения + 1 секунда на завершение
+    
+    const moveTimer = setTimeout(() => {
+      setMovingPlayers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(playerId);
+        return newSet;
+      });
+      
+      setPlayerTokens(prev => ({
+        ...prev,
+        [playerId]: {
+          ...prev[playerId],
+          isMoving: false
+        }
+      }));
+      
+      console.log(`✅ [GameField] Фишка игрока ${player.username} завершила движение на позиции ${newPos}`);
+    }, moveDuration);
+    
+    // Очищаем таймер при размонтировании компонента
+    return () => clearTimeout(moveTimer);
+  }, [players]);
+
+  // Функция для броска кубика и движения
+  const handleDiceRoll = useCallback(() => {
+    if (!isMyTurn || !currentTurn) return;
+    
+    console.log('🎲 [GameField] Бросок кубика для игрока:', currentTurn);
+    
+    // Генерируем случайное значение кубика (1-6)
+    const diceValue = Math.floor(Math.random() * 6) + 1;
+    console.log(`🎲 [GameField] Выпало: ${diceValue}`);
+    
+    // Двигаем фишку игрока
+    movePlayerToken(currentTurn, diceValue);
+    
+    // Вызываем callback для обновления состояния в родительском компоненте
+    onRollDice?.(diceValue);
+  }, [isMyTurn, currentTurn, movePlayerToken, onRollDice]);
+
   // Таймер хода
   useEffect(() => {
     let interval;
     
-    if ((gamePhase === 'playing' || gamePhase === 'diceRoll') && localIsMyTurn && turnTimer > 0) {
+    if ((gamePhase === 'playing' || gamePhase === 'diceRoll') && isMyTurn && turnTimer > 0) {
       interval = setInterval(() => {
         setTurnTimer(prev => {
           if (prev <= 1) {
@@ -401,7 +600,7 @@ const GameField = ({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [gamePhase, localIsMyTurn, turnTimer, endTurn]);
+  }, [gamePhase, isMyTurn, turnTimer, endTurn]);
 
   // Функция получения описания клетки
   const getCellDescription = (cellType) => {
@@ -450,15 +649,20 @@ const GameField = ({
   // Вычисляем позиции игроков
   const playerPositions = useMemo(() => {
     const positions = {};
-    players.forEach(player => {
-      if (player.position !== undefined) {
-        positions[player.position] = {
-          color: player.color || '#9C27B0',
-          initial: player.username?.charAt(0) || 'И',
-          id: player.id
-        };
-      }
-    });
+    
+    // Добавляем проверку на undefined
+    if (players && Array.isArray(players)) {
+      players.forEach(player => {
+        if (player.position !== undefined) {
+          positions[player.position] = {
+            color: player.color || '#9C27B0',
+            initial: player.username?.charAt(0) || 'И',
+            id: player.id
+          };
+        }
+      });
+    }
+    
     return positions;
   }, [players]);
 
@@ -499,50 +703,50 @@ const GameField = ({
     const marginX = 350 - (outerSquareSize / 2); // Центрируем по X
     const marginY = 350 - (outerSquareSize / 2) - 20; // Поднимаем на 20px вверх
     
-    // Верхний ряд (1-14): 14 клеток
+    // Верхний ряд (25-38): 14 клеток - цифры идут в обратную сторону
     for (let i = 0; i < 14; i++) {
       positions.push({
         position: 24 + i,
         x: marginX + i * (cellSize + 2),
         y: marginY,
         ...CELL_CONFIG.outerSquare[i % CELL_CONFIG.outerSquare.length],
-        number: i + 1, // Нумерация от 1 до 14
+        number: 38 - i, // Нумерация от 38 до 25 (в обратную сторону)
         isInner: false
       });
     }
     
-    // Правый столбец (15-28): 14 клеток - строго под 14
+    // Правый столбец (24-11): 14 клеток - цифры идут вниз
     for (let i = 0; i < 14; i++) {
       positions.push({
         position: 38 + i,
         x: marginX + (13 * (cellSize + 2)), // x координата клетки 14
         y: marginY + (i + 1) * (cellSize + 2),
         ...CELL_CONFIG.outerSquare[(14 + i) % CELL_CONFIG.outerSquare.length],
-        number: i + 15, // Нумерация от 15 до 28
+        number: 24 - i, // Нумерация от 24 до 11 (в обратную сторону)
         isInner: false
       });
     }
     
-    // Нижний ряд (29-42): 14 клеток - в самом низу квадрата
+    // Нижний ряд (10-23): 14 клеток - цифры идут в обратную сторону
     for (let i = 0; i < 14; i++) {
       positions.push({
         position: 52 + i,
         x: marginX + (13 - i) * (cellSize + 2),
         y: marginY + (14 * (cellSize + 2)), // y координата клетки 28
         ...CELL_CONFIG.outerSquare[(28 + i) % CELL_CONFIG.outerSquare.length],
-        number: i + 29, // Нумерация от 29 до 42
+        number: 10 + i, // Нумерация от 10 до 23 (по порядку)
         isInner: false
       });
     }
     
-    // Левый столбец (43-56): 14 клеток - строго под 1
+    // Левый столбец (37-50): 14 клеток - цифры идут вверх
     for (let i = 0; i < 14; i++) {
       positions.push({
         position: 66 + i,
         x: marginX, // x координата клетки 1
         y: marginY + (i + 1) * (cellSize + 2),
         ...CELL_CONFIG.outerSquare[(42 + i) % CELL_CONFIG.outerSquare.length],
-        number: i + 43, // Нумерация от 43 до 56
+        number: 37 - i, // Нумерация от 37 до 50 (в обратную сторону)
         isInner: false
       });
     }
@@ -560,7 +764,46 @@ const GameField = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'visible'
+        overflow: 'visible',
+        background: `
+          radial-gradient(ellipse at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%),
+          radial-gradient(ellipse at center, rgba(25,25,112,0.3) 0%, rgba(0,0,0,0.9) 100%),
+          linear-gradient(45deg, #000428 0%, #004e92 25%, #000428 50%, #004e92 75%, #000428 100%)
+        `,
+        backgroundSize: '100% 100%, 100% 100%, 200% 200%',
+        animation: 'starryNight 20s ease-in-out infinite',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundImage: `
+            radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+            radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+            radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+            radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.6), transparent),
+            radial-gradient(2px 2px at 160px 30px, #ddd, transparent),
+            radial-gradient(2px 2px at 200px 70px, rgba(255,255,255,0.8), transparent),
+            radial-gradient(1px 1px at 250px 40px, #fff, transparent),
+            radial-gradient(1px 1px at 290px 80px, rgba(255,255,255,0.6), transparent),
+            radial-gradient(2px 2px at 320px 30px, #ddd, transparent),
+            radial-gradient(2px 2px at 360px 70px, rgba(255,255,255,0.8), transparent),
+            radial-gradient(1px 1px at 410px 40px, #fff, transparent),
+            radial-gradient(1px 1px at 450px 80px, rgba(255,255,255,0.6), transparent),
+            radial-gradient(2px 2px at 480px 30px, #ddd, transparent),
+            radial-gradient(2px 2px at 520px 70px, rgba(255,255,255,0.8), transparent),
+            radial-gradient(1px 1px at 570px 40px, #fff, transparent),
+            radial-gradient(1px 1px at 610px 80px, rgba(255,255,255,0.6), transparent),
+            radial-gradient(2px 2px at 640px 30px, #ddd, transparent),
+            radial-gradient(2px 2px at 680px 70px, rgba(255,255,255,0.8), transparent)
+          `,
+          backgroundRepeat: 'repeat',
+          backgroundSize: '700px 700px',
+          animation: 'twinkle 4s ease-in-out infinite alternate',
+          zIndex: 0
+        }
       }}
     >
 
@@ -632,35 +875,30 @@ const GameField = ({
           >
             ⏰ Ход игрока {currentPlayerIndex + 1}
           </Typography>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              color: turnTimer <= 30 ? '#FF5722' : '#4CAF50',
+          <Typography
+            variant="h6"
+            sx={{
+              color: turnTimer <= 30 ? '#f44336' : turnTimer <= 60 ? '#ff9800' : '#4caf50',
               fontWeight: 'bold',
-              textAlign: 'center'
+              textAlign: 'center',
+              textShadow: turnTimer <= 15 ? '0 0 10px rgba(244, 67, 54, 0.5)' : 'none',
+              animation: turnTimer <= 15 ? 'pulse 1s infinite' : 'none'
             }}
           >
-            {Math.floor(turnTimer / 60)}:{(turnTimer % 60).toString().padStart(2, '0')} || {localDiceValue > 0 ? localDiceValue : '🎲'}
+            {Math.floor(turnTimer / 60)}:{(turnTimer % 60).toString().padStart(2, '0')} || {diceValue > 0 ? diceValue : '🎲'}
           </Typography>
-          {localIsMyTurn && (
-            <Button
-              variant="contained"
-              size="small"
-              onClick={skipTurn}
+          {isMyTurn && (
+            <Typography
+              variant="body2"
               sx={{
-                backgroundColor: '#FF9800',
-                color: '#fff',
-                fontWeight: 'bold',
-                mt: 1,
-                '&:hover': { backgroundColor: '#F57C00' }
+                color: '#4caf50',
+                textAlign: 'center',
+                fontWeight: 'bold'
               }}
             >
-              <SkipNextIcon sx={{ mr: 0.5 }} />
-              Переход хода
-            </Button>
+              ⏰ Ваш ход
+            </Typography>
           )}
-          
-
         </Box>
       )}
 
@@ -688,7 +926,7 @@ const GameField = ({
               mb: 1
             }}
           >
-            ⏳ Ожидание || {localDiceValue > 0 ? localDiceValue : '🎲'}
+            ⏳ Ожидание || {diceValue > 0 ? diceValue : '🎲'}
           </Typography>
           
 
@@ -696,7 +934,7 @@ const GameField = ({
       )}
 
       {/* Кнопка броска кубиков для хода */}
-      {gamePhase === 'playing' && localIsMyTurn && (
+      {gamePhase === 'playing' && isMyTurn && (
         <motion.div
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -717,37 +955,126 @@ const GameField = ({
 
       {/* Убираем отображение профессии - теперь она показывается в правой панели */}
 
-      {/* Центральная область - кубики и колоды карт */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 280,
-          height: 280,
-          backgroundColor: '#E1BEE7',
-          borderRadius: '50%',
-          border: '4px solid #9C27B0',
-          zIndex: 20,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 1
-        }}
-      >
-
+              {/* Центральная область - лого по центру игрового поля */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 260,
+            height: 260,
+            zIndex: 50,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none'
+          }}
+        >
         
-        {/* 3D Анимированный кубик */}
-        <DiceAnimation 
-          value={diceValue}
-          isRolling={isRolling}
-          onAnimationComplete={handleDiceAnimationComplete}
-          onClick={onRollDice}
-        />
+        {/* Центральное лого - точно по центру */}
+        <motion.div
+          style={{
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            zIndex: 51,
+            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(255, 255, 255, 0.01)'
+          }}
+          whileHover={{ 
+            scale: 1.05,
+            rotate: [0, -2, 2, 0]
+          }}
+          animate={{
+            y: [0, -5, 0],
+            filter: [
+              'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
+              'drop-shadow(0 6px 16px rgba(0,0,0,0.4))',
+              'drop-shadow(0 4px 8px rgba(0,0,0,0.3))'
+            ]
+          }}
+          transition={{
+            scale: { duration: 0.3, ease: "easeInOut" },
+            rotate: { duration: 0.6, ease: "easeInOut" },
+            y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
+            filter: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+          }}
+        >
+          <img 
+            src="/images/center-logo.svg" 
+            alt="Поток Денег Logo" 
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              pointerEvents: 'none',
+              display: 'block',
+              maxWidth: '100%',
+              maxHeight: '100%',
+              backgroundColor: 'rgba(255, 255, 255, 0.01)'
+            }}
+            onError={(e) => {
+              console.error('❌ [GameField] Ошибка загрузки лого:', e);
+              e.target.style.display = 'none';
+              // Показываем fallback текст
+              const fallback = e.target.parentNode.querySelector('.logo-fallback');
+              if (fallback) fallback.style.display = 'flex';
+            }}
+            onLoad={(e) => {
+              console.log('✅ [GameField] Лого успешно загружено');
+              // Скрываем fallback текст
+              const fallback = e.target.parentNode.querySelector('.logo-fallback');
+              if (fallback) fallback.style.display = 'none';
+            }}
+          />
+          
+          {/* Fallback текст если лого не загружается */}
+          <Box
+            className="logo-fallback"
+            sx={{
+              display: 'none',
+              width: '100%',
+              height: '100%',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'column',
+              color: '#6E4D92',
+              textAlign: 'center',
+              position: 'absolute',
+              top: 0,
+              left: 0
+            }}
+          >
+            <Typography
+              variant="h3"
+              sx={{
+                fontWeight: 'bold',
+                fontSize: '3rem',
+                color: '#FFD700',
+                textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                mb: 1
+              }}
+            >
+              $
+            </Typography>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 'bold',
+                color: '#6E4D92',
+                textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+              }}
+            >
+              ПОТОК ДЕНЕГ
+            </Typography>
+          </Box>
+        </motion.div>
         
-
+        {/* Декоративный текст - убран, так как лого уже в центре */}
       </Box>
 
       {/* Клетки игрового поля */}
@@ -768,46 +1095,16 @@ const GameField = ({
             color={color}
             name={type}
             number={number}
-            isPlayerHere={!!playerPositions[position]}
-            playerColor={playerPositions[position]?.color}
-            playerInitial={playerPositions[position]?.initial}
+            isPlayerHere={false}
+            playerColor={null}
+            playerInitial={null}
             onClick={handleCellClick}
             isInner={isInner}
           />
         </Box>
       ))}
 
-      {/* Соединительные линии между кругами */}
-      <svg
-        style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          zIndex: 1
-        }}
-      >
-        {/* Линии между внешним и внутренним кругом */}
-        {[0, 6, 12, 18].map((startPos) => {
-          const startCell = cellPositions[startPos];
-          const endCell = cellPositions[startPos + 24];
-          
-          if (startCell && endCell) {
-            return (
-              <line
-                key={`line-${startPos}`}
-                x1={startCell.x + 20}
-                y1={startCell.y + 20}
-                x2={endCell.x + 20}
-                y2={endCell.y + 20}
-                stroke="#6E4D92"
-                strokeWidth="2"
-                strokeDasharray="5,5"
-              />
-            );
-          }
-          return null;
-        })}
-      </svg>
+      {/* Пунктирные линии убраны */}
 
       {/* Стопки карточек - размещены по центру в сетке 2x2 */}
       <Box sx={{
@@ -866,6 +1163,40 @@ const GameField = ({
           position="bottom-right"
         />
       </Box>
+
+      {/* Фишки игроков */}
+      {players && Array.isArray(players) && players.length > 0 ? (
+        players.map(player => (
+          <PlayerToken
+            key={player.id}
+            player={player}
+            position={player.position || 0}
+            isMoving={player.isMoving || false}
+            onMoveComplete={() => {
+              // Логика после завершения движения фишки
+              // Например, обновление позиции игрока в состоянии
+              // setPlayers(prev => prev.map(p => p.id === player.id ? { ...p, position: player.nextPosition } : p));
+            }}
+            cellPositions={cellPositions || []}
+          />
+        ))
+      ) : (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 200,
+            color: '#FFFFFF',
+            fontSize: '1rem',
+            opacity: 0.7
+          }}
+        >
+          Ожидание игроков...
+        </Box>
+      )}
+
 
       {/* Всплывающее окно с информацией о клетке */}
       <Dialog

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Button, Typography, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { motion } from 'framer-motion';
+import ProfessionModal from './ProfessionModal';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
@@ -16,7 +17,7 @@ import {
 } from '@mui/icons-material';
 
 // Компонент таймера хода
-const TurnTimer = React.memo(({ timer, isActive, isMyTurn, diceValue }) => {
+const TurnTimer = React.memo(({ timer, isActive, isMyTurn, diceValue, onRollDice, isRolling, hasCharity }) => {
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -52,28 +53,68 @@ const TurnTimer = React.memo(({ timer, isActive, isMyTurn, diceValue }) => {
           {formatTime(timer)}
         </Typography>
         
-        {/* Отображение числа кубика */}
-        <Box
+        {/* Кликабельный кубик */}
+        <Button
+          variant="contained"
+          onClick={() => {
+            console.log('🎲 [TurnTimer] Кубик нажат!', {
+              onRollDice: typeof onRollDice,
+              isRolling,
+              isMyTurn,
+              diceValue
+            });
+            
+            // Кубик нажат - логируем
+            console.log('🎯 [TurnTimer] Кубик нажат!');
+            
+            if (onRollDice && typeof onRollDice === 'function') {
+              console.log('✅ [TurnTimer] Вызываем onRollDice');
+              onRollDice();
+            } else {
+              console.error('❌ [TurnTimer] onRollDice не работает:', onRollDice);
+              // Создаем тестовое значение кубика
+              const testValue = Math.floor(Math.random() * 6) + 1;
+              console.log('🎲 [TurnTimer] Тестовое значение кубика:', testValue);
+            }
+          }}
+          disabled={isRolling || !isMyTurn}
           sx={{
             display: 'flex',
             alignItems: 'center',
             gap: 1,
-            backgroundColor: diceValue > 0 ? '#FFD700' : 'rgba(255, 215, 0, 0.3)',
-            color: diceValue > 0 ? '#333' : '#FFD700',
-            padding: '6px 10px',
+            backgroundColor: '#FFD700',
+            color: '#333',
+            padding: '8px 12px',
             borderRadius: '12px',
             border: `2px solid ${diceValue > 0 ? '#FFA000' : '#FFD700'}`,
             boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
             fontSize: '1.3rem',
             fontWeight: 'bold',
-            minWidth: '50px',
+            minWidth: '80px',
+            minHeight: '50px',
             justifyContent: 'center',
-            transition: 'all 0.3s ease'
+            transition: 'all 0.3s ease',
+            cursor: 'pointer',
+            '&:hover': {
+              backgroundColor: diceValue > 0 ? '#FFA000' : '#FFD700',
+              transform: 'translateY(-1px)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
+            },
+            '&:active': {
+              transform: 'translateY(0)'
+            },
+            '&:disabled': {
+              backgroundColor: 'rgba(255, 215, 0, 0.3)',
+              color: 'rgba(51, 51, 51, 0.5)',
+              transform: 'none',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              cursor: 'not-allowed'
+            }
           }}
         >
           <span style={{ fontSize: '1.1rem' }}>🎲</span>
-          {diceValue > 0 ? diceValue : '—'}
-        </Box>
+          {isRolling ? '...' : (diceValue > 0 ? diceValue : '?')}
+        </Button>
       </Box>
       
       {/* Прогресс-бар таймера */}
@@ -106,10 +147,45 @@ const NextPlayerButton = React.memo(({
   isMyTurn, 
   onEndTurn, 
   timer, 
-  isActive 
+  isActive,
+  diceValue,
+  onRollDice,
+  isRolling
 }) => {
+  const [timeAfterRoll, setTimeAfterRoll] = React.useState(0);
+  const [isRollCooldown, setIsRollCooldown] = React.useState(false);
+  
+  // Эффект для отслеживания времени после броска кубика
+  React.useEffect(() => {
+    let interval;
+    
+    if (diceValue > 0 && isMyTurn && !isRollCooldown) {
+      // Начинаем отсчет 5 секунд после броска
+      setIsRollCooldown(true);
+      setTimeAfterRoll(5);
+      
+      interval = setInterval(() => {
+        setTimeAfterRoll(prev => {
+          if (prev <= 1) {
+            setIsRollCooldown(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else if (diceValue === 0) {
+      // Сбрасываем состояние при новом броске
+      setIsRollCooldown(false);
+      setTimeAfterRoll(0);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [diceValue, isMyTurn]);
   const getButtonColor = () => {
     if (!isMyTurn) return '#9E9E9E'; // Серый для неактивного состояния
+    if (isRollCooldown) return '#FF9800'; // Оранжевый во время кулдауна
     if (timer <= 15) return '#f44336'; // Красный для критического времени (15 сек)
     if (timer <= 30) return '#f44336'; // Красный для предупреждения (30 сек)
     if (timer <= 60) return '#ff9800'; // Оранжевый для 1 минуты
@@ -118,9 +194,18 @@ const NextPlayerButton = React.memo(({
 
   const getButtonText = () => {
     if (!isMyTurn) return 'ОЖИДАНИЕ';
+    if (diceValue === 0) return 'БРОСИТЬ КУБИК';
     if (timer <= 10) return 'СРОЧНО!';
     if (timer <= 30) return 'ВНИМАНИЕ!';
     return 'ПЕРЕХОД ХОДА';
+  };
+
+  const handleButtonClick = () => {
+    if (diceValue === 0 && onRollDice) {
+      onRollDice();
+    } else if (onEndTurn) {
+      onEndTurn();
+    }
   };
 
   return (
@@ -130,8 +215,8 @@ const NextPlayerButton = React.memo(({
     >
       <Button
         variant="contained"
-        onClick={onEndTurn}
-        disabled={!isMyTurn}
+        onClick={handleButtonClick}
+        disabled={!isMyTurn || isRolling}
         startIcon={<AutorenewIcon />}
         sx={{
           backgroundColor: getButtonColor(),
@@ -195,12 +280,37 @@ const GameControls = React.memo(({
   onPauseTimer,
   onResumeTimer,
   isHost,
-  timerPaused
+  timerPaused,
+  onRollDice,
+  isRolling,
+  hasCharity,
+  roomId
 }) => {
   const [assetsModalOpen, setAssetsModalOpen] = React.useState(false);
+  const [professionModalOpen, setProfessionModalOpen] = useState(false);
   
-  const currentPlayerData = players.find(p => p.id === currentTurn);
-  const myPlayer = players.find(p => p.id === myId);
+  // Отладочная информация
+  console.log('🎮 [GameControls] Получены пропсы:', {
+    isMyTurn,
+    currentTurn,
+    playersCount: players?.length || 0,
+    players: players,
+    myId,
+    currentPlayer,
+    playerProfession,
+    playerBalance,
+    turnBanner,
+    onRollDice: typeof onRollDice,
+    isRolling,
+    hasCharity
+  });
+  
+  // Используем реальных игроков с проверками
+  const realPlayers = players && Array.isArray(players) ? players : [];
+  
+  // Добавляем проверки на undefined
+  const currentPlayerData = realPlayers.length > 0 ? realPlayers.find(p => p.id === currentTurn) : null;
+  const myPlayer = realPlayers.length > 0 ? realPlayers.find(p => p.id === myId) : null;
 
   // Вспомогательные функции для активов
   const getAssetIcon = (type) => {
@@ -239,6 +349,25 @@ const GameControls = React.memo(({
         alignSelf: 'center'
       }}
     >
+      {/* Информация о комнате */}
+      <Box
+        sx={{
+          backgroundColor: 'rgba(0,0,0,0.3)',
+          color: 'white',
+          padding: '8px 12px',
+          borderRadius: 1,
+          textAlign: 'center',
+          border: '1px solid rgba(255,255,255,0.2)'
+        }}
+      >
+        <Typography variant="body2" sx={{ fontWeight: 'bold', marginBottom: '4px' }}>
+          🏠 Комната: {roomId || 'Неизвестно'}
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+          ID: {roomId || 'N/A'}
+        </Typography>
+      </Box>
+
       {/* Баннер текущего хода */}
       {turnBanner && (
         <Box
@@ -284,7 +413,7 @@ const GameControls = React.memo(({
           }}
         >
           <Chip
-            label={currentPlayer.profession || 'Engineer'}
+            label={currentPlayer?.profession?.name || 'Engineer'}
             size="small"
             sx={{
               backgroundColor: '#FFD700',
@@ -292,9 +421,9 @@ const GameControls = React.memo(({
               fontWeight: 'bold'
             }}
           />
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-            {currentPlayer.username}
-          </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+          {currentPlayer?.username || 'Неизвестный игрок'}
+        </Typography>
         </Box>
       )}
 
@@ -318,6 +447,7 @@ const GameControls = React.memo(({
         >
           🎯 Очередность игроков
         </Typography>
+        
         <Box
           sx={{
             display: 'grid',
@@ -325,68 +455,109 @@ const GameControls = React.memo(({
             gap: 1
           }}
         >
-          {players.map((player, index) => (
+          
+          {realPlayers && realPlayers.length > 0 ? (
+            realPlayers.map((player, index) => {
+              const isCurrentTurn = player.id === currentTurn;
+              const isMyPlayer = player.id === myId;
+              
+
+              
+              return (
+                <Box
+                  key={player.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    padding: '6px 10px',
+                    backgroundColor: isCurrentTurn 
+                      ? 'rgba(255, 215, 0, 0.4)' 
+                      : isMyPlayer
+                      ? 'rgba(76, 175, 80, 0.3)'
+                      : 'rgba(255,255,255,0.05)',
+                    borderRadius: 2,
+                    border: isCurrentTurn 
+                      ? '3px solid #FFD700' 
+                      : isMyPlayer
+                      ? '2px solid #4CAF50'
+                      : '1px solid rgba(255,255,255,0.1)',
+                    position: 'relative',
+                    boxShadow: isCurrentTurn 
+                      ? '0 0 15px rgba(255, 215, 0, 0.6), inset 0 0 10px rgba(255, 215, 0, 0.1)' 
+                      : isMyPlayer
+                      ? '0 0 10px rgba(76, 175, 80, 0.4)'
+                      : 'none',
+                    transform: isCurrentTurn ? 'scale(1.05)' : 'scale(1)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      color: isCurrentTurn ? '#FFD700' : isMyPlayer ? '#4CAF50' : 'rgba(255,255,255,0.6)',
+                      fontWeight: 'bold',
+                      minWidth: '20px'
+                    }}
+                  >
+                    {index + 1}
+                  </Typography>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      color: 'rgba(255,255,255,0.8)',
+                      fontSize: '0.7rem',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {player.username}
+                  </Typography>
+                  {isCurrentTurn && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        right: '6px',
+                        width: 12,
+                        height: 12,
+                        backgroundColor: '#FFD700',
+                        borderRadius: '50%',
+                        animation: 'pulse 1s infinite',
+                        boxShadow: '0 0 10px rgba(255, 215, 0, 0.8)',
+                        border: '2px solid #FFF'
+                      }}
+                    />
+                  )}
+                  {isMyPlayer && !isCurrentTurn && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        right: '6px',
+                        width: 8,
+                        height: 8,
+                        backgroundColor: '#4CAF50',
+                        borderRadius: '50%',
+                        border: '1px solid #FFF'
+                      }}
+                    />
+                  )}
+                </Box>
+              );
+            })
+          ) : (
             <Box
-              key={player.id}
               sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                padding: '6px 10px',
-                backgroundColor: player.id === currentTurn 
-                  ? 'rgba(255, 215, 0, 0.4)' 
-                  : 'rgba(255,255,255,0.05)',
-                borderRadius: 2,
-                border: player.id === currentTurn 
-                  ? '3px solid #FFD700' 
-                  : '1px solid rgba(255,255,255,0.1)',
-                position: 'relative',
-                boxShadow: player.id === currentTurn 
-                  ? '0 0 15px rgba(255, 215, 0, 0.6), inset 0 0 10px rgba(255, 215, 0, 0.1)' 
-                  : 'none',
-                transform: player.id === currentTurn ? 'scale(1.05)' : 'scale(1)',
-                transition: 'all 0.3s ease'
+                gridColumn: '1 / -1',
+                textAlign: 'center',
+                padding: 2,
+                color: 'rgba(255,255,255,0.5)',
+                fontSize: '0.8rem'
               }}
             >
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  color: '#FFD700',
-                  fontWeight: 'bold',
-                  minWidth: '20px'
-                }}
-              >
-                {index + 1}
-              </Typography>
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  color: 'rgba(255,255,255,0.8)',
-                  fontSize: '0.7rem',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {player.username}
-              </Typography>
-              {player.id === currentTurn && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    right: '6px',
-                    width: 12,
-                    height: 12,
-                    backgroundColor: '#FFD700',
-                    borderRadius: '50%',
-                    animation: 'pulse 1s infinite',
-                    boxShadow: '0 0 10px rgba(255, 215, 0, 0.8)',
-                    border: '2px solid #FFF'
-                  }}
-                />
-              )}
+              Нет игроков в комнате
             </Box>
-          ))}
+          )}
         </Box>
       </Box>
 
@@ -408,71 +579,81 @@ const GameControls = React.memo(({
         БАНК
       </Button>
 
-      {/* Карточка профессии игрока */}
-      {playerProfession ? (
-        <Box
-          sx={{
-            backgroundColor: '#FF9800',
-            borderRadius: 2,
-            p: 2,
-            border: '2px solid #F57C00',
-            textAlign: 'center'
-          }}
-        >
+      {/* Карточка профессии и баланса игрока */}
+      <Box
+        sx={{
+          backgroundColor: '#FF9800',
+          borderRadius: 2,
+          p: 2,
+          border: '2px solid #F57C00',
+          textAlign: 'center'
+        }}
+      >
+        {playerProfession && typeof playerProfession === 'object' && playerProfession.name && (
           <Typography 
-            variant="h6" 
+            variant="body2" 
             sx={{ 
               color: 'white', 
               fontWeight: 'bold',
-              mb: 1
+              mb: 1,
+              cursor: 'pointer',
+              '&:hover': { textDecoration: 'underline' }
             }}
+            onClick={() => setProfessionModalOpen(true)}
           >
             💼 {playerProfession.name}
           </Typography>
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              color: 'white',
-              mb: 1
-            }}
-          >
-            💰 Зарплата: ${playerProfession.salary.toLocaleString()}
-          </Typography>
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              color: 'white',
-              mb: 1
-            }}
-          >
-            🏦 Баланс: ${playerBalance.toLocaleString()}
-          </Typography>
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              color: 'rgba(255,255,255,0.8)',
-              display: 'block'
-            }}
-          >
-            {playerProfession.description}
-          </Typography>
-        </Box>
-      ) : (
-        <Button
-          variant="contained"
-          onClick={onProfessionClick}
-          startIcon={<BuildIcon />}
-          sx={{
-            backgroundColor: '#FF9800',
-            color: 'white',
-            '&:hover': {
-              backgroundColor: '#F57C00'
-            }
+        )}
+        
+        {/* Отладочная информация */}
+        {process.env.NODE_ENV === 'development' && (
+          <>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem' }}>
+              Debug: {JSON.stringify(playerProfession, null, 2)}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem' }}>
+              playerBalance: {playerBalance}
+            </Typography>
+          </>
+        )}
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: 'rgba(255,255,255,0.9)', 
+            mb: 0.5
           }}
         >
-          Профессия
-        </Button>
-      )}
+          💵 Зарплата: ${(playerProfession?.salary || 0).toLocaleString()}
+        </Typography>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: 'rgba(255,255,255,0.9)', 
+            mb: 0.5
+          }}
+        >
+          📊 Расходы: ${(playerProfession?.expenses || 0).toLocaleString()}
+        </Typography>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: 'rgba(255,255,255,0.9)', 
+            mb: 0.5
+          }}
+        >
+          💎 Пассивный доход: ${(playerProfession?.passiveIncome || 0).toLocaleString()}
+        </Typography>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            color: 'white', 
+            fontWeight: 'bold',
+            mb: 1
+          }}
+        >
+          💰 Баланс: ${(playerProfession?.balance || playerBalance || 0).toLocaleString()}
+        </Typography>
+      </Box>
 
       {/* Кнопка финансовой свободы */}
       <Button
@@ -529,6 +710,9 @@ const GameControls = React.memo(({
         isActive={isTimerActive}
         isMyTurn={isMyTurn}
         diceValue={diceValue}
+        onRollDice={onRollDice}
+        isRolling={isRolling}
+        hasCharity={hasCharity}
       />
 
       {/* Управление таймером для хоста */}
@@ -585,6 +769,9 @@ const GameControls = React.memo(({
         onEndTurn={onEndTurn}
         timer={timer}
         isActive={isTimerActive}
+        diceValue={diceValue}
+        onRollDice={onRollDice}
+        isRolling={isRolling}
       />
 
       {/* Модальное окно активов */}
@@ -613,12 +800,12 @@ const GameControls = React.memo(({
             </Box>
           ) : (
             <Box sx={{ py: 2 }}>
-              <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-                Всего активов: {currentPlayer.assets.length}
-              </Typography>
+                      <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+          Всего активов: {currentPlayer?.assets?.length || 0}
+        </Typography>
               
               <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
-                {currentPlayer.assets.map((asset, index) => (
+                {currentPlayer?.assets?.map((asset, index) => (
                   <Box
                     key={asset.id || index}
                     sx={{
@@ -687,6 +874,14 @@ const GameControls = React.memo(({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Модальное окно профессии */}
+      <ProfessionModal
+        open={professionModalOpen}
+        onClose={() => setProfessionModalOpen(false)}
+        profession={playerProfession}
+        playerBalance={playerBalance}
+      />
     </Box>
   );
 });

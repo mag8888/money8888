@@ -7,10 +7,10 @@ export const useLogout = () => {
     
     // Очищаем localStorage
     const clearStorage = () => {
-      localStorage.removeItem('cashflow_currentRoom');
-      localStorage.removeItem('cashflow_inSetup');
-      localStorage.removeItem('cashflow_user');
-      localStorage.removeItem('cashflow_gameStarted');
+          localStorage.removeItem('potok-deneg_currentRoom');
+    localStorage.removeItem('potok-deneg_inSetup');
+    localStorage.removeItem('potok-deneg_user');
+    localStorage.removeItem('potok-deneg_gameStarted');
       console.log('🗑️ [useLogout] localStorage cleared');
     };
 

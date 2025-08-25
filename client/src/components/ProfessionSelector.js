@@ -84,7 +84,7 @@ const ProfessionSelector = ({ onProfessionSelect, isOpen, onClose }) => {
                 <CardContent sx={{ textAlign: 'center', py: 2 }}>
                   <MoneyIcon sx={{ fontSize: 40, mb: 1 }} />
                   <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    ${selectedProfession.salary.toLocaleString()}
+                    ${(selectedProfession.salary || 0).toLocaleString()}
                   </Typography>
                   <Typography variant="body2">Зарплата</Typography>
                 </CardContent>
@@ -94,7 +94,7 @@ const ProfessionSelector = ({ onProfessionSelect, isOpen, onClose }) => {
                 <CardContent sx={{ textAlign: 'center', py: 2 }}>
                   <ExpensesIcon sx={{ fontSize: 40, mb: 1 }} />
                   <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    ${selectedProfession.expenses.toLocaleString()}
+                    ${(selectedProfession.expenses || 0).toLocaleString()}
                   </Typography>
                   <Typography variant="body2">Расходы</Typography>
                 </CardContent>
@@ -104,7 +104,7 @@ const ProfessionSelector = ({ onProfessionSelect, isOpen, onClose }) => {
                 <CardContent sx={{ textAlign: 'center', py: 2 }}>
                   <WorkIcon sx={{ fontSize: 40, mb: 1 }} />
                   <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    ${selectedProfession.balance.toLocaleString()}
+                    ${(selectedProfession.balance || 0).toLocaleString()}
                   </Typography>
                   <Typography variant="body2">Баланс</Typography>
                 </CardContent>

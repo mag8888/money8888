@@ -6,11 +6,118 @@ const User = require('./models/User');
 const fs = require('fs');
 const path = require('path');
 
+// Определяем порт
+const PORT = process.env.PORT || 5000;
+
 // Add pg for PostgreSQL
 const { Pool } = require('pg');
 const pool = new Pool({ /* config */ });
 
 const Rating = require('./models/Rating');
+
+// Импортируем профессии
+const PROFESSIONS = [
+  {
+    id: 1,
+    name: 'Дворник',
+    salary: 2000,
+    expenses: 200,
+    balance: 2000,
+    passiveIncome: 0,
+    description: 'Уборка улиц и дворов',
+    charity: false
+  },
+  {
+    id: 2,
+    name: 'Курьер',
+    salary: 2500,
+    expenses: 300,
+    balance: 2500,
+    passiveIncome: 0,
+    description: 'Доставка товаров и документов',
+    charity: false
+  },
+  {
+    id: 3,
+    name: 'Водитель',
+    salary: 3000,
+    expenses: 400,
+    balance: 3000,
+    passiveIncome: 0,
+    description: 'Управление транспортными средствами',
+    charity: false
+  },
+  {
+    id: 4,
+    name: 'Продавец',
+    salary: 3500,
+    expenses: 500,
+    balance: 3500,
+    passiveIncome: 0,
+    description: 'Продажа товаров и услуг',
+    charity: false
+  },
+  {
+    id: 5,
+    name: 'Официант',
+    salary: 4000,
+    expenses: 600,
+    balance: 4000,
+    passiveIncome: 0,
+    description: 'Обслуживание в ресторанах',
+    charity: false
+  },
+  {
+    id: 6,
+    name: 'Учитель',
+    salary: 5000,
+    expenses: 800,
+    balance: 5000,
+    passiveIncome: 0,
+    description: 'Обучение детей и взрослых',
+    charity: false
+  },
+  {
+    id: 7,
+    name: 'Медсестра',
+    salary: 6000,
+    expenses: 1000,
+    balance: 6000,
+    passiveIncome: 0,
+    description: 'Медицинская помощь',
+    charity: false
+  },
+  {
+    id: 8,
+    name: 'Врач',
+    salary: 8000,
+    expenses: 2000,
+    balance: 4000,
+    passiveIncome: 0,
+    description: 'Медицинская практика',
+    charity: false
+  },
+  {
+    id: 9,
+    name: 'Инженер',
+    salary: 7000,
+    expenses: 1500,
+    balance: 7000,
+    passiveIncome: 0,
+    description: 'Техническое проектирование',
+    charity: false
+  },
+  {
+    id: 10,
+    name: 'Юрист',
+    salary: 9000,
+    expenses: 2500,
+    balance: 9000,
+    passiveIncome: 0,
+    description: 'Правовая консультация',
+    charity: false
+  }
+];
 
 // Подключаем auth routes
 const authRoutes = require('./routes/auth');
@@ -70,8 +177,7 @@ app.get('/api/admin/rooms', (req, res) => {
           id: p.id,
           username: p.username,
           socketId: p.socketId,
-          ready: p.ready,
-          offline: p.offline
+          ready: p.ready
         }))
       };
     });
@@ -99,7 +205,7 @@ app.get('/api/admin/rooms/:roomId', (req, res) => {
     }
     
     const room = rooms[roomId];
-    const roomInfo = {
+    res.json({
       roomId,
       status: room.status,
       maxPlayers: room.maxPlayers,
@@ -109,12 +215,9 @@ app.get('/api/admin/rooms/:roomId', (req, res) => {
         username: p.username,
         socketId: p.socketId,
         ready: p.ready,
-        offline: p.offline
+        profession: p.profession?.name || 'Не назначена'
       }))
-    };
-    
-    res.json(roomInfo);
-    console.log(`📊 [ADMIN] Room ${roomId} info requested`);
+    });
   } catch (error) {
     console.error('❌ [ADMIN] Error getting room info:', error);
     res.status(500).json({ error: 'Failed to get room info' });
@@ -152,8 +255,10 @@ app.post('/api/admin/cleanup-duplicates', async (req, res) => {
   }
 });
 
+
+
 // Connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/cashflow')
+mongoose.connect('mongodb://localhost:27017/potok-deneg')
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB connection error:', err));
 
@@ -165,6 +270,13 @@ const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 const ROOMS_FILE = path.join(__dirname, '../shared/rooms.json');
 function persistRooms() {
   try {
+    // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ПЕРЕД СОХРАНЕНИЕМ
+    Object.values(rooms).forEach(room => {
+      if (room && room.currentPlayers) {
+        cleanupGuestPlayers(room);
+      }
+    });
+    
     fs.writeFileSync(ROOMS_FILE, JSON.stringify(rooms, null, 2));
   } catch (e) {
     console.error('Persist rooms error:', e);
@@ -176,6 +288,13 @@ function loadRooms() {
       const data = fs.readFileSync(ROOMS_FILE, 'utf8');
       const obj = JSON.parse(data);
       Object.keys(obj).forEach(k => (rooms[k] = obj[k]));
+      
+      // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ПРИ ЗАГРУЗКЕ
+      Object.values(rooms).forEach(room => {
+        if (room && room.currentPlayers) {
+          cleanupGuestPlayers(room);
+        }
+      });
     }
   } catch (e) {
     console.error('Load rooms error:', e);
@@ -186,6 +305,26 @@ function loadRooms() {
 
 // Update rooms structure to include timer, players with full data, board state
 const rooms = {}; // { roomId: { maxPlayers, currentPlayers: [...], status, password, timer, currentTurn, board, createdAt } }
+
+// Функция для получения отсортированного списка комнат
+function getSortedRoomsList() {
+  return Object.keys(rooms).map(roomId => ({
+    id: roomId,
+    roomId,
+    displayName: rooms[roomId].displayName,
+    originalRequestedId: rooms[roomId].originalRequestedId,
+    maxPlayers: rooms[roomId].maxPlayers,
+    currentPlayers: rooms[roomId].currentPlayers,
+    status: rooms[roomId].status,
+
+  })).sort((a, b) => {
+    // Сначала комнаты с игроками, затем пустые
+    if (a.currentPlayers.length > 0 && b.currentPlayers.length === 0) return -1;
+    if (a.currentPlayers.length === 0 && b.currentPlayers.length > 0) return 1;
+    // Затем по времени создания (новые сначала)
+    return rooms[b.roomId].createdAt - rooms[a.roomId].createdAt;
+  });
+}
 
 // Timer management for rooms
 const roomTimers = new Map(); // { roomId: { gameTimer, cleanupTimer } }
@@ -206,7 +345,8 @@ function createDefaultRoom() {
     timer: { hours: 3, remaining: 3 * 3600 },
     currentTurn: null, // Now playerId
     board: config.board,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+
   };
   persistRooms();
 }
@@ -214,7 +354,150 @@ function ensureDefaultRoom() {
   if (!Object.keys(rooms).length) {
     createDefaultRoom();
   }
+  
+  // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ВО ВСЕХ КОМНАТАХ
+  Object.values(rooms).forEach(room => {
+    if (room && room.currentPlayers) {
+      cleanupGuestPlayers(room);
+    }
+  });
 }
+// Функция ПОЛНОЙ очистки гостевых и тестовых игроков
+const cleanupGuestPlayers = (room) => {
+  const beforeCleanup = room.currentPlayers.length;
+  
+  // Убираем ВСЕХ игроков с гостевые и тестовые именами
+  room.currentPlayers = room.currentPlayers.filter(player => {
+    if (player.username && (
+      player.username.startsWith('Гость') || 
+      player.username.startsWith('Guest') || 
+      player.username.startsWith('Гость-') ||
+      player.username.startsWith('test') ||
+      player.username.startsWith('Test') ||
+      player.username.length < 2 ||
+      player.username === 'test' ||
+      player.username === 'test1' ||
+      player.username === 'test2' ||
+      player.username === 'TestPlayer1' ||
+      player.username === 'TestPlayer2' ||
+      player.username === 'TestPlayer3' ||
+      player.username === 'TestPlayer4' ||
+      player.username === 'TestPlayer5' ||
+      player.username === 'TestPlayer6' ||
+      player.username === 'TestPlayer7' ||
+      player.username === 'TestPlayer8' ||
+      player.username === 'TestPlayer9' ||
+      player.username === 'TestPlayer10' ||
+      player.username === 'TestPlayer11' ||
+      player.username === 'TestPlayer12' ||
+      player.username === 'TestPlayer13' ||
+      player.username === 'TestPlayer14' ||
+      player.username === 'TestPlayer15' ||
+      player.username === 'TestPlayer16' ||
+      player.username === 'TestPlayer17' ||
+      player.username === 'TestPlayer18' ||
+      player.username === 'TestPlayer19' ||
+      player.username === 'TestPlayer20' ||
+      player.username === 'TestPlayer21' ||
+      player.username === 'TestPlayer22' ||
+      player.username === 'TestPlayer23' ||
+      player.username === 'TestPlayer24' ||
+      player.username === 'TestPlayer25' ||
+      player.username === 'TestPlayer26' ||
+      player.username === 'TestPlayer27' ||
+      player.username === 'TestPlayer28' ||
+      player.username === 'TestPlayer29' ||
+      player.username === 'TestPlayer30' ||
+      player.username === 'TestPlayer31' ||
+      player.username === 'TestPlayer32' ||
+      player.username === 'TestPlayer33' ||
+      player.username === 'TestPlayer34' ||
+      player.username === 'TestPlayer35' ||
+      player.username === 'TestPlayer36' ||
+      player.username === 'TestPlayer37' ||
+      player.username === 'TestPlayer38' ||
+      player.username === 'TestPlayer39' ||
+      player.username === 'TestPlayer40' ||
+      player.username === 'TestPlayer41' ||
+      player.username === 'TestPlayer42' ||
+      player.username === 'TestPlayer43' ||
+      player.username === 'TestPlayer44' ||
+      player.username === 'TestPlayer45' ||
+      player.username === 'TestPlayer46' ||
+      player.username === 'TestPlayer47' ||
+      player.username === 'TestPlayer48' ||
+      player.username === 'TestPlayer49' ||
+      player.username === 'TestPlayer50' ||
+      player.username === 'TestPlayer51' ||
+      player.username === 'TestPlayer52' ||
+      player.username === 'TestPlayer53' ||
+      player.username === 'TestPlayer54' ||
+      player.username === 'TestPlayer55' ||
+      player.username === 'TestPlayer56' ||
+      player.username === 'TestPlayer57' ||
+      player.username === 'TestPlayer58' ||
+      player.username === 'TestPlayer59' ||
+      player.username === 'TestPlayer60' ||
+      player.username === 'TestPlayer61' ||
+      player.username === 'TestPlayer62' ||
+      player.username === 'TestPlayer63' ||
+      player.username === 'TestPlayer64' ||
+      player.username === 'TestPlayer65' ||
+      player.username === 'TestPlayer66' ||
+      player.username === 'TestPlayer67' ||
+      player.username === 'TestPlayer68' ||
+      player.username === 'TestPlayer69' ||
+      player.username === 'TestPlayer70' ||
+      player.username === 'TestPlayer71' ||
+      player.username === 'TestPlayer72' ||
+      player.username === 'TestPlayer73' ||
+      player.username === 'TestPlayer74' ||
+      player.username === 'TestPlayer75' ||
+      player.username === 'TestPlayer76' ||
+      player.username === 'TestPlayer77' ||
+      player.username === 'TestPlayer78' ||
+      player.username === 'TestPlayer79' ||
+      player.username === 'TestPlayer80' ||
+      player.username === 'TestPlayer81' ||
+      player.username === 'TestPlayer82' ||
+      player.username === 'TestPlayer83' ||
+      player.username === 'TestPlayer84' ||
+      player.username === 'TestPlayer85' ||
+      player.username === 'TestPlayer86' ||
+      player.username === 'TestPlayer87' ||
+      player.username === 'TestPlayer88' ||
+      player.username === 'TestPlayer89' ||
+      player.username === 'TestPlayer90' ||
+      player.username === 'TestPlayer91' ||
+      player.username === 'TestPlayer92' ||
+      player.username === 'TestPlayer93' ||
+      player.username === 'TestPlayer94' ||
+      player.username === 'TestPlayer95' ||
+      player.username === 'TestPlayer96' ||
+      player.username === 'TestPlayer97' ||
+      player.username === 'TestPlayer98' ||
+      player.username === 'TestPlayer99' ||
+      player.username === 'TestPlayer100'
+    )) {
+      console.log('🧹 [SERVER] Removing guest/test player:', player.username);
+      return false;
+    }
+    return true;
+  });
+  
+  const afterCleanup = room.currentPlayers.length;
+  if (beforeCleanup !== afterCleanup) {
+    console.log('🧹 [SERVER] Cleaned up guest/test players:', beforeCleanup - afterCleanup);
+    console.log('🧹 [SERVER] Players after guest cleanup:', room.currentPlayers.map(p => ({ 
+      id: p.id, 
+      username: p.username, 
+      socketId: p.socketId 
+    })));
+  }
+  
+  return beforeCleanup - afterCleanup;
+};
+
 // Initial default room load or create
 loadRooms();
 ensureDefaultRoom();
@@ -222,6 +505,14 @@ ensureDefaultRoom();
 io.on('connection', (socket) => {
   console.log('New client connected', socket.id);
   ensureDefaultRoom();
+  
+  // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ПРИ ПОДКЛЮЧЕНИИ НОВОГО КЛИЕНТА
+  Object.values(rooms).forEach(room => {
+    if (room && room.currentPlayers) {
+      cleanupGuestPlayers(room);
+    }
+  });
+  
   // Send initial rooms list to client
   socket.emit('roomsList', getSortedRoomsList());
 
@@ -235,33 +526,74 @@ io.on('connection', (socket) => {
       return;
     }
     
-      socket.join(roomId);
+    socket.join(roomId);
     console.log(`✅ [SERVER] Socket ${socket.id} joined room: ${roomId}`);
     
-    // Создаем объект игрока
-    const player = {
-      id: socket.id,
-      username: playerData?.username || `Гость-${socket.id.slice(-4)}`,
-      email: playerData?.email || '',
-      displayId: playerData?.displayId || '',
-      ready: false,
-      offline: false,
-      socketId: socket.id,
-      joinedAt: Date.now()
-    };
+    // ПОЛНОСТЬЮ ОТКЛЮЧАЕМ СОЗДАНИЕ ГОСТЕВЫХ ИГРОКОВ
+    // Проверяем, есть ли данные игрока для присоединения
+    if (!playerData || !playerData.username || playerData.username.trim() === '') {
+      console.log(`❌ [SERVER] Player data missing or invalid for socket ${socket.id}`);
+      socket.emit('error', { message: 'Необходимо указать корректное имя игрока для присоединения к комнате' });
+      return;
+    }
     
-    // Проверяем, не добавлен ли уже игрок
-    const existingPlayerIndex = rooms[roomId].currentPlayers.findIndex(p => p.socketId === socket.id);
+    // Дополнительная проверка - запрещаем гостевые и тестовые имена
+    if (playerData.username.startsWith('Гость') || 
+        playerData.username.startsWith('Guest') || 
+        playerData.username.startsWith('test') ||
+        playerData.username.startsWith('Test') ||
+        playerData.username.length < 2 ||
+        playerData.username === 'test' ||
+        playerData.username === 'test1' ||
+        playerData.username === 'test2' ||
+        playerData.username.includes('TestPlayer') ||
+        playerData.username.includes('testplayer')) {
+      console.log(`❌ [SERVER] Guest/test usernames are not allowed: ${playerData.username}`);
+      socket.emit('error', { message: 'Гостевые и тестовые имена не разрешены. Укажите реальное имя игрока.' });
+      return;
+    }
+    
+    // Определяем фиксированный ID игрока (только из переданных данных)
+    const fixedPlayerId = playerData.id || playerData.username;
+    
+    // Проверяем, есть ли уже игрок с таким фиксированным ID
+    const existingPlayerIndex = rooms[roomId].currentPlayers.findIndex(p => 
+      p.id === fixedPlayerId || p.username === fixedPlayerId
+    );
     
     if (existingPlayerIndex === -1) {
-      // Добавляем нового игрока
+      // Проверяем лимит игроков перед добавлением
+      if (rooms[roomId].currentPlayers.length >= rooms[roomId].maxPlayers) {
+        console.log(`❌ [SERVER] Room ${roomId} is full (${rooms[roomId].currentPlayers.length}/${rooms[roomId].maxPlayers})`);
+        socket.emit('error', { message: 'Комната заполнена' });
+        return;
+      }
+      
+      // Создаем нового игрока только с переданными данными
+      const player = {
+        id: fixedPlayerId,
+        username: playerData.username,
+        email: playerData.email || '',
+        displayId: playerData.displayId || '',
+        ready: false,
+        socketId: socket.id,
+        joinedAt: Date.now()
+      };
+      
       rooms[roomId].currentPlayers.push(player);
-      console.log(`👤 [SERVER] Player ${player.username} added to room ${roomId}`);
+      console.log(`👤 [SERVER] New player ${player.username} (ID: ${player.id}) added to room ${roomId}`);
     } else {
-      // Обновляем существующего игрока
-      rooms[roomId].currentPlayers[existingPlayerIndex] = { ...player, offline: false };
-      console.log(`👤 [SERVER] Player ${player.username} updated in room ${roomId}`);
+      // Переподключаем существующего игрока - обновляем только socketId
+      const existingPlayer = rooms[roomId].currentPlayers[existingPlayerIndex];
+      existingPlayer.socketId = socket.id;
+      existingPlayer.offline = false;
+      existingPlayer.joinedAt = Date.now();
+      
+      console.log(`🔄 [SERVER] Player ${existingPlayer.username} (ID: ${existingPlayer.id}) reconnected with new socket: ${socket.id}`);
     }
+    
+    // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ ИГРОКОВ
+    cleanupGuestPlayers(rooms[roomId]);
     
     // Сохраняем изменения
     persistRooms();
@@ -343,6 +675,8 @@ io.on('connection', (socket) => {
     }
   });
 
+
+
   // Allow host to change max players from RoomSetup
   socket.on('setMaxPlayers', (roomId, maxPlayers) => {
     if (rooms[roomId] && rooms[roomId].status === 'waiting') {
@@ -353,6 +687,8 @@ io.on('connection', (socket) => {
       io.to(roomId).emit('roomUpdated', rooms[roomId]);
     }
   });
+
+
 
   // Функция очистки дублей в комнате
   const cleanupDuplicatePlayers = (room) => {
@@ -399,9 +735,17 @@ io.on('connection', (socket) => {
     return beforeCleanup - afterCleanup;
   };
 
+
+
   // Обработка запроса списка комнат
   socket.on('getRoomsList', () => {
     console.log('🏠 [SERVER] getRoomsList requested by socket:', socket.id);
+    
+    // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ВО ВСЕХ КОМНАТАХ
+    Object.values(rooms).forEach(room => {
+      cleanupGuestPlayers(room);
+    });
+    
     const roomsList = getSortedRoomsList();
     socket.emit('roomsList', roomsList);
     console.log('🏠 [SERVER] Sent rooms list:', roomsList.length, 'rooms');
@@ -411,6 +755,30 @@ io.on('connection', (socket) => {
   socket.on('setupPlayer', (roomId, playerData) => {
     console.log('🎮 [SERVER] setupPlayer called:', { roomId, socketId: socket.id, playerData });
     console.log('🎮 [SERVER] Available rooms:', Object.keys(rooms));
+    
+    // ПОЛНОСТЬЮ ОТКЛЮЧАЕМ СОЗДАНИЕ ГОСТЕВЫХ ИГРОКОВ
+    // Проверяем, есть ли данные игрока для настройки
+    if (!playerData || !playerData.username || playerData.username.trim() === '') {
+      console.log('❌ [SERVER] setupPlayer: Player data missing or invalid for socket', socket.id);
+      socket.emit('error', { message: 'Необходимо указать корректное имя игрока для настройки' });
+      return;
+    }
+    
+    // Дополнительная проверка - запрещаем гостевые и тестовые имена
+    if (playerData.username.startsWith('Гость') || 
+        playerData.username.startsWith('Guest') || 
+        playerData.username.startsWith('test') ||
+        playerData.username.startsWith('Test') ||
+        playerData.username.length < 2 ||
+        playerData.username === 'test' ||
+        playerData.username === 'test1' ||
+        playerData.username === 'test2' ||
+        playerData.username.includes('TestPlayer') ||
+        playerData.username.includes('testplayer')) {
+      console.log('❌ [SERVER] setupPlayer: Guest/test usernames are not allowed:', playerData.username);
+      socket.emit('error', { message: 'Гостевые и тестовые имена не разрешены. Укажите реальное имя игрока.' });
+      return;
+    }
     
     const room = rooms[roomId];
     if (!room) {
@@ -442,6 +810,9 @@ io.on('connection', (socket) => {
     
     // Дополнительная очистка дублей
     cleanupDuplicatePlayers(room);
+    
+    // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ ИГРОКОВ
+    cleanupGuestPlayers(room);
     
     // Проверяем, есть ли уже игрок с таким фиксированным ID
     const existingById = room.currentPlayers.find(p => p.fixedId === playerData.id);
@@ -493,7 +864,14 @@ io.on('connection', (socket) => {
       return;
     }
     
-    // Создаем игрока с фиксированным ID
+    // Проверяем лимит игроков
+    if (room.currentPlayers.length >= room.maxPlayers) {
+      console.log(`❌ [SERVER] Room ${roomId} is full (${room.currentPlayers.length}/${room.maxPlayers})`);
+      socket.emit('error', { message: 'Комната заполнена' });
+      return;
+    }
+    
+    // Создаем игрока без профессии (должен выбрать сам)
     const player = {
       id: playerData.id,
       fixedId: playerData.id,
@@ -502,22 +880,23 @@ io.on('connection', (socket) => {
       color: playerData.color,
       ready: false,
       position: 0,
-      balance: playerData.balance || 2000,
-      passiveIncome: playerData.passiveIncome || 0,
-      seat: null,
-      offline: false,
-      roomId: roomId,
-      // Добавляем базовые характеристики если их нет
-      salary: playerData.salary || 2000,
-      childCost: playerData.childCost || 500,
-      expenses: playerData.expenses || { taxes: 200, other: 0 },
-      totalExpenses: playerData.totalExpenses || 200,
-      monthlyCashflow: playerData.monthlyCashflow || 0,
+      // Игрок должен выбрать профессию сам
+      profession: null,
+      balance: 2000, // Базовый баланс
+      passiveIncome: 0,
+      salary: 0, // Будет установлено при выборе профессии
+      expenses: 0, // Будет установлено при выборе профессии
+      childCost: 500,
+      totalExpenses: 0,
+      monthlyCashflow: 0,
       assets: playerData.assets || [],
       liabilities: playerData.liabilities || {},
       children: 0,
       charityTurns: 0,
-      _lastRollOptions: null
+      _lastRollOptions: null,
+      seat: null,
+      offline: false,
+      roomId: roomId
     };
     
     room.currentPlayers.push(player);
@@ -666,6 +1045,17 @@ io.on('connection', (socket) => {
     }
     console.log('startGame requested', roomId, 'by', socket.id, 'players', room.currentPlayers.length, 'status', room.status);
     
+    // Проверяем, что все игроки выбрали профессию
+    const playersWithProfession = room.currentPlayers.filter(p => p.profession);
+    const allPlayersHaveProfession = playersWithProfession.length === room.currentPlayers.length;
+    
+    console.log('startGame: profession check:', {
+      totalPlayers: room.currentPlayers.length,
+      playersWithProfession: playersWithProfession.length,
+      allPlayersHaveProfession,
+      players: room.currentPlayers.map(p => ({ username: p.username, profession: p.profession?.name || 'none' }))
+    });
+    
     // If already started, just re-emit events so clients can sync state
     if (room.status === 'started') {
       console.log('startGame: game already started, re-emitting events');
@@ -676,7 +1066,7 @@ io.on('connection', (socket) => {
       return;
     }
     
-    if (room.status === 'waiting' && room.currentPlayers.length >= 2) {
+    if (room.status === 'waiting' && room.currentPlayers.length >= 2 && allPlayersHaveProfession) {
       try {
         console.log('startGame: starting game for room', roomId);
         console.log('startGame: current players:', room.currentPlayers.map(p => ({ 
@@ -690,44 +1080,46 @@ io.on('connection', (socket) => {
         // Acknowledge first so UI can transition immediately
         if (typeof ack === 'function') ack(true);
         
-        // Change status to started
-        room.status = 'started';
-        console.log('startGame: room status changed to started');
+        // Change status to determining order
+        room.status = 'determining_order';
+        console.log('startGame: room status changed to determining_order');
         
-        // Start with first ready player's id
-        const readyPlayer = room.currentPlayers.find(p => p.ready);
-        const firstPlayer = room.currentPlayers[0];
-        room.currentTurn = readyPlayer?.id || firstPlayer?.id || null;
+        // Инициализируем состояние для определения очередности
+        room.orderDetermination = {
+          phase: 'initial_roll',
+          players: room.currentPlayers.map(p => ({
+            id: p.id,
+            username: p.username,
+            diceRoll: null,
+            finalPosition: null
+          })),
+          timer: 60, // 1 минута на бросок кубиков
+          autoRolls: [] // Список игроков для автоброска
+        };
         
-        console.log('startGame: setting currentTurn', { 
-          currentTurn: room.currentTurn, 
-          readyPlayer: readyPlayer?.id, 
-          firstPlayer: firstPlayer?.id,
-          allPlayers: room.currentPlayers.map(p => ({ id: p.id, username: p.username, ready: p.ready }))
-        });
-        
-        if (!room.currentTurn) {
-          console.warn('No players to start turn');
-          if (typeof ack === 'function') ack(false, 'NO_PLAYERS');
-          return;
-        }
+        console.log('startGame: orderDetermination initialized:', room.orderDetermination);
         
         // Emit all necessary events
         console.log('startGame: emitting gameStarted event');
         io.to(roomId).emit('gameStarted');
         
-        console.log('startGame: emitting roomData event with status started');
+        console.log('startGame: emitting roomData event with status determining_order');
         io.to(roomId).emit('roomData', { 
           roomId: room.roomId, 
           maxPlayers: room.maxPlayers, 
           status: room.status, 
           hostId: room.hostId, 
           timer: room.timer, 
-          currentTurn: room.currentTurn 
+          currentTurn: null // Пока нет текущего хода
         });
         
-        console.log('startGame: emitting turnChanged event');
-        io.to(roomId).emit('turnChanged', room.currentTurn);
+        // Отправляем событие для определения очередности
+        console.log('startGame: emitting orderDeterminationStarted event');
+        io.to(roomId).emit('orderDeterminationStarted', {
+          players: room.orderDetermination.players,
+          timer: room.orderDetermination.timer,
+          phase: room.orderDetermination.phase
+        });
         
         // Send full players list so client can initialize board state
         console.log('startGame: emitting playersList event');
@@ -738,8 +1130,8 @@ io.on('connection', (socket) => {
         // Persist room state
         persistRooms();
         
-        // Start turn timer for first player
-        startTurnTimer(roomId, room.currentTurn);
+        // Запускаем таймер определения очередности
+        startOrderDeterminationTimer(roomId);
         
         // Start game timer
         const timerInterval = setInterval(() => {
@@ -749,7 +1141,7 @@ io.on('connection', (socket) => {
           if (r.timer.remaining <= 0) {
             clearInterval(timerInterval);
             io.to(roomId).emit('gameEnded', 'Timer expired');
-    } else {
+          } else {
             io.to(roomId).emit('timerUpdate', r.timer.remaining);
           }
         }, 1000);
@@ -760,6 +1152,14 @@ io.on('connection', (socket) => {
         console.error('startGame error', e);
         if (typeof ack === 'function') ack(false, 'ERROR: ' + e.message);
       }
+    } else if (room.status === 'waiting' && room.currentPlayers.length >= 2 && !allPlayersHaveProfession) {
+      console.log('startGame blocked: not all players have profession. Current:', { 
+        status: room.status, 
+        players: room.currentPlayers.length,
+        playersWithProfession: playersWithProfession.length,
+        allPlayersHaveProfession
+      });
+      if (typeof ack === 'function') ack(false, 'NEED_PROFESSIONS');
     } else {
       console.log('startGame blocked: need status=waiting and >=2 players. Current:', { status: room.status, players: room.currentPlayers.length });
       if (typeof ack === 'function') ack(false, 'INVALID_STATE');
@@ -882,6 +1282,171 @@ io.on('connection', (socket) => {
       if (player) player._lastRollOptions = { d1: dice, d2: 0, options: [dice] };
       console.log('rollDice: normal roll', { playerId, dice });
       io.to(roomId).emit('diceRolled', { playerId, dice, d1: dice, d2: 0, options: [dice] });
+    }
+  });
+
+  // Бросок кубиков для определения очередности
+  socket.on('rollDiceForOrder', (roomId, playerId) => {
+    console.log('🎲 [SERVER] rollDiceForOrder received:', { roomId, playerId, socketId: socket.id });
+    
+    const room = rooms[roomId];
+    if (!room || room.status !== 'determining_order') {
+      console.warn('🎲 [SERVER] rollDiceForOrder rejected: wrong room status or room not found');
+      return;
+    }
+    
+    if (!room.orderDetermination) {
+      console.warn('🎲 [SERVER] rollDiceForOrder rejected: no orderDetermination');
+      return;
+    }
+    
+    // Находим игрока в списке определения очередности
+    const orderPlayer = room.orderDetermination.players.find(p => p.id === playerId);
+    if (!orderPlayer) {
+      console.warn('🎲 [SERVER] rollDiceForOrder rejected: player not found in orderDetermination');
+      return;
+    }
+    
+    // Проверяем, не бросал ли уже игрок
+    if (orderPlayer.diceRoll !== null) {
+      console.warn('🎲 [SERVER] rollDiceForOrder rejected: player already rolled');
+      return;
+    }
+    
+    // Бросаем кубик
+    const diceRoll = Math.floor(Math.random() * 6) + 1;
+    orderPlayer.diceRoll = diceRoll;
+    
+    console.log('🎲 [SERVER] Player', orderPlayer.username, 'rolled:', diceRoll);
+    
+    // Уведомляем всех о результате броска
+    io.to(roomId).emit('orderDeterminationRoll', {
+      playerId: playerId,
+      username: orderPlayer.username,
+      diceRoll,
+      isAutoRoll: false
+    });
+    
+    // Проверяем, все ли игроки бросили кубики
+    const allRolled = room.orderDetermination.players.every(p => p.diceRoll !== null);
+    
+    if (allRolled) {
+      console.log('🎲 [SERVER] All players rolled, determining final order');
+      
+      // Останавливаем таймер определения очередности
+      if (room.orderDetermination.timerInterval) {
+        clearInterval(room.orderDetermination.timerInterval);
+      }
+      
+      // Определяем финальный порядок
+      determineFinalOrder(roomId);
+    }
+  });
+
+  // Установка профессии игрока
+  socket.on('setPlayerProfession', (roomId, professionName) => {
+    console.log('💼 [SERVER] setPlayerProfession received:', { roomId, professionName, socketId: socket.id });
+    
+    const room = rooms[roomId];
+    if (!room) {
+      console.warn('💼 [SERVER] setPlayerProfession rejected: room not found');
+      return;
+    }
+    
+    const player = room.currentPlayers.find(p => p.socketId === socket.id);
+    if (!player) {
+      console.warn('💼 [SERVER] setPlayerProfession rejected: player not found');
+      return;
+    }
+    
+    // Устанавливаем профессию игрока как объект
+    const professionObject = PROFESSIONS.find(p => p.name === professionName);
+    if (professionObject) {
+      player.profession = professionObject;
+      // Обновляем характеристики игрока согласно профессии
+      player.salary = professionObject.salary;
+      player.expenses = professionObject.expenses;
+      player.balance = professionObject.balance;
+      player.passiveIncome = professionObject.passiveIncome;
+      player.totalExpenses = professionObject.expenses;
+      player.monthlyCashflow = professionObject.salary - professionObject.expenses;
+    } else {
+      player.profession = professionName; // fallback к строке
+    }
+    
+    console.log('💼 [SERVER] Profession set for player:', player.username, professionName);
+    console.log('💼 [SERVER] Current room state:', {
+      roomId,
+      totalPlayers: room.currentPlayers.length,
+      playersWithProfession: room.currentPlayers.filter(p => p.profession && p.profession !== 'none').length,
+      allPlayers: room.currentPlayers.map(p => ({ username: p.username, profession: p.profession || 'none' }))
+    });
+    
+    // Уведомляем всех об обновлении профессии
+    io.to(roomId).emit('playerProfessionUpdated', { roomId, playerId: player.id, profession: professionObject || professionName });
+    
+    // Обновляем список игроков
+    io.to(roomId).emit('playersUpdate', room.currentPlayers);
+    
+    persistRooms();
+  });
+
+  // Бросок кубиков для переигровки ничьей
+  socket.on('rollDiceForTieBreak', (roomId, playerId) => {
+    console.log('🎲 [SERVER] rollDiceForTieBreak received:', { roomId, playerId, socketId: socket.id });
+    
+    const room = rooms[roomId];
+    if (!room || room.status !== 'determining_order') {
+      console.warn('🎲 [SERVER] rollDiceForTieBreak rejected: wrong room status or room not found');
+      return;
+    }
+    
+    if (!room.orderDetermination || room.orderDetermination.phase !== 'tie_break') {
+      console.warn('🎲 [SERVER] rollDiceForTieBreak rejected: not in tie break phase');
+      return;
+    }
+    
+    // Находим игрока в списке определения очередности
+    const orderPlayer = room.orderDetermination.players.find(p => p.id === playerId);
+    if (!orderPlayer) {
+      console.warn('🎲 [SERVER] rollDiceForTieBreak rejected: player not found in orderDetermination');
+      return;
+    }
+    
+    // Проверяем, не бросал ли уже игрок для переигровки
+    if (orderPlayer.tieBreakRoll !== null) {
+      console.warn('🎲 [SERVER] rollDiceForTieBreak rejected: player already rolled for tie break');
+      return;
+    }
+    
+    // Бросаем кубик для переигровки
+    const tieBreakRoll = Math.floor(Math.random() * 6) + 1;
+    orderPlayer.tieBreakRoll = tieBreakRoll;
+    
+    console.log('🎲 [SERVER] Player', orderPlayer.username, 'tie break rolled:', tieBreakRoll);
+    
+    // Уведомляем всех о результате броска для переигровки
+    io.to(roomId).emit('tieBreakRoll', {
+      playerId: playerId,
+      username: orderPlayer.username,
+      tieBreakRoll,
+      isAutoRoll: false
+    });
+    
+    // Проверяем, все ли игроки с ничьей бросили кубики для переигровки
+    const tieBreakPlayers = room.orderDetermination.tieBreakPlayers || [];
+    const allTieBreakRolled = tieBreakPlayers.every(p => p.tieBreakRoll !== null);
+    
+    if (allTieBreakRolled) {
+      console.log('🎲 [SERVER] All tie break players rolled, determining final order');
+      
+      // Останавливаем таймер переигровки
+      if (room.orderDetermination.tieBreakTimerInterval) {
+        clearInterval(room.orderDetermination.tieBreakTimerInterval);
+      }
+      
+      // Определяем финальный порядок с переигровкой
+      determineFinalOrderWithTieBreak(roomId);
     }
   });
 
@@ -1142,6 +1707,14 @@ io.on('connection', (socket) => {
 
   socket.on('getRooms', () => {
     ensureDefaultRoom();
+    
+    // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ПЕРЕД ОТПРАВКОЙ СПИСКА
+    Object.values(rooms).forEach(room => {
+      if (room && room.currentPlayers) {
+        cleanupGuestPlayers(room);
+      }
+    });
+    
     const roomsList = getSortedRoomsList();
     socket.emit('roomsList', roomsList);
     console.log('roomsList sent to', socket.id, roomsList);
@@ -1228,6 +1801,9 @@ io.on('connection', (socket) => {
         }
       }
       
+      // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ПЕРЕД ОТПРАВКОЙ СПИСКА ИГРОКОВ
+      cleanupGuestPlayers(rooms[roomId]);
+      
       socket.emit('playersList', rooms[roomId].currentPlayers);
     } else {
       console.log(`❌ [SERVER] getPlayers: Room ${roomId} not found for socket: ${socket.id}`);
@@ -1292,6 +1868,9 @@ io.on('connection', (socket) => {
     // Сохраняем изменения
     persistRooms();
     
+    // Уведомляем всех об обновлении готовности
+    io.to(roomId).emit('playerReadyUpdated', { roomId, playerId: player.id, ready: readyState });
+    
     // Отправляем обновленный список игроков всем в комнате
     io.to(roomId).emit('playersUpdate', room.currentPlayers);
     
@@ -1308,7 +1887,7 @@ io.on('connection', (socket) => {
 
   // Обработчик выхода из комнаты
   socket.on('leaveRoom', (roomId) => {
-    console.log(`🚪 [SERVER] leaveRoom: ${roomId} by socket: ${socket.id}`);
+    console.log(`🚪 [SERVER] leaveRoom requested: ${roomId} by socket: ${socket.id}`);
     
     const room = rooms[roomId];
     if (!room) {
@@ -1316,647 +1895,94 @@ io.on('connection', (socket) => {
       return;
     }
     
+    // Удаляем игрока из комнаты
     const playerIndex = room.currentPlayers.findIndex(p => p.socketId === socket.id);
     if (playerIndex !== -1) {
       const player = room.currentPlayers[playerIndex];
-      console.log(`👤 [SERVER] Player ${player.username} leaving room ${roomId}`);
-      
-      // Удаляем игрока из комнаты
+      console.log(`🚪 [SERVER] Player ${player.username} leaving room ${roomId}`);
       room.currentPlayers.splice(playerIndex, 1);
+      
+      // Если это был хост, назначаем нового хостом первого игрока
+      if (room.hostId === socket.id && room.currentPlayers.length > 0) {
+        room.hostId = room.currentPlayers[0].socketId;
+        console.log(`👑 [SERVER] New host assigned: ${room.currentPlayers[0].username}`);
+      }
+      
+      // Если комната пуста, удаляем её
+      if (room.currentPlayers.length === 0) {
+        console.log(`🗑️ [SERVER] Room ${roomId} is empty, removing...`);
+        delete rooms[roomId];
+      }
+      
+      // Отключаем сокет от комнаты
+      socket.leave(roomId);
       
       // Сохраняем изменения
       persistRooms();
-      
-      // Отправляем обновленный список игроков всем в комнате
-      io.to(roomId).emit('playersUpdate', room.currentPlayers);
       
       // Обновляем список комнат для всех
       const roomsList = getSortedRoomsList();
       io.emit('roomsList', roomsList);
       
-      // Покидаем комнату
-      socket.leave(roomId);
+      // Уведомляем остальных игроков в комнате
+      if (room.currentPlayers.length > 0) {
+        io.to(roomId).emit('playersUpdate', room.currentPlayers);
+      }
     }
   });
 
-  // Обработчик отключения игрока
+  // Обработчик отключения клиента
   socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
+    console.log(`❌ Client disconnected: ${socket.id}`);
     
     // Находим все комнаты, где был этот игрок
     Object.keys(rooms).forEach(roomId => {
       const room = rooms[roomId];
-      if (room && room.currentPlayers) {
-        const playerIndex = room.currentPlayers.findIndex(p => p.socketId === socket.id);
-        if (playerIndex !== -1) {
-          const player = room.currentPlayers[playerIndex];
-          console.log(`Player ${player.username} disconnected from room ${roomId}`);
-          
-          // Помечаем игрока как оффлайн, но не удаляем
-          player.offline = true;
-          player.socketId = null;
-          
-          // Если игрок был готов, сбрасываем готовность
-          if (player.ready) {
-            player.ready = false;
-            player.seat = null;
-            console.log(`Player ${player.username} marked as not ready due to disconnect`);
-          }
-          
-          // Обновляем список игроков
+      const player = room.currentPlayers.find(p => p.socketId === socket.id);
+      
+      if (player) {
+        console.log(`Player ${player.username} disconnected from room ${roomId}`);
+        player.offline = true;
+        player.socketId = null;
+        
+        // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ПРИ ОТКЛЮЧЕНИИ
+        cleanupGuestPlayers(room);
+        
+        // Сохраняем изменения
+        persistRooms();
+        
+        // Обновляем список комнат для всех
+        const roomsList = getSortedRoomsList();
+        io.emit('roomsList', roomsList);
+        
+        // Уведомляем остальных игроков в комнате
+        if (room.currentPlayers.length > 0) {
           io.to(roomId).emit('playersUpdate', room.currentPlayers);
-          persistRooms();
         }
       }
     });
   });
 });
 
-// Note: removed invalid io.on(...) listeners; all events handled per-socket above
-
-// Add checkFastTrackTransition function
-function checkFastTrackTransition(player) {
-  if (player.passiveIncome >= player.expenses && !player.isFastTrack) {
-    player.isFastTrack = true;
-    player.position = 0; // Start of fast track
-  }
-}
-
-// Function to clean up inactive rooms
-function cleanupInactiveRooms() {
-  const now = Date.now();
-  const inactiveTimeout = 30 * 60 * 1000; // 30 minutes
-  const gameEndTimeout = 10 * 60 * 1000; // 10 minutes after game ends
-  
-  Object.keys(rooms).forEach(roomId => {
-    const room = rooms[roomId];
-    
-    // Skip lobby room
-    if (roomId === 'lobby') return;
-    
-    // Remove rooms that have been inactive for too long
-    if (room.lastActivity && (now - room.lastActivity) > inactiveTimeout) {
-      console.log(`Removing inactive room: ${roomId} (inactive for ${Math.floor((now - room.lastActivity) / 1000 / 60)} minutes)`);
-      delete rooms[roomId];
-      return;
-    }
-    
-    // Remove rooms that ended long ago
-    if (room.gameEndTime && (now - room.gameEndTime) > gameEndTimeout) {
-      console.log(`Removing ended game room: ${roomId} (ended ${Math.floor((now - room.gameEndTime) / 1000 / 60)} minutes ago)`);
-      delete rooms[roomId];
-      return;
-    }
-    
-    // Remove empty rooms (no players)
-    if (room.currentPlayers.length === 0) {
-      console.log(`Removing empty room: ${roomId}`);
-      delete rooms[roomId];
-      return;
-    }
-    
-    // Remove rooms with only offline players
-    const hasOnlinePlayers = room.currentPlayers.some(p => !p.offline);
-    if (!hasOnlinePlayers && room.currentPlayers.length > 0) {
-      console.log(`Removing room with only offline players: ${roomId}`);
-      delete rooms[roomId];
-      return;
-    }
-  });
-  
-  // Persist changes
-  persistRooms();
-  
-  // Emit updated room list to all clients
-  const roomsList = getSortedRoomsList();
-  io.emit('roomsList', roomsList);
-}
-
-// Update room activity timestamp
-function updateRoomActivity(roomId) {
-  if (rooms[roomId]) {
-    rooms[roomId].lastActivity = Date.now();
-  }
-}
-
-// Mark game as ended
-function markGameEnded(roomId) {
-  if (rooms[roomId]) {
-    rooms[roomId].gameEndTime = Date.now();
-    rooms[roomId].status = 'ended';
-    console.log(`Game ended in room: ${roomId}`);
-  }
-}
-
-// Start timers for a room
+// Функция для запуска таймеров комнаты
 function startRoomTimers(roomId) {
-  if (roomTimers.has(roomId)) {
-    clearRoomTimers(roomId);
-  }
-  
-  const room = rooms[roomId];
-  if (!room) return;
-  
-  const gameTimer = setTimeout(() => {
-    // Stop game after 3 hours
-    if (rooms[roomId]) {
-      rooms[roomId].status = 'timeout';
-      rooms[roomId].gameEndTime = Date.now();
-      console.log(`Game stopped due to timeout in room: ${roomId}`);
-      
-      // Notify all players
-      io.to(roomId).emit('gameTimeout', { 
-        message: 'Игра остановлена по истечении времени (3 часа)',
-        roomId 
-      });
-      
-      // Start cleanup timer
-      const cleanupTimer = setTimeout(() => {
-        // Delete room after 3.5 hours total
-        if (rooms[roomId]) {
-          console.log(`Deleting room due to timeout: ${roomId}`);
-          delete rooms[roomId];
-          clearRoomTimers(roomId);
-          persistRooms();
-          
-          // Update rooms list
-          const roomsList = getSortedRoomsList();
-          io.emit('roomsList', roomsList);
-        }
-      }, 30 * 60 * 1000); // 30 minutes after game stops
-      
-      roomTimers.set(roomId, { gameTimer: null, cleanupTimer });
+  // Запускаем таймер очистки неактивных комнат
+  const cleanupTimer = setTimeout(() => {
+    const room = rooms[roomId];
+    if (room && room.currentPlayers.length === 0) {
+      console.log(`🗑️ [SERVER] Cleaning up empty room: ${roomId}`);
+      delete rooms[roomId];
+      persistRooms();
+      const roomsList = getSortedRoomsList();
+      io.emit('roomsList', roomsList);
     }
-  }, 3 * 60 * 60 * 1000); // 3 hours
-  
-  roomTimers.set(roomId, { gameTimer, cleanupTimer: null });
+  }, 30 * 60 * 1000); // 30 минут
+
+  // Сохраняем таймер
+  roomTimers.set(roomId, { cleanupTimer });
 }
 
-// Clear timers for a room
-function clearRoomTimers(roomId) {
-  const timers = roomTimers.get(roomId);
-  if (timers) {
-    if (timers.gameTimer) clearTimeout(timers.gameTimer);
-    if (timers.cleanupTimer) clearTimeout(timers.cleanupTimer);
-    roomTimers.delete(roomId);
-  }
-}
-
-// Start turn timer for a player
-function startTurnTimer(roomId, playerId) {
-  console.log('⏰ [SERVER] Starting turn timer for player:', playerId, 'in room:', roomId);
-  
-  // Clear existing timer if any
-  stopTurnTimer(roomId);
-  
-  const room = rooms[roomId];
-  if (!room) {
-    console.warn('⏰ [SERVER] Room not found for timer:', roomId);
-    return;
-  }
-  
-  let remaining = 120; // 2 minutes in seconds
-  
-  const timer = setInterval(() => {
-    remaining--;
-    
-    // Emit timer update to all players in room
-    io.to(roomId).emit('turnTimerUpdate', { 
-      playerId, 
-      remaining,
-      isActive: true 
-    });
-    
-    // Timer expired
-    if (remaining <= 0) {
-      console.log('⏰ [SERVER] Turn timer expired for player:', playerId);
-      
-      // Auto end turn
-      autoEndTurn(roomId, playerId);
-      
-      // Clear timer
-      stopTurnTimer(roomId);
-    }
-  }, 1000);
-  
-  // Store timer info
-  turnTimers.set(roomId, {
-    timer,
-    remaining,
-    playerId
-  });
-  
-  // Initial timer update
-  io.to(roomId).emit('turnTimerUpdate', { 
-    playerId, 
-    remaining,
-    isActive: true 
-  });
-}
-
-// Stop turn timer for a room
-function stopTurnTimer(roomId) {
-  const timerInfo = turnTimers.get(roomId);
-  if (timerInfo) {
-    clearInterval(timerInfo.timer);
-    turnTimers.delete(roomId);
-    
-    // Emit timer stopped
-    io.to(roomId).emit('turnTimerUpdate', { 
-      playerId: timerInfo.playerId, 
-      remaining: 0,
-      isActive: false 
-    });
-    
-    console.log('⏰ [SERVER] Turn timer stopped for room:', roomId);
-  }
-}
-
-// Auto end turn when timer expires
-function autoEndTurn(roomId, playerId) {
-  console.log('⏰ [SERVER] Auto ending turn for player:', playerId, 'in room:', roomId);
-  
-  const room = rooms[roomId];
-  if (!room || room.status !== 'started') return;
-  
-  if (room.currentTurn !== playerId) {
-    console.warn('⏰ [SERVER] Auto end turn rejected: not current turn', { 
-      roomId, 
-      currentTurn: room.currentTurn, 
-      playerId 
-    });
-    return;
-  }
-  
-  // Find current player index and move to next
-  const currentPlayerIndex = room.currentPlayers.findIndex(p => p.id === playerId);
-  if (currentPlayerIndex === -1) return;
-  
-  // Move to next player (cycle through players)
-  const nextPlayerIndex = (currentPlayerIndex + 1) % room.currentPlayers.length;
-  const nextPlayer = room.currentPlayers[nextPlayerIndex];
-  
-  room.currentTurn = nextPlayer.id;
-  console.log('⏰ [SERVER] Auto turn change:', { 
-    currentPlayer: playerId, 
-    nextPlayer: nextPlayer.id, 
-    username: nextPlayer.username 
-  });
-  
-  // Emit turn change to all players
-  io.to(roomId).emit('turnChanged', nextPlayer.id);
-  io.to(roomId).emit('roomData', { 
-    roomId: room.roomId, 
-    maxPlayers: room.maxPlayers, 
-    status: room.status, 
-    hostId: room.hostId, 
-    timer: room.timer, 
-    currentTurn: room.currentTurn 
-  });
-  
-  // Start timer for next player
-  startTurnTimer(roomId, nextPlayer.id);
-  
-  persistRooms();
-}
-
-// Host can pause/resume turn timer
-function pauseTurnTimer(roomId, hostId) {
-  const room = rooms[roomId];
-  if (!room || room.hostId !== hostId) {
-    console.warn('⏰ [SERVER] Pause timer rejected: not host or room not found');
-    return false;
-  }
-  
-  const timerInfo = turnTimers.get(roomId);
-  if (timerInfo) {
-    clearInterval(timerInfo.timer);
-    
-    // Keep the remaining time but stop the countdown
-    turnTimers.set(roomId, {
-      ...timerInfo,
-      timer: null,
-      paused: true
-    });
-    
-    // Emit paused state
-    io.to(roomId).emit('turnTimerUpdate', { 
-      playerId: timerInfo.playerId, 
-      remaining: timerInfo.remaining,
-      isActive: false,
-      paused: true
-    });
-    
-    console.log('⏰ [SERVER] Turn timer paused by host in room:', roomId);
-    return true;
-  }
-  
-  return false;
-}
-
-// Resume paused timer
-function resumeTurnTimer(roomId, hostId) {
-  const room = rooms[roomId];
-  if (!room || room.hostId !== hostId) {
-    console.warn('⏰ [SERVER] Resume timer rejected: not host or room not found');
-    return false;
-  }
-  
-  const timerInfo = turnTimers.get(roomId);
-  if (timerInfo && timerInfo.paused) {
-    let remaining = timerInfo.remaining;
-    
-    const timer = setInterval(() => {
-      remaining--;
-      
-      // Update stored remaining time
-      turnTimers.set(roomId, {
-        ...timerInfo,
-        remaining,
-        paused: false
-      });
-      
-      // Emit timer update
-      io.to(roomId).emit('turnTimerUpdate', { 
-        playerId: timerInfo.playerId, 
-        remaining,
-        isActive: true,
-        paused: false
-      });
-      
-      // Timer expired
-      if (remaining <= 0) {
-        console.log('⏰ [SERVER] Resumed timer expired for player:', timerInfo.playerId);
-        autoEndTurn(roomId, timerInfo.playerId);
-        stopTurnTimer(roomId);
-      }
-    }, 1000);
-    
-    // Update timer info
-    turnTimers.set(roomId, {
-      ...timerInfo,
-      timer,
-      paused: false
-    });
-    
-    console.log('⏰ [SERVER] Turn timer resumed by host in room:', roomId);
-    return true;
-  }
-  
-  return false;
-}
-
-// Get sorted rooms list (newest first)
-function getSortedRoomsList() {
-  const roomsList = Object.values(rooms)
-    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-    .map(r => ({ 
-      roomId: r.roomId,  // Уникальный ID (room1, room2, lobby...)
-      displayName: r.displayName || r.roomName || `Комната ${r.roomId}`, // Отображаемое название с fallback
-      originalRequestedId: r.originalRequestedId || r.roomId, // Запрошенный пользователем ID с fallback
-      currentPlayers: Array.isArray(r.currentPlayers) ? r.currentPlayers : [], // ✅ ИСПРАВЛЕНО: гарантируем массив
-      maxPlayers: r.maxPlayers,
-      createdAt: r.createdAt,
-      status: r.status
-    }));
-  
-  console.log('🏠 [SERVER] getSortedRoomsList result:', roomsList.map(r => ({
-    roomId: r.roomId,
-    displayName: r.displayName,
-    originalRequestedId: r.originalRequestedId,
-    currentPlayers: r.currentPlayers
-  })));
-  
-  return roomsList;
-}
-
-// API для получения рейтингов
-app.get('/api/ratings/overall', async (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit) || 10;
-    const ratings = await Rating.getTopPlayers(limit, 'overall');
-    res.json(ratings);
-  } catch (error) {
-    console.error('Error fetching overall ratings:', error);
-    res.status(500).json({ error: 'Failed to fetch ratings' });
-  }
-});
-
-// Создание тестовых данных для рейтингов (если их нет)
-app.post('/api/ratings/init-test-data', async (req, res) => {
-  try {
-    // Проверяем, есть ли уже данные
-    const existingRatings = await Rating.countDocuments();
-    
-    if (existingRatings === 0) {
-      // Создаем тестовые рейтинги
-      const testRatings = [
-        {
-          playerId: 'romeoproo1',
-          username: 'RomeoProo1',
-          email: 'romeoproo1@gmail.com',
-          overallScore: 2500,
-          gamesPlayed: 15,
-          gamesWon: 12,
-          averageScore: 1800,
-          netWorth: 50000,
-          categories: {
-            wealth: { score: 2800, rank: 1 },
-            speed: { score: 2200, rank: 3 },
-            strategy: { score: 2400, rank: 2 },
-            consistency: { score: 2600, rank: 1 }
-          }
-        },
-        {
-          playerId: 'xqrmedia',
-          username: 'XQRMedia',
-          email: 'xqrmedia@gmail.com',
-          overallScore: 2300,
-          gamesPlayed: 12,
-          gamesWon: 9,
-          averageScore: 1600,
-          netWorth: 45000,
-          categories: {
-            wealth: { score: 2500, rank: 2 },
-            speed: { score: 2400, rank: 1 },
-            strategy: { score: 2200, rank: 3 },
-            consistency: { score: 2300, rank: 2 }
-          }
-        },
-        {
-          playerId: 'testplayer1',
-          username: 'TestPlayer1',
-          email: 'test1@example.com',
-          overallScore: 2000,
-          gamesPlayed: 8,
-          gamesWon: 5,
-          averageScore: 1400,
-          netWorth: 30000,
-          categories: {
-            wealth: { score: 2200, rank: 3 },
-            speed: { score: 2000, rank: 2 },
-            strategy: { score: 2000, rank: 4 },
-            consistency: { score: 2000, rank: 3 }
-          }
-        }
-      ];
-
-      for (const ratingData of testRatings) {
-        const rating = new Rating(ratingData);
-        await rating.save();
-      }
-
-      console.log('✅ Тестовые рейтинги созданы');
-      res.json({ success: true, message: 'Test ratings created', count: testRatings.length });
-    } else {
-      res.json({ success: true, message: 'Ratings already exist', count: existingRatings });
-    }
-  } catch (error) {
-    console.error('Error creating test ratings:', error);
-    res.status(500).json({ error: 'Failed to create test ratings' });
-  }
-});
-
-app.get('/api/ratings/category/:category', async (req, res) => {
-  try {
-    const { category } = req.params;
-    const limit = parseInt(req.query.limit) || 10;
-    
-    if (!['wealth', 'speed', 'strategy', 'consistency'].includes(category)) {
-      return res.status(400).json({ error: 'Invalid category' });
-    }
-    
-    const ratings = await Rating.getTopPlayers(limit, category);
-    res.json(ratings);
-  } catch (error) {
-    console.error('Error fetching category ratings:', error);
-    res.status(500).json({ error: 'Failed to fetch ratings' });
-  }
-});
-
-app.get('/api/ratings/room/:roomId', async (req, res) => {
-  try {
-    const { roomId } = req.params;
-    const limit = parseInt(req.query.limit) || 10;
-    
-    const ratings = await Rating.getRoomRankings(roomId, limit);
-    res.json(ratings);
-  } catch (error) {
-    console.error('Error fetching room ratings:', error);
-    res.status(500).json({ error: 'Failed to fetch ratings' });
-  }
-});
-
-app.get('/api/ratings/player/:playerId', async (req, res) => {
-  try {
-    const { playerId } = req.params;
-    
-    const rating = await Rating.findOne({ playerId });
-    if (!rating) {
-      return res.status(404).json({ error: 'Player rating not found' });
-    }
-    
-    res.json(rating);
-  } catch (error) {
-    console.error('Error fetching player rating:', error);
-    res.status(500).json({ error: 'Failed to fetch player rating' });
-  }
-});
-
-// API для обновления рейтингов
-app.post('/api/ratings/update', async (req, res) => {
-  try {
-    const { playerId, username, roomId, gameData } = req.body;
-    
-    if (!playerId || !username || !roomId) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-    
-    let rating = await Rating.findOne({ playerId });
-    
-    if (!rating) {
-      rating = new Rating({
-        playerId,
-        username,
-        roomId
-      });
-    }
-    
-    // Обновляем рейтинг
-    rating.addGameResult(gameData);
-    await rating.save();
-    
-    // Обновляем ранги всех игроков
-    await Rating.updateAllRanks();
-    
-    res.json({ success: true, rating });
-  } catch (error) {
-    console.error('Error updating rating:', error);
-    res.status(500).json({ error: 'Failed to update rating' });
-  }
-});
-
-// API для получения статистики
-app.get('/api/ratings/stats', async (req, res) => {
-  try {
-    const totalPlayers = await Rating.countDocuments();
-    const totalGames = await Rating.aggregate([
-      { $group: { _id: null, total: { $sum: '$gamesPlayed' } } }
-    ]);
-    
-    const averageScore = await Rating.aggregate([
-      { $group: { _id: null, average: { $avg: '$averageScore' } } }
-    ]);
-    
-    const topWealth = await Rating.findOne().sort({ 'categories.wealth.score': -1 });
-    const topSpeed = await Rating.findOne().sort({ 'categories.speed.score': -1 });
-    const topStrategy = await Rating.findOne().sort({ 'categories.strategy.score': -1 });
-    const topConsistency = await Rating.findOne().sort({ 'categories.consistency.score': -1 });
-    
-    res.json({
-      totalPlayers,
-      totalGames: totalGames[0]?.total || 0,
-      averageScore: Math.round(averageScore[0]?.average || 0),
-      topWealth: topWealth?.username || 'N/A',
-      topSpeed: topSpeed?.username || 'N/A',
-      topStrategy: topStrategy?.username || 'N/A',
-      topConsistency: topConsistency?.username || 'N/A'
-    });
-  } catch (error) {
-    console.error('Error fetching rating stats:', error);
-    res.status(500).json({ error: 'Failed to fetch stats' });
-  }
-});
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    server: 'CASHFLOW Game Server',
-    version: '1.0.0',
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    platform: process.platform,
-    nodeVersion: process.version
-  });
-});
-
-// Serve client files (moved here after all API routes)
-// Только для не-API маршрутов
-app.use(express.static(path.join(__dirname, '../client/build')));
-
-// Catch-all handler for client routes (React Router)
-app.get('*', (req, res) => {
-  // Не обрабатываем API маршруты
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ error: 'API endpoint not found' });
-  }
-  
-  // Для всех остальных маршрутов отдаем React приложение
-  res.sendFile(path.join(__dirname, '../client/build/index.html'));
-});
-
-server.listen(5000, () => {
-  console.log('Server running on port 5000');
+// Запускаем сервер
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

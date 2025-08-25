@@ -92,6 +92,23 @@ const SimpleRoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
       return;
     }
     
+    // Настраиваем игрока перед входом в комнату
+    if (playerData) {
+      console.log('👤 [SimpleRoomSelection] Setting up player:', playerData);
+      socket.emit('setupPlayer', selectedRoomId, playerData);
+      console.log('👤 [SimpleRoomSelection] setupPlayer emitted');
+    } else {
+      // Если playerData нет, создаем базовые данные
+      const defaultPlayerData = {
+        id: Date.now().toString(),
+        username: 'Player' + Math.floor(Math.random() * 1000),
+        color: '#' + Math.floor(Math.random()*16777215).toString(16)
+      };
+      console.log('👤 [SimpleRoomSelection] Creating default player data:', defaultPlayerData);
+      socket.emit('setupPlayer', selectedRoomId, defaultPlayerData);
+      console.log('👤 [SimpleRoomSelection] setupPlayer emitted with default data');
+    }
+    
     onRoomSelect({ roomId: selectedRoomId.toString() });
   };
 
@@ -114,6 +131,28 @@ const SimpleRoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
       // Создаем комнату на сервере
       // Сервер автоматически сгенерирует уникальный ID
       socket.emit('createRoom', roomId.trim(), 2, '', 3, roomName.trim());
+      
+      // Настраиваем игрока для созданной комнаты
+      if (playerData) {
+        console.log('👤 [SimpleRoomSelection] Setting up player for new room:', playerData);
+        // Ждем немного, чтобы комната создалась
+        setTimeout(() => {
+          socket.emit('setupPlayer', roomId.trim(), playerData);
+          console.log('👤 [SimpleRoomSelection] setupPlayer emitted for new room');
+        }, 500);
+      } else {
+        // Если playerData нет, создаем базовые данные
+        const defaultPlayerData = {
+          id: Date.now().toString(),
+          username: 'Player' + Math.floor(Math.random() * 1000),
+          color: '#' + Math.floor(Math.random()*16777215).toString(16)
+        };
+        console.log('👤 [SimpleRoomSelection] Creating default player data for new room:', defaultPlayerData);
+        setTimeout(() => {
+          socket.emit('setupPlayer', roomId.trim(), defaultPlayerData);
+          console.log('👤 [SimpleRoomSelection] setupPlayer emitted with default data for new room');
+        }, 500);
+      }
       
       setSuccess('Создание комнаты... Пожалуйста, подождите');
     } catch (error) {
@@ -188,11 +227,7 @@ const SimpleRoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
             <p style={{ color: '#666', fontSize: '0.9rem', margin: '4px 0' }}>
               ID: {playerData?.displayId || 'N/A'} | Email: {playerData?.email || 'N/A'}
             </p>
-            {playerData?.profession && (
-              <p style={{ color: '#4CAF50', fontSize: '0.9rem', margin: '4px 0', fontWeight: 'bold' }}>
-                💼 Профессия: {playerData.profession.name} | 💰 Баланс: ${playerData.profession.balance.toLocaleString()}
-              </p>
-            )}
+
             {playerData?.gameStats && (
               <p style={{ color: '#666', fontSize: '0.9rem', margin: '4px 0' }}>
                 🎮 Игр сыграно: {playerData.gameStats.gamesPlayed} | 🏆 Побед: {playerData.gameStats.gamesWon}

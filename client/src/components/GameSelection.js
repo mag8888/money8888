@@ -37,10 +37,7 @@ const GameSelection = ({ onJoin }) => {
     const onConnect = () => socket.emit('getRooms');
     socket.on('connect', onConnect);
     socket.on('roomsList', sync);
-    // периодический опрос как подстраховка
-    const t = setInterval(() => socket.emit('getRooms'), 3000);
     return () => {
-      clearInterval(t);
       socket.off('roomsList', sync);
       socket.off('connect', onConnect);
     };
@@ -52,14 +49,55 @@ const GameSelection = ({ onJoin }) => {
       return;
     }
     setError('');
+    
+    console.log('🏠 [GameSelection] createRoom called for:', newRoomId);
+    
+    // Создаем комнату
     socket.emit('createRoom', newRoomId, maxPlayers, '', 3);
+    console.log('🏠 [GameSelection] createRoom emitted');
+    
+    // Настраиваем игрока для созданной комнаты
+    const playerData = {
+      id: Date.now().toString(),
+      username: 'Player' + Math.floor(Math.random() * 1000),
+      color: '#' + Math.floor(Math.random()*16777215).toString(16)
+    };
+    
+    console.log('👤 [GameSelection] Player data for new room:', playerData);
+    
+    // Ждем немного, чтобы комната создалась, затем настраиваем игрока
+    setTimeout(() => {
+      console.log('⏰ [GameSelection] Timeout finished, calling setupPlayer');
+      socket.emit('setupPlayer', newRoomId, playerData);
+      console.log('👤 [GameSelection] setupPlayer emitted for new room');
+      onJoin(newRoomId);
+      console.log('🚪 [GameSelection] onJoin called for new room');
+    }, 500);
+    
     socket.emit('getRooms');
-    onJoin(newRoomId);
   };
 
   const joinRoom = (roomId) => {
+    console.log('🔗 [GameSelection] joinRoom called for:', roomId);
+    
+    // Сначала подключаемся к комнате
     socket.emit('joinRoom', roomId);
+    console.log('🔗 [GameSelection] joinRoom emitted');
+    
+    // Затем настраиваем игрока (это добавляет его в комнату)
+    const playerData = {
+      id: Date.now().toString(),
+      username: 'Player' + Math.floor(Math.random() * 1000),
+      color: '#' + Math.floor(Math.random()*16777215).toString(16)
+    };
+    
+    console.log('👤 [GameSelection] Player data:', playerData);
+    socket.emit('setupPlayer', roomId, playerData);
+    console.log('👤 [GameSelection] setupPlayer emitted');
+    
+    // Переходим к настройке комнаты
     onJoin(roomId);
+    console.log('🚪 [GameSelection] onJoin called');
   };
 
   return (
@@ -73,8 +111,16 @@ const GameSelection = ({ onJoin }) => {
         
         <Fade in timeout={800}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, mt: 2 }}>
-            <Avatar sx={{ bgcolor: 'primary.main', mr: 1, fontSize: 40 }}>$</Avatar>
-            <Typography variant="h4" sx={{ color: 'white' }}>CashFlow Web</Typography>
+            <img 
+              src="/images/center-logo.svg" 
+              alt="Поток Денег Logo" 
+              style={{
+                width: '50px',
+                height: '50px',
+                marginRight: '16px'
+              }}
+            />
+            <Typography variant="h4" sx={{ color: 'white' }}>Поток Денег Web</Typography>
           </Box>
         </Fade>
         
@@ -98,16 +144,14 @@ const GameSelection = ({ onJoin }) => {
               </Select>
             </FormControl>
             
-            <Grow in timeout={900}>
-              <Button 
-                fullWidth 
-                variant="contained" 
-                sx={{ bgcolor: '#FFD700', color: 'black', borderRadius: 2, py: 1.5, fontWeight: 'bold' }} 
-                onClick={createRoom}
-              >
-                Создать
-              </Button>
-            </Grow>
+            <Button 
+              fullWidth 
+              variant="contained" 
+              sx={{ bgcolor: '#FFD700', color: 'black', borderRadius: 2, py: 1.5, fontWeight: 'bold' }} 
+              onClick={createRoom}
+            >
+              🎮 Создать комнату
+            </Button>
           </Box>
         </Slide>
         
@@ -119,10 +163,16 @@ const GameSelection = ({ onJoin }) => {
                 key={room.id} 
                 fullWidth 
                 variant="contained" 
-                sx={{ mb: 1, bgcolor: '#4169E1', borderRadius: 2, py: 1.5, fontWeight: 'bold' }} 
+                sx={{ 
+                  mb: 1, 
+                  bgcolor: '#4169E1', 
+                  borderRadius: 2, 
+                  py: 1.5, 
+                  fontWeight: 'bold' 
+                }} 
                 onClick={() => joinRoom(room.id)}
               >
-                Комната {room.id} ({room.currentPlayers}/{room.maxPlayers})
+                🎮 Комната {room.id} ({room.currentPlayers}/{room.maxPlayers})
               </Button>
             ))}
           </List>
