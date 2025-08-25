@@ -703,50 +703,50 @@ const GameField = ({
     const marginX = 350 - (outerSquareSize / 2); // Центрируем по X
     const marginY = 350 - (outerSquareSize / 2) - 20; // Поднимаем на 20px вверх
     
-    // Верхний ряд (25-38): 14 клеток - цифры идут в обратную сторону
+    // Верхний ряд (1-14): 14 клеток - цифры идут по порядку
     for (let i = 0; i < 14; i++) {
       positions.push({
         position: 24 + i,
         x: marginX + i * (cellSize + 2),
         y: marginY,
         ...CELL_CONFIG.outerSquare[i % CELL_CONFIG.outerSquare.length],
-        number: 38 - i, // Нумерация от 38 до 25 (в обратную сторону)
+        number: i + 1, // Нумерация от 1 до 14 (по порядку)
         isInner: false
       });
     }
     
-    // Правый столбец (24-11): 14 клеток - цифры идут вниз
+    // Правый столбец (15-28): 14 клеток - цифры идут вниз
     for (let i = 0; i < 14; i++) {
       positions.push({
         position: 38 + i,
         x: marginX + (13 * (cellSize + 2)), // x координата клетки 14
         y: marginY + (i + 1) * (cellSize + 2),
         ...CELL_CONFIG.outerSquare[(14 + i) % CELL_CONFIG.outerSquare.length],
-        number: 24 - i, // Нумерация от 24 до 11 (в обратную сторону)
+        number: i + 15, // Нумерация от 15 до 28 (по порядку)
         isInner: false
       });
     }
     
-    // Нижний ряд (10-23): 14 клеток - цифры идут в обратную сторону
+    // Нижний ряд (29-42): 14 клеток - цифры идут в обратную сторону
     for (let i = 0; i < 14; i++) {
       positions.push({
         position: 52 + i,
         x: marginX + (13 - i) * (cellSize + 2),
         y: marginY + (14 * (cellSize + 2)), // y координата клетки 28
         ...CELL_CONFIG.outerSquare[(28 + i) % CELL_CONFIG.outerSquare.length],
-        number: 10 + i, // Нумерация от 10 до 23 (по порядку)
+        number: 42 - i, // Нумерация от 42 до 29 (в обратную сторону)
         isInner: false
       });
     }
     
-    // Левый столбец (37-50): 14 клеток - цифры идут вверх
+    // Левый столбец (43-50): 14 клеток - цифры идут вверх
     for (let i = 0; i < 14; i++) {
       positions.push({
         position: 66 + i,
         x: marginX, // x координата клетки 1
         y: marginY + (i + 1) * (cellSize + 2),
         ...CELL_CONFIG.outerSquare[(42 + i) % CELL_CONFIG.outerSquare.length],
-        number: 37 - i, // Нумерация от 37 до 50 (в обратную сторону)
+        number: i + 43, // Нумерация от 43 до 50 (по порядку)
         isInner: false
       });
     }

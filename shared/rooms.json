@@ -217,7 +217,7 @@
       {
         "id": "1756108628790",
         "fixedId": "1756108628790",
-        "socketId": "f0-0V-xKUE_V_eyRAAAX",
+        "socketId": null,
         "username": "romeoproo1",
         "ready": true,
         "position": 0,
@@ -244,7 +244,7 @@
         "charityTurns": 0,
         "_lastRollOptions": null,
         "seat": null,
-        "offline": false,
+        "offline": true,
         "roomId": "room2",
         "readyAt": 1756136915744
       }
