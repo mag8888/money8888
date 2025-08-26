@@ -654,19 +654,19 @@ const GameField = ({
         x: marginX + i * (cellSpacing * 1.15) - 42, // Те же параметры что и у верхнего ряда
         y: marginY + 700 - (cellSpacing * 2), // Размещаем примерно на 700px ниже, но подняли вверх на 2 клетки (1.5 + 0.5)
         ...CELL_CONFIG.outerSquare[(14 + i) % CELL_CONFIG.outerSquare.length],
-        number: i + 15, // Нумерация от 15 до 28
+        number: 40 - i, // Нумерация от 40 до 27 (справа налево)
         isInner: false
       });
     }
     
-    // Левый столбец (15-26): 12 клеток сверху вниз (копия правого столбца в левом краю)
+    // Левый столбец (40-51): 12 клеток сверху вниз (копия правого столбца в левом краю)
     for (let i = 0; i < 12; i++) {
       positions.push({
         position: 52 + i,
         x: marginX - 42, // Прямо под клетку 1, сдвинули влево на 42px
         y: marginY + (i * (cellSpacing * 1.15)) + 5, // Равномерно распределяем по высоте, увеличили высоту на 15%, сдвинули вниз на 5px
         ...CELL_CONFIG.outerSquare[(14 + i) % CELL_CONFIG.outerSquare.length],
-        number: i + 15, // Нумерация от 15 до 26
+        number: 52 - i, // Нумерация от 52 до 41 (сверху вниз)
         isInner: false
       });
     }
