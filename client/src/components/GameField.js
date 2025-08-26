@@ -17,6 +17,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import { CELL_CONFIG, PLAYER_COLORS } from '../data/gameCells';
+import FastTrackCellModal from './FastTrackCellModal';
 
 // Используем конфигурацию из отдельного файла
 
@@ -268,6 +269,12 @@ const GameField = ({
     cellNumber: '',
     cellName: '',
     cellType: ''
+  });
+
+  // Состояние модала "большого круга" (Fast Track)
+  const [fastTrackModal, setFastTrackModal] = useState({
+    open: false,
+    cellData: null
   });
 
   // Состояние профессии и баланса игрока
@@ -570,12 +577,21 @@ const GameField = ({
 
   // Обработчик клика на клетку
   const handleCellClick = (position, type, name, number) => {
-    setCellDialog({
-      open: true,
-      cellNumber: number,
-      cellName: name,
-      cellType: type
-    });
+    // Если это клетка "большого круга" и у неё есть данные
+    if (type === 'fastTrack' && CELL_CONFIG.outerSquare[position - 25]?.data) {
+      setFastTrackModal({
+        open: true,
+        cellData: CELL_CONFIG.outerSquare[position - 25]
+      });
+    } else {
+      // Обычная клетка
+      setCellDialog({
+        open: true,
+        cellNumber: number,
+        cellName: name,
+        cellType: type
+      });
+    }
     onCellClick?.(position, type);
   };
 
@@ -1301,6 +1317,13 @@ const GameField = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Модал "большого круга" (Fast Track) */}
+      <FastTrackCellModal
+        open={fastTrackModal.open}
+        onClose={() => setFastTrackModal({ ...fastTrackModal, open: false })}
+        cellData={fastTrackModal.cellData}
+      />
 
       {/* Кнопка "Бросить кубик" теперь находится в правом меню GameControls */}
 
