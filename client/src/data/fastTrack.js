@@ -3,7 +3,7 @@
 // https://docs.google.com/spreadsheets/d/1j7ZCbHfh02uvtdNQjwqlO4Dn3Q6lgi_QBNZlB3SziGI/edit?usp=sharing
 
 export const FAST_TRACK_BUSINESSES = [
-  // Бизнесы
+  // Бизнесы (зеленый цвет)
   {
     id: 1,
     name: 'Лавка кофе на колесах',
@@ -11,7 +11,8 @@ export const FAST_TRACK_BUSINESSES = [
     type: 'business',
     cost: 2500,
     monthlyIncome: 200,
-    category: 'food'
+    category: 'business',
+    color: '#4CAF50' // Зеленый
   },
   {
     id: 2,
@@ -20,7 +21,8 @@ export const FAST_TRACK_BUSINESSES = [
     type: 'business',
     cost: 5000,
     monthlyIncome: 400,
-    category: 'transport'
+    category: 'business',
+    color: '#4CAF50' // Зеленый
   },
   {
     id: 3,
@@ -29,7 +31,8 @@ export const FAST_TRACK_BUSINESSES = [
     type: 'business',
     cost: 3000,
     monthlyIncome: 250,
-    category: 'online'
+    category: 'business',
+    color: '#4CAF50' // Зеленый
   },
   {
     id: 4,
@@ -38,7 +41,8 @@ export const FAST_TRACK_BUSINESSES = [
     type: 'business',
     cost: 6000,
     monthlyIncome: 500,
-    category: 'beauty'
+    category: 'business',
+    color: '#4CAF50' // Зеленый
   },
   {
     id: 5,
@@ -47,7 +51,8 @@ export const FAST_TRACK_BUSINESSES = [
     type: 'business',
     cost: 4500,
     monthlyIncome: 350,
-    category: 'entertainment'
+    category: 'business',
+    color: '#4CAF50' // Зеленый
   },
   {
     id: 6,
@@ -56,7 +61,8 @@ export const FAST_TRACK_BUSINESSES = [
     type: 'business',
     cost: 8000,
     monthlyIncome: 600,
-    category: 'automotive'
+    category: 'business',
+    color: '#4CAF50' // Зеленый
   },
   {
     id: 7,
@@ -65,7 +71,8 @@ export const FAST_TRACK_BUSINESSES = [
     type: 'business',
     cost: 12000,
     monthlyIncome: 800,
-    category: 'service'
+    category: 'business',
+    color: '#4CAF50' // Зеленый
   },
   {
     id: 8,
@@ -74,7 +81,8 @@ export const FAST_TRACK_BUSINESSES = [
     type: 'business',
     cost: 15000,
     monthlyIncome: 1200,
-    category: 'beauty'
+    category: 'business',
+    color: '#4CAF50' // Зеленый
   },
   {
     id: 9,
@@ -83,7 +91,8 @@ export const FAST_TRACK_BUSINESSES = [
     type: 'business',
     cost: 25000,
     monthlyIncome: 2000,
-    category: 'food'
+    category: 'business',
+    color: '#4CAF50' // Зеленый
   },
   {
     id: 10,
@@ -92,7 +101,8 @@ export const FAST_TRACK_BUSINESSES = [
     type: 'business',
     cost: 30000,
     monthlyIncome: 2500,
-    category: 'retail'
+    category: 'business',
+    color: '#4CAF50' // Зеленый
   },
   {
     id: 11,
@@ -101,7 +111,8 @@ export const FAST_TRACK_BUSINESSES = [
     type: 'business',
     cost: 50000,
     monthlyIncome: 4000,
-    category: 'fitness'
+    category: 'business',
+    color: '#4CAF50' // Зеленый
   },
   {
     id: 12,
@@ -110,7 +121,8 @@ export const FAST_TRACK_BUSINESSES = [
     type: 'business',
     cost: 100000,
     monthlyIncome: 8000,
-    category: 'food'
+    category: 'business',
+    color: '#4CAF50' // Зеленый
   },
   {
     id: 13,
@@ -119,7 +131,8 @@ export const FAST_TRACK_BUSINESSES = [
     type: 'business',
     cost: 200000,
     monthlyIncome: 15000,
-    category: 'hospitality'
+    category: 'business',
+    color: '#4CAF50' // Зеленый
   },
   {
     id: 14,
@@ -128,486 +141,479 @@ export const FAST_TRACK_BUSINESSES = [
     type: 'business',
     cost: 500000,
     monthlyIncome: 40000,
-    category: 'retail'
+    category: 'business',
+    color: '#4CAF50' // Зеленый
   }
 ];
 
-export const FAST_TRACK_REAL_ESTATE = [
-  // Недвижимость
+export const FAST_TRACK_DREAMS = [
+  // Мечты (фиолетовый цвет)
   {
     id: 15,
-    name: 'Студия в центре',
-    description: 'Компактная студия в центре города.',
-    type: 'real_estate',
-    cost: 80000,
-    monthlyIncome: 800,
-    category: 'apartment',
-    downPayment: 16000
+    name: 'Путешествие на Бали',
+    description: 'Мечта о путешествии на тропический остров.',
+    type: 'dream',
+    cost: 15000,
+    monthlyIncome: 0,
+    category: 'dream',
+    color: '#9C27B0' // Фиолетовый
   },
   {
     id: 16,
-    name: '1-комнатная квартира',
-    description: 'Удобная однокомнатная квартира в хорошем районе.',
-    type: 'real_estate',
-    cost: 120000,
-    monthlyIncome: 1200,
-    category: 'apartment',
-    downPayment: 24000
+    name: 'Спортивный автомобиль',
+    description: 'Мечта о быстром спортивном автомобиле.',
+    type: 'dream',
+    cost: 80000,
+    monthlyIncome: 0,
+    category: 'dream',
+    color: '#9C27B0' // Фиолетовый
   },
   {
     id: 17,
-    name: '2-комнатная квартира',
-    description: 'Просторная двухкомнатная квартира.',
-    type: 'real_estate',
-    cost: 180000,
-    monthlyIncome: 1800,
-    category: 'apartment',
-    downPayment: 36000
+    name: 'Яхта',
+    description: 'Мечта о собственной яхте.',
+    type: 'dream',
+    cost: 300000,
+    monthlyIncome: 0,
+    category: 'dream',
+    color: '#9C27B0' // Фиолетовый
   },
   {
     id: 18,
-    name: '3-комнатная квартира',
-    description: 'Большая трехкомнатная квартира для семьи.',
-    type: 'real_estate',
-    cost: 250000,
-    monthlyIncome: 2500,
-    category: 'apartment',
-    downPayment: 50000
+    name: 'Частный самолет',
+    description: 'Мечта о частном самолете.',
+    type: 'dream',
+    cost: 2000000,
+    monthlyIncome: 0,
+    category: 'dream',
+    color: '#9C27B0' // Фиолетовый
   },
   {
     id: 19,
-    name: 'Дом с участком',
-    description: 'Частный дом с небольшим участком земли.',
-    type: 'real_estate',
-    cost: 350000,
-    monthlyIncome: 3500,
-    category: 'house',
-    downPayment: 70000
+    name: 'Вилла на море',
+    description: 'Мечта о роскошной вилле на берегу моря.',
+    type: 'dream',
+    cost: 1500000,
+    monthlyIncome: 0,
+    category: 'dream',
+    color: '#9C27B0' // Фиолетовый
   },
   {
     id: 20,
-    name: 'Коммерческое помещение',
-    description: 'Помещение под офис или магазин.',
-    type: 'real_estate',
-    cost: 200000,
-    monthlyIncome: 3000,
-    category: 'commercial',
-    downPayment: 40000
-  },
+    name: 'Драгоценности',
+    description: 'Мечта о коллекции драгоценностей.',
+    type: 'dream',
+    cost: 50000,
+    monthlyIncome: 0,
+    category: 'dream',
+    color: '#9C27B0' // Фиолетовый
+  }
+];
+
+export const FAST_TRACK_LOSSES = [
+  // Потери (бордовый цвет)
   {
     id: 21,
-    name: 'Склад',
-    description: 'Складское помещение для хранения товаров.',
-    type: 'real_estate',
-    cost: 150000,
-    monthlyIncome: 2000,
-    category: 'warehouse',
-    downPayment: 30000
+    name: 'Потеря работы',
+    description: 'Неожиданная потеря работы.',
+    type: 'loss',
+    cost: 0,
+    monthlyIncome: -2000,
+    category: 'loss',
+    color: '#8B0000' // Бордовый
   },
   {
     id: 22,
-    name: 'Парковочные места',
-    description: 'Набор парковочных мест в центре города.',
-    type: 'real_estate',
-    cost: 50000,
-    monthlyIncome: 800,
-    category: 'parking',
-    downPayment: 10000
-  }
-];
-
-export const FAST_TRACK_STOCKS = [
-  // Акции
+    name: 'Болезнь',
+    description: 'Заболевание, требующее лечения.',
+    type: 'loss',
+    cost: 10000,
+    monthlyIncome: -1000,
+    category: 'loss',
+    color: '#8B0000' // Бордовый
+  },
   {
     id: 23,
-    name: 'Акции Apple',
-    description: 'Акции технологической компании Apple Inc.',
-    type: 'stock',
-    cost: 150,
-    monthlyIncome: 3,
-    category: 'technology',
-    risk: 'low'
+    name: 'Авария',
+    description: 'Дорожно-транспортное происшествие.',
+    type: 'loss',
+    cost: 15000,
+    monthlyIncome: -500,
+    category: 'loss',
+    color: '#8B0000' // Бордовый
   },
   {
     id: 24,
-    name: 'Акции Tesla',
-    description: 'Акции производителя электромобилей Tesla.',
-    type: 'stock',
-    cost: 200,
-    monthlyIncome: 4,
-    category: 'automotive',
-    risk: 'medium'
+    name: 'Пожар',
+    description: 'Пожар в доме или бизнесе.',
+    type: 'loss',
+    cost: 50000,
+    monthlyIncome: -2000,
+    category: 'loss',
+    color: '#8B0000' // Бордовый
   },
   {
     id: 25,
-    name: 'Акции Microsoft',
-    description: 'Акции корпорации Microsoft.',
-    type: 'stock',
-    cost: 300,
-    monthlyIncome: 6,
-    category: 'technology',
-    risk: 'low'
-  },
+    name: 'Кража',
+    description: 'Кража имущества или денег.',
+    type: 'loss',
+    cost: 8000,
+    monthlyIncome: 0,
+    category: 'loss',
+    color: '#8B0000' // Бордовый
+  }
+];
+
+export const FAST_TRACK_MONEY = [
+  // Деньги (желтый цвет)
   {
     id: 26,
-    name: 'Акции Amazon',
-    description: 'Акции интернет-магазина Amazon.',
-    type: 'stock',
-    cost: 3500,
-    monthlyIncome: 70,
-    category: 'retail',
-    risk: 'medium'
+    name: 'Выигрыш в лотерею',
+    description: 'Неожиданный выигрыш в лотерею.',
+    type: 'money',
+    cost: 0,
+    monthlyIncome: 5000,
+    category: 'money',
+    color: '#FFD700' // Желтый
   },
   {
     id: 27,
-    name: 'Акции Google',
-    description: 'Акции Alphabet Inc. (Google).',
-    type: 'stock',
-    cost: 2800,
-    monthlyIncome: 56,
-    category: 'technology',
-    risk: 'low'
+    name: 'Наследство',
+    description: 'Получение наследства.',
+    type: 'money',
+    cost: 0,
+    monthlyIncome: 10000,
+    category: 'money',
+    color: '#FFD700' // Желтый
   },
   {
     id: 28,
-    name: 'Акции Netflix',
-    description: 'Акции стримингового сервиса Netflix.',
-    type: 'stock',
-    cost: 400,
-    monthlyIncome: 8,
-    category: 'entertainment',
-    risk: 'high'
+    name: 'Бонус',
+    description: 'Большой бонус на работе.',
+    type: 'money',
+    cost: 0,
+    monthlyIncome: 3000,
+    category: 'money',
+    color: '#FFD700' // Желтый
   },
   {
     id: 29,
-    name: 'Акции Facebook',
-    description: 'Акции Meta Platforms (Facebook).',
-    type: 'stock',
-    cost: 200,
-    monthlyIncome: 4,
-    category: 'technology',
-    risk: 'medium'
+    name: 'Инвестиционный доход',
+    description: 'Доход от успешных инвестиций.',
+    type: 'money',
+    cost: 0,
+    monthlyIncome: 2000,
+    category: 'money',
+    color: '#FFD700' // Желтый
   },
   {
     id: 30,
-    name: 'Акции Coca-Cola',
-    description: 'Акции производителя напитков Coca-Cola.',
-    type: 'stock',
-    cost: 50,
-    monthlyIncome: 1,
-    category: 'consumer_goods',
-    risk: 'low'
+    name: 'Продажа бизнеса',
+    description: 'Успешная продажа бизнеса.',
+    type: 'money',
+    cost: 0,
+    monthlyIncome: 15000,
+    category: 'money',
+    color: '#FFD700' // Желтый
   }
 ];
 
-export const FAST_TRACK_BONDS = [
-  // Облигации
+export const FAST_TRACK_OPPORTUNITIES = [
+  // Возможности (синий цвет)
   {
     id: 31,
-    name: 'Государственные облигации',
-    description: 'Надежные государственные облигации.',
-    type: 'bond',
-    cost: 1000,
-    monthlyIncome: 20,
-    category: 'government',
-    risk: 'very_low',
-    maturity: '5_years'
+    name: 'Новый проект',
+    description: 'Возможность участия в новом проекте.',
+    type: 'opportunity',
+    cost: 5000,
+    monthlyIncome: 800,
+    category: 'opportunity',
+    color: '#2196F3' // Синий
   },
   {
     id: 32,
-    name: 'Корпоративные облигации',
-    description: 'Облигации крупных корпораций.',
-    type: 'bond',
-    cost: 1000,
-    monthlyIncome: 25,
-    category: 'corporate',
-    risk: 'low',
-    maturity: '3_years'
+    name: 'Партнерство',
+    description: 'Возможность партнерства в бизнесе.',
+    type: 'opportunity',
+    cost: 10000,
+    monthlyIncome: 1500,
+    category: 'opportunity',
+    color: '#2196F3' // Синий
   },
   {
     id: 33,
-    name: 'Муниципальные облигации',
-    description: 'Облигации местных органов власти.',
-    type: 'bond',
-    cost: 1000,
-    monthlyIncome: 18,
-    category: 'municipal',
-    risk: 'very_low',
-    maturity: '7_years'
-  }
-];
-
-export const FAST_TRACK_CRYPTOCURRENCIES = [
-  // Криптовалюты
+    name: 'Инновация',
+    description: 'Возможность инвестировать в инновацию.',
+    type: 'opportunity',
+    cost: 20000,
+    monthlyIncome: 3000,
+    category: 'opportunity',
+    color: '#2196F3' // Синий
+  },
   {
     id: 34,
-    name: 'Bitcoin',
-    description: 'Первая и самая популярная криптовалюта.',
-    type: 'cryptocurrency',
-    cost: 45000,
-    monthlyIncome: 900,
-    category: 'crypto',
-    risk: 'very_high'
+    name: 'Экспансия',
+    description: 'Возможность расширения бизнеса.',
+    type: 'opportunity',
+    cost: 30000,
+    monthlyIncome: 4000,
+    category: 'opportunity',
+    color: '#2196F3' // Синий
   },
   {
     id: 35,
-    name: 'Ethereum',
-    description: 'Вторая по популярности криптовалюта.',
-    type: 'cryptocurrency',
-    cost: 3000,
-    monthlyIncome: 60,
-    category: 'crypto',
-    risk: 'very_high'
-  },
-  {
-    id: 36,
-    name: 'Cardano',
-    description: 'Криптовалюта с фокусом на безопасность.',
-    type: 'cryptocurrency',
-    cost: 1.5,
-    monthlyIncome: 0.03,
-    category: 'crypto',
-    risk: 'very_high'
-  }
-];
-
-export const FAST_TRACK_PRECIOUS_METALS = [
-  // Драгоценные металлы
-  {
-    id: 37,
-    name: 'Золото',
-    description: 'Инвестиции в физическое золото.',
-    type: 'precious_metal',
-    cost: 2000,
-    monthlyIncome: 20,
-    category: 'metal',
-    risk: 'low'
-  },
-  {
-    id: 38,
-    name: 'Серебро',
-    description: 'Инвестиции в физическое серебро.',
-    type: 'precious_metal',
-    cost: 25,
-    monthlyIncome: 0.25,
-    category: 'metal',
-    risk: 'low'
-  },
-  {
-    id: 39,
-    name: 'Платина',
-    description: 'Инвестиции в физическую платину.',
-    type: 'precious_metal',
-    cost: 1000,
-    monthlyIncome: 10,
-    category: 'metal',
-    risk: 'medium'
-  }
-];
-
-export const FAST_TRACK_COLLECTIBLES = [
-  // Коллекционные предметы
-  {
-    id: 40,
-    name: 'Художественные произведения',
-    description: 'Инвестиции в современное искусство.',
-    type: 'collectible',
-    cost: 10000,
-    monthlyIncome: 100,
-    category: 'art',
-    risk: 'high'
-  },
-  {
-    id: 41,
-    name: 'Винтажные автомобили',
-    description: 'Коллекционные винтажные автомобили.',
-    type: 'collectible',
+    name: 'Международный рынок',
+    description: 'Возможность выхода на международный рынок.',
+    type: 'opportunity',
     cost: 50000,
-    monthlyIncome: 500,
-    category: 'automotive',
-    risk: 'high'
-  },
-  {
-    id: 42,
-    name: 'Редкие монеты',
-    description: 'Коллекция редких и исторических монет.',
-    type: 'collectible',
-    cost: 5000,
-    monthlyIncome: 50,
-    category: 'numismatics',
-    risk: 'medium'
-  },
-  {
-    id: 43,
-    name: 'Марки',
-    description: 'Коллекция редких почтовых марок.',
-    type: 'collectible',
-    cost: 2000,
-    monthlyIncome: 20,
-    category: 'philately',
-    risk: 'medium'
-  }
-];
-
-export const FAST_TRACK_FRANCHISES = [
-  // Франшизы
-  {
-    id: 44,
-    name: 'Франшиза кофейни',
-    description: 'Франшиза популярной кофейной сети.',
-    type: 'franchise',
-    cost: 50000,
-    monthlyIncome: 4000,
-    category: 'food',
-    risk: 'medium'
-  },
-  {
-    id: 45,
-    name: 'Франшиза пиццерии',
-    description: 'Франшиза известной пиццерии.',
-    type: 'franchise',
-    cost: 80000,
     monthlyIncome: 6000,
-    category: 'food',
-    risk: 'medium'
-  },
-  {
-    id: 46,
-    name: 'Франшиза фитнес-клуба',
-    description: 'Франшиза сети фитнес-клубов.',
-    type: 'franchise',
-    cost: 150000,
-    monthlyIncome: 12000,
-    category: 'fitness',
-    risk: 'medium'
-  },
-  {
-    id: 47,
-    name: 'Франшиза магазина одежды',
-    description: 'Франшиза модного бренда одежды.',
-    type: 'franchise',
-    cost: 100000,
-    monthlyIncome: 8000,
-    category: 'retail',
-    risk: 'medium'
-  }
-];
-
-export const FAST_TRACK_PATENTS = [
-  // Патенты и лицензии
-  {
-    id: 48,
-    name: 'Патент на изобретение',
-    description: 'Патент на новое техническое решение.',
-    type: 'patent',
-    cost: 25000,
-    monthlyIncome: 2000,
-    category: 'intellectual_property',
-    risk: 'high'
-  },
-  {
-    id: 49,
-    name: 'Лицензия на программное обеспечение',
-    description: 'Лицензия на коммерческое использование ПО.',
-    type: 'license',
-    cost: 15000,
-    monthlyIncome: 1200,
-    category: 'intellectual_property',
-    risk: 'medium'
-  },
-  {
-    id: 50,
-    name: 'Торговая марка',
-    description: 'Регистрация и использование торговой марки.',
-    type: 'trademark',
-    cost: 10000,
-    monthlyIncome: 800,
-    category: 'intellectual_property',
-    risk: 'medium'
-  }
-];
-
-export const FAST_TRACK_INSURANCE = [
-  // Страхование
-  {
-    id: 51,
-    name: 'Страхование жизни',
-    description: 'Полис страхования жизни с инвестиционной составляющей.',
-    type: 'insurance',
-    cost: 5000,
-    monthlyIncome: 100,
-    category: 'life',
-    risk: 'very_low'
-  },
-  {
-    id: 52,
-    name: 'Страхование здоровья',
-    description: 'Полис медицинского страхования.',
-    type: 'insurance',
-    cost: 3000,
-    monthlyIncome: 0,
-    category: 'health',
-    risk: 'very_low'
-  },
-  {
-    id: 53,
-    name: 'Страхование имущества',
-    description: 'Страхование недвижимости и имущества.',
-    type: 'insurance',
-    cost: 2000,
-    monthlyIncome: 0,
-    category: 'property',
-    risk: 'very_low'
+    category: 'opportunity',
+    color: '#2196F3' // Синий
   }
 ];
 
 export const FAST_TRACK_EDUCATION = [
-  // Образование и развитие
+  // Образование (оранжевый цвет)
   {
-    id: 54,
+    id: 36,
     name: 'Курсы по инвестированию',
     description: 'Образовательные курсы по финансовой грамотности.',
     type: 'education',
     cost: 2000,
     monthlyIncome: 0,
-    category: 'investment',
-    risk: 'very_low'
+    category: 'education',
+    color: '#FF9800' // Оранжевый
   },
   {
-    id: 55,
+    id: 37,
     name: 'Бизнес-образование',
     description: 'Курсы по предпринимательству и бизнес-менеджменту.',
     type: 'education',
     cost: 5000,
     monthlyIncome: 0,
-    category: 'business',
-    risk: 'very_low'
+    category: 'education',
+    color: '#FF9800' // Оранжевый
   },
   {
-    id: 56,
+    id: 38,
     name: 'Сертификация',
     description: 'Получение профессиональных сертификатов.',
     type: 'education',
     cost: 1500,
     monthlyIncome: 0,
-    category: 'professional',
-    risk: 'very_low'
+    category: 'education',
+    color: '#FF9800' // Оранжевый
+  },
+  {
+    id: 39,
+    name: 'Магистратура',
+    description: 'Получение степени магистра.',
+    type: 'education',
+    cost: 25000,
+    monthlyIncome: 0,
+    category: 'education',
+    color: '#FF9800' // Оранжевый
+  },
+  {
+    id: 40,
+    name: 'MBA',
+    description: 'Получение степени MBA.',
+    type: 'education',
+    cost: 50000,
+    monthlyIncome: 0,
+    category: 'education',
+    color: '#FF9800' // Оранжевый
+  }
+];
+
+export const FAST_TRACK_CHARITY = [
+  // Благотворительность (красный цвет)
+  {
+    id: 41,
+    name: 'Пожертвование',
+    description: 'Пожертвование на благотворительность.',
+    type: 'charity',
+    cost: 1000,
+    monthlyIncome: 0,
+    category: 'charity',
+    color: '#F44336' // Красный
+  },
+  {
+    id: 42,
+    name: 'Волонтерство',
+    description: 'Участие в волонтерских программах.',
+    type: 'charity',
+    cost: 500,
+    monthlyIncome: 0,
+    category: 'charity',
+    color: '#F44336' // Красный
+  },
+  {
+    id: 43,
+    name: 'Фонд помощи',
+    description: 'Создание фонда помощи нуждающимся.',
+    type: 'charity',
+    cost: 5000,
+    monthlyIncome: 0,
+    category: 'charity',
+    color: '#F44336' // Красный
+  },
+  {
+    id: 44,
+    name: 'Социальный проект',
+    description: 'Участие в социальном проекте.',
+    type: 'charity',
+    cost: 3000,
+    monthlyIncome: 0,
+    category: 'charity',
+    color: '#F44336' // Красный
+  },
+  {
+    id: 45,
+    name: 'Экологическая инициатива',
+    description: 'Поддержка экологических инициатив.',
+    type: 'charity',
+    cost: 2000,
+    monthlyIncome: 0,
+    category: 'charity',
+    color: '#F44336' // Красный
+  }
+];
+
+export const FAST_TRACK_MARKET = [
+  // Рынок (голубой цвет)
+  {
+    id: 46,
+    name: 'Рыночные колебания',
+    description: 'Возможности на рынке акций.',
+    type: 'market',
+    cost: 0,
+    monthlyIncome: 1000,
+    category: 'market',
+    color: '#00BCD4' // Голубой
+  },
+  {
+    id: 47,
+    name: 'Валютные операции',
+    description: 'Операции с иностранной валютой.',
+    type: 'market',
+    cost: 0,
+    monthlyIncome: 800,
+    category: 'market',
+    color: '#00BCD4' // Голубой
+  },
+  {
+    id: 48,
+    name: 'Товарные фьючерсы',
+    description: 'Торговля товарными фьючерсами.',
+    type: 'market',
+    cost: 0,
+    monthlyIncome: 1200,
+    category: 'market',
+    color: '#00BCD4' // Голубой
+  },
+  {
+    id: 49,
+    name: 'Криптовалюты',
+    description: 'Торговля криптовалютами.',
+    type: 'market',
+    cost: 0,
+    monthlyIncome: 1500,
+    category: 'market',
+    color: '#00BCD4' // Голубой
+  },
+  {
+    id: 50,
+    name: 'Недвижимость',
+    description: 'Инвестиции в недвижимость.',
+    type: 'market',
+    cost: 0,
+    monthlyIncome: 2000,
+    category: 'market',
+    color: '#00BCD4' // Голубой
+  }
+];
+
+export const FAST_TRACK_DOODAD = [
+  // Всякая всячина (розовый цвет)
+  {
+    id: 51,
+    name: 'Новая одежда',
+    description: 'Покупка новой одежды.',
+    type: 'doodad',
+    cost: 500,
+    monthlyIncome: 0,
+    category: 'doodad',
+    color: '#E91E63' // Розовый
+  },
+  {
+    id: 52,
+    name: 'Электроника',
+    description: 'Покупка новой электроники.',
+    type: 'doodad',
+    cost: 1000,
+    monthlyIncome: 0,
+    category: 'doodad',
+    color: '#E91E63' // Розовый
+  },
+  {
+    id: 53,
+    name: 'Развлечения',
+    description: 'Расходы на развлечения.',
+    type: 'doodad',
+    cost: 300,
+    monthlyIncome: 0,
+    category: 'doodad',
+    color: '#E91E63' // Розовый
+  },
+  {
+    id: 54,
+    name: 'Рестораны',
+    description: 'Посещение ресторанов.',
+    type: 'doodad',
+    cost: 200,
+    monthlyIncome: 0,
+    category: 'doodad',
+    color: '#E91E63' // Розовый
+  },
+  {
+    id: 55,
+    name: 'Хобби',
+    description: 'Расходы на хобби.',
+    type: 'doodad',
+    cost: 400,
+    monthlyIncome: 0,
+    category: 'doodad',
+    color: '#E91E63' // Розовый
+  }
+];
+
+export const FAST_TRACK_PAYDAY = [
+  // День зарплаты (золотой цвет)
+  {
+    id: 56,
+    name: 'День зарплаты',
+    description: 'Получение зарплаты.',
+    type: 'payday',
+    cost: 0,
+    monthlyIncome: 5000,
+    category: 'payday',
+    color: '#FFD700' // Золотой
   }
 ];
 
 // Объединяем все активы в один массив
 export const ALL_FAST_TRACK_ASSETS = [
   ...FAST_TRACK_BUSINESSES,
-  ...FAST_TRACK_REAL_ESTATE,
-  ...FAST_TRACK_STOCKS,
-  ...FAST_TRACK_BONDS,
-  ...FAST_TRACK_CRYPTOCURRENCIES,
-  ...FAST_TRACK_PRECIOUS_METALS,
-  ...FAST_TRACK_COLLECTIBLES,
-  ...FAST_TRACK_FRANCHISES,
-  ...FAST_TRACK_PATENTS,
-  ...FAST_TRACK_INSURANCE,
-  ...FAST_TRACK_EDUCATION
+  ...FAST_TRACK_DREAMS,
+  ...FAST_TRACK_LOSSES,
+  ...FAST_TRACK_MONEY,
+  ...FAST_TRACK_OPPORTUNITIES,
+  ...FAST_TRACK_EDUCATION,
+  ...FAST_TRACK_CHARITY,
+  ...FAST_TRACK_MARKET,
+  ...FAST_TRACK_DOODAD,
+  ...FAST_TRACK_PAYDAY
 ];
 
 // Функция для получения актива по ID
@@ -625,9 +631,9 @@ export const getFastTrackAssetsByCategory = (category) => {
   return ALL_FAST_TRACK_ASSETS.filter(asset => asset.category === category);
 };
 
-// Функция для получения активов по уровню риска
-export const getFastTrackAssetsByRisk = (risk) => {
-  return ALL_FAST_TRACK_ASSETS.filter(asset => asset.risk === risk);
+// Функция для получения активов по цвету
+export const getFastTrackAssetsByColor = (color) => {
+  return ALL_FAST_TRACK_ASSETS.filter(asset => asset.color === color);
 };
 
 
