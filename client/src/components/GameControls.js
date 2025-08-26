@@ -8,12 +8,15 @@ import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import BuildIcon from '@mui/icons-material/Build';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import InventoryIcon from '@mui/icons-material/Inventory';
+import CasinoIcon from '@mui/icons-material/Casino';
 import { 
   Home as HomeIcon, 
   Business as BusinessIcon, 
   TrendingUp as TrendingUpIcon, 
   ShoppingCart as ShoppingCartIcon,
-  AttachMoney as AttachMoneyIcon 
+  AttachMoney as AttachMoneyIcon,
+  Work as WorkIcon,
+  Star as StarIcon
 } from '@mui/icons-material';
 
 // Компонент таймера хода
@@ -57,24 +60,8 @@ const TurnTimer = React.memo(({ timer, isActive, isMyTurn, diceValue, onRollDice
         <Button
           variant="contained"
           onClick={() => {
-            console.log('🎲 [TurnTimer] Кубик нажат!', {
-              onRollDice: typeof onRollDice,
-              isRolling,
-              isMyTurn,
-              diceValue
-            });
-            
-            // Кубик нажат - логируем
-            console.log('🎯 [TurnTimer] Кубик нажат!');
-            
             if (onRollDice && typeof onRollDice === 'function') {
-              console.log('✅ [TurnTimer] Вызываем onRollDice');
               onRollDice();
-            } else {
-              console.error('❌ [TurnTimer] onRollDice не работает:', onRollDice);
-              // Создаем тестовое значение кубика
-              const testValue = Math.floor(Math.random() * 6) + 1;
-              console.log('🎲 [TurnTimer] Тестовое значение кубика:', testValue);
             }
           }}
           disabled={isRolling || !isMyTurn}
@@ -284,26 +271,14 @@ const GameControls = React.memo(({
   onRollDice,
   isRolling,
   hasCharity,
-  roomId
+  roomId,
+  gamePhase,
+  diceAnimation
 }) => {
   const [assetsModalOpen, setAssetsModalOpen] = React.useState(false);
   const [professionModalOpen, setProfessionModalOpen] = useState(false);
   
-  // Отладочная информация
-  console.log('🎮 [GameControls] Получены пропсы:', {
-    isMyTurn,
-    currentTurn,
-    playersCount: players?.length || 0,
-    players: players,
-    myId,
-    currentPlayer,
-    playerProfession,
-    playerBalance,
-    turnBanner,
-    onRollDice: typeof onRollDice,
-    isRolling,
-    hasCharity
-  });
+  // Отладочная информация убрана для оптимизации
   
   // Используем реальных игроков с проверками
   const realPlayers = players && Array.isArray(players) ? players : [];
@@ -311,6 +286,8 @@ const GameControls = React.memo(({
   // Добавляем проверки на undefined
   const currentPlayerData = realPlayers.length > 0 ? realPlayers.find(p => p.id === currentTurn) : null;
   const myPlayer = realPlayers.length > 0 ? realPlayers.find(p => p.id === myId) : null;
+
+
 
   // Вспомогательные функции для активов
   const getAssetIcon = (type) => {
@@ -579,81 +556,142 @@ const GameControls = React.memo(({
         БАНК
       </Button>
 
-      {/* Карточка профессии и баланса игрока */}
-      <Box
-        sx={{
-          backgroundColor: '#FF9800',
-          borderRadius: 2,
-          p: 2,
-          border: '2px solid #F57C00',
-          textAlign: 'center'
-        }}
-      >
-        {playerProfession && typeof playerProfession === 'object' && playerProfession.name && (
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              color: 'white', 
-              fontWeight: 'bold',
-              mb: 1,
-              cursor: 'pointer',
-              '&:hover': { textDecoration: 'underline' }
+      {/* Кнопка "Бросить кубик" */}
+      {(gamePhase === 'diceRoll' || isMyTurn) && (
+        <Button
+          variant="contained"
+          onClick={onRollDice}
+          disabled={diceAnimation.isRolling}
+          startIcon={<CasinoIcon />}
+          sx={{
+            backgroundColor: '#FFD700',
+            color: '#000',
+            fontSize: '1.1rem',
+            fontWeight: 'bold',
+            px: 3,
+            py: 1.5,
+            borderRadius: 2,
+            boxShadow: '0 4px 15px rgba(255, 215, 0, 0.4)',
+            border: '2px solid #FFA000',
+            mt: 1,
+            '&:hover': {
+              backgroundColor: '#FFE55C',
+              transform: 'translateY(-2px)',
+              boxShadow: '0 6px 20px rgba(255, 215, 0, 0.6)'
+            },
+            transition: 'all 0.3s ease',
+            minWidth: '100%'
+          }}
+        >
+          {diceAnimation.isRolling ? '🎲 Бросаю...' : '🎲 БРОСИТЬ КУБИК'}
+        </Button>
+      )}
+
+      {/* Отображение результата броска кубика */}
+      {diceAnimation && diceAnimation.showAnimation && diceAnimation.currentValue && (
+        <Box
+          sx={{
+            mt: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            p: 2,
+            borderRadius: 2,
+            bgcolor: 'rgba(0,0,0,0.7)',
+            border: '1px solid #FFA000',
+            boxShadow: '0 0 15px rgba(255, 215, 0, 0.7)',
+          }}
+        >
+          <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 'bold', mb: 1 }}>
+            Выпало:
+          </Typography>
+          <Box
+            component="img"
+            src={`/images/K${diceAnimation.currentValue}.gif`}
+            alt={`Dice ${diceAnimation.currentValue}`}
+            sx={{
+              width: 80,
+              height: 80,
             }}
+          />
+          <Typography variant="h4" sx={{ color: '#FFD700', fontWeight: 'bold', mt: 1 }}>
+            {diceAnimation.currentValue}
+          </Typography>
+        </Box>
+      )}
+
+      {/* Анимация броска кубика */}
+      {diceAnimation && diceAnimation.isRolling && diceAnimation.rollingFrames.length > 0 && !diceAnimation.isAnimationComplete && (
+        <Box
+          sx={{
+            mt: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            p: 2,
+            borderRadius: 2,
+            bgcolor: 'rgba(0,0,0,0.7)',
+            border: '1px solid #FFA000',
+            boxShadow: '0 0 15px rgba(255, 215, 0, 0.7)',
+          }}
+        >
+          <Box
+            component="img"
+            src={`/images/K${diceAnimation.rollingFrames[diceAnimation.currentFrameIndex] || 1}.gif`}
+            alt="Rolling Dice"
+            sx={{
+              width: 80,
+              height: 80,
+            }}
+          />
+        </Box>
+      )}
+
+      {/* Карточка профессии - только название на кнопке */}
+      {playerProfession && typeof playerProfession === 'object' && playerProfession.name && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button
+            variant="contained"
             onClick={() => setProfessionModalOpen(true)}
+            startIcon={<WorkIcon />}
+            sx={{
+              backgroundColor: '#FF9800',
+              color: 'white',
+              fontWeight: 'bold',
+              borderRadius: 2,
+              padding: '12px 24px',
+              fontSize: '16px',
+              '&:hover': {
+                backgroundColor: '#F57C00'
+              }
+            }}
           >
             💼 {playerProfession.name}
-          </Typography>
-        )}
-        
-        {/* Отладочная информация */}
-        {process.env.NODE_ENV === 'development' && (
-          <>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem' }}>
-              Debug: {JSON.stringify(playerProfession, null, 2)}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem' }}>
-              playerBalance: {playerBalance}
-            </Typography>
-          </>
-        )}
-        <Typography 
-          variant="body2" 
-          sx={{ 
-            color: 'rgba(255,255,255,0.9)', 
-            mb: 0.5
-          }}
-        >
-          💵 Зарплата: ${(playerProfession?.salary || 0).toLocaleString()}
-        </Typography>
-        <Typography 
-          variant="body2" 
-          sx={{ 
-            color: 'rgba(255,255,255,0.9)', 
-            mb: 0.5
-          }}
-        >
-          📊 Расходы: ${(playerProfession?.expenses || 0).toLocaleString()}
-        </Typography>
-        <Typography 
-          variant="body2" 
-          sx={{ 
-            color: 'rgba(255,255,255,0.9)', 
-            mb: 0.5
-          }}
-        >
-          💎 Пассивный доход: ${(playerProfession?.passiveIncome || 0).toLocaleString()}
-        </Typography>
-        <Typography 
-          variant="h6" 
-          sx={{ 
-            color: 'white', 
-            fontWeight: 'bold',
-            mb: 1
-          }}
-        >
-          💰 Баланс: ${(playerProfession?.balance || playerBalance || 0).toLocaleString()}
-        </Typography>
-      </Box>
+          </Button>
+          
+          {/* Иконка хостинга */}
+          {isHost && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 40,
+                height: 40,
+                backgroundColor: '#FFD700',
+                borderRadius: '50%',
+                border: '2px solid #FFA000',
+                boxShadow: '0 2px 8px rgba(255, 215, 0, 0.5)',
+                animation: 'pulse 2s infinite'
+              }}
+              title="Хост игры"
+            >
+              <StarIcon sx={{ color: '#FFA000', fontSize: 24 }} />
+            </Box>
+          )}
+        </Box>
+      )}
 
       {/* Кнопка финансовой свободы */}
       <Button

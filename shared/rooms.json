@@ -407,14 +407,14 @@
   },
   "room2": {
     "roomId": "room2",
-    "displayName": "1666",
-    "originalRequestedId": "room1_862344",
+    "displayName": "2111",
+    "originalRequestedId": "room1_968120",
     "maxPlayers": 2,
     "currentPlayers": [
       {
-        "id": "5bUWXRxzzcWwHGzPAAAH",
+        "id": "Wp1--_ORtNqtEeaVAAAH",
         "fixedId": "1756108619266",
-        "socketId": null,
+        "socketId": "IIduQtlaEUImEG-WAAAF",
         "username": "xqrmedia",
         "ready": true,
         "position": 0,
@@ -441,14 +441,14 @@
         "charityTurns": 0,
         "_lastRollOptions": null,
         "seat": null,
-        "offline": true,
+        "offline": false,
         "roomId": "room2",
-        "readyAt": 1756175881074
+        "readyAt": 1756219239546
       },
       {
         "id": "1756108628790",
         "fixedId": "1756108628790",
-        "socketId": null,
+        "socketId": "Wp1--_ORtNqtEeaVAAAH",
         "username": "romeoproo1",
         "ready": true,
         "position": 0,
@@ -475,14 +475,14 @@
         "charityTurns": 0,
         "_lastRollOptions": null,
         "seat": null,
-        "offline": true,
+        "offline": false,
         "roomId": "room2",
-        "readyAt": 1756175893124
+        "readyAt": 1756219280663
       }
     ],
     "status": "determining_order",
     "password": "",
-    "hostId": null,
+    "hostId": "Wp1--_ORtNqtEeaVAAAH",
     "timer": {
       "hours": 3,
       "remaining": 10800
@@ -526,12 +526,12 @@
         ]
       }
     },
-    "createdAt": 1756175872510,
+    "createdAt": 1756217983332,
     "orderDetermination": {
       "phase": "initial_roll",
       "players": [
         {
-          "id": "VsZuGNSGECTeecf4AAAB",
+          "id": "Wp1--_ORtNqtEeaVAAAH",
           "username": "xqrmedia",
           "diceRoll": null,
           "finalPosition": null

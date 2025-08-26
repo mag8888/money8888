@@ -3,6 +3,7 @@ import { useGameNavigation } from '../hooks/useGameState';
 import socket from '../socket';
 import OrderDetermination from './OrderDetermination';
 import { PROFESSIONS } from '../data/professions';
+import { Box, Typography } from '@mui/material';
 
 const SimpleRoomSetup = ({ roomId, playerData }) => {
   console.log('🔍 [SimpleRoomSetup] Component props:', { roomId, playerData });
@@ -204,7 +205,12 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
       isHostById: hostId === playerId,
       isHostBySocket: hostId === socketId,
       isHostByCurrentPlayer: hostId === currentPlayer?.id,
-      roomData: roomData ? { hostId: roomData.hostId, status: roomData.status } : 'null'
+      roomData: roomData ? { 
+        hostId: roomData.hostId, 
+        status: roomData.status,
+        roomId: roomData.roomId,
+        maxPlayers: roomData.maxPlayers
+      } : 'null'
     });
     
     // Проверяем разными способами
@@ -498,7 +504,14 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
 
     // Подписываемся на обновление данных комнаты
     socket.on('roomData', (roomData) => {
-      console.log('🏠 [SimpleRoomSetup] Room data updated:', roomData);
+      console.log('🏠 [SimpleRoomSetup] Room data received:', roomData);
+      console.log('🏠 [SimpleRoomSetup] Room data details:', {
+        roomId: roomData?.roomId,
+        status: roomData?.status,
+        hostId: roomData?.hostId,
+        maxPlayers: roomData?.maxPlayers,
+        currentTurn: roomData?.currentTurn
+      });
       setRoomData(roomData);
     });
 
@@ -509,6 +522,12 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
       
       // Обновляем переменные игроков 1-10
       updatePlayerProfessionVariables(playersList);
+      
+      // Дополнительно запрашиваем данные комнаты, если их еще нет
+      if (!roomData) {
+        console.log('🏠 [SimpleRoomSetup] Requesting room data after players list update');
+        socket.emit('getRoom', roomId);
+      }
     });
 
     // Подписываемся на изменение хода
@@ -573,9 +592,26 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
       }
     });
 
+    // Подписываемся на бросок кубика для определения очередности
+    socket.on('orderDeterminationRoll', (data) => {
+      console.log('🎲 [SimpleRoomSetup] Order determination roll:', data);
+      if (data.roomId === roomId) {
+        // Обновляем список игроков после броска
+        socket.emit('getPlayers', roomId);
+      }
+    });
+
     // Запрашиваем текущие данные
     socket.emit('getPlayers', roomId);
     socket.emit('getRoom', roomId);
+    
+    // Дополнительно запрашиваем данные комнаты через небольшую задержку
+    setTimeout(() => {
+      if (!roomData) {
+        console.log('🏠 [SimpleRoomSetup] Retrying room data request after delay');
+        socket.emit('getRoom', roomId);
+      }
+    }, 1000);
 
     return () => {
       socket.off('playersUpdate');
@@ -594,6 +630,7 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
       socket.off('tieBreakStarted');
       socket.off('tieBreakTimerUpdate');
       socket.off('tieBreakCompleted');
+      socket.off('orderDeterminationRoll');
     };
   }, [roomId]);
 
@@ -1147,6 +1184,19 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
                     marginBottom: '8px'
                   }}>
                     {canStartGame() ? '✅ Все условия выполнены!' : '📋 Требования для старта:'}
+        
+        {/* Отладочная информация */}
+        <Box sx={{ mt: 2, p: 2, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 1 }}>
+          <Typography variant="body2" sx={{ color: '#FFD700', mb: 1 }}>
+            🔍 Отладка:
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#FFF', fontSize: '0.8rem' }}>
+            Хост: {isHost() ? '✅' : '❌'} | 
+            Готовы: {areAllPlayersReady() ? '✅' : '❌'} | 
+            Профессии: {players.every(p => isValidProfession(p.profession)) ? '✅' : '❌'} | 
+            Игроков: {players.length}/2
+          </Typography>
+        </Box>
                   </div>
                   
                   {canStartGame() ? (

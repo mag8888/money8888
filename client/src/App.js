@@ -7,7 +7,7 @@ import GameBoardWrapper from './components/GameBoardWrapper';
 import RatingsPage from './components/RatingsPage';
 import { useLogout } from './hooks/useLogout';
 import './styles/global-fixes.css';
-// import './websocket-fix.js'; // Временно отключено для отладки
+import './websocket-fix.js'; // Включаем обратно для предотвращения WebSocket конфликтов
 
 // Компонент-обертка для использования useNavigate
 function AppContent() {

@@ -7,9 +7,6 @@ export const useGameNavigation = (socket, roomId, onGameStarted) => {
 
   // Обработчик запуска игры
   const handleGameStarted = useCallback((gameData) => {
-    console.log('🎮 [useGameNavigation] Game started event received:', gameData);
-    console.log('🎮 [useGameNavigation] Current roomId:', roomId);
-    
     // Вызываем callback для обновления состояния
     if (onGameStarted) {
       onGameStarted(gameData);
@@ -17,7 +14,6 @@ export const useGameNavigation = (socket, roomId, onGameStarted) => {
     
     // Переходим к игровой доске
     const gamePath = `/game/${roomId}`;
-    console.log('🚀 [useGameNavigation] Navigating to game board:', gamePath);
     
     // Используем navigate для программного перехода
     navigate(gamePath, { replace: true });
@@ -27,24 +23,20 @@ export const useGameNavigation = (socket, roomId, onGameStarted) => {
   useEffect(() => {
     if (!socket || !roomId) return;
 
-    console.log('🎮 [useGameNavigation] Setting up game event listeners for room:', roomId);
+
     
     // Слушаем запуск игры
     socket.on('gameStarted', handleGameStarted);
     
     // Слушаем обновление данных комнаты
     socket.on('roomData', (roomData) => {
-      console.log('🏠 [useGameNavigation] Room data updated:', roomData);
-      
       // Если игра запущена, переходим к игровой доске
       if (roomData.status === 'started') {
-        console.log('🚀 [useGameNavigation] Room status is started, navigating to game board');
         handleGameStarted(roomData);
       }
     });
 
     return () => {
-      console.log('🎮 [useGameNavigation] Cleaning up game event listeners');
       socket.off('gameStarted', handleGameStarted);
       socket.off('roomData');
     };
@@ -69,15 +61,12 @@ export const useGameState = (roomId) => {
     modal: null
   });
 
-  // Подписываемся на события игры для обновления списка игроков
+  // Настройка слушателей событий игры
   useEffect(() => {
     if (!socket || !roomId) return;
-
-    console.log('🎮 [useGameState] Setting up game event listeners for room:', roomId);
     
     // Слушаем список игроков
     const handlePlayersList = (playersData) => {
-      console.log('👥 [useGameState] Players list received:', playersData);
       if (playersData && Array.isArray(playersData)) {
         updateGameState({ players: playersData });
       }
@@ -85,7 +74,6 @@ export const useGameState = (roomId) => {
 
     // Слушаем обновление данных комнаты
     const handleRoomData = (roomData) => {
-      console.log('🏠 [useGameState] Room data updated:', roomData);
       if (roomData.players && Array.isArray(roomData.players)) {
         updateGameState({ players: roomData.players });
       }
@@ -93,7 +81,6 @@ export const useGameState = (roomId) => {
 
     // Слушаем запуск игры
     const handleGameStarted = (gameData) => {
-      console.log('🚀 [useGameState] Game started event received:', gameData);
       if (gameData.players && Array.isArray(gameData.players)) {
         updateGameState({ players: gameData.players });
       }
@@ -101,7 +88,6 @@ export const useGameState = (roomId) => {
 
     // Слушаем начало определения очередности
     const handleOrderDeterminationStarted = (orderData) => {
-      console.log('🎯 [useGameState] Order determination started:', orderData);
       if (orderData.players && Array.isArray(orderData.players)) {
         // Преобразуем данные игроков в нужный формат
         const players = orderData.players.map(p => ({
@@ -120,7 +106,6 @@ export const useGameState = (roomId) => {
     socket.on('orderDeterminationStarted', handleOrderDeterminationStarted);
 
     return () => {
-      console.log('🎮 [useGameState] Cleaning up game event listeners');
       socket.off('playersList', handlePlayersList);
       socket.off('roomData', handleRoomData);
       socket.off('gameStarted', handleGameStarted);
@@ -148,26 +133,17 @@ export const useGameState = (roomId) => {
 
   // Обновление состояния игры
   const updateGameState = useCallback((updates) => {
-    console.log('🔄 [useGameState] Обновляем состояние игры:', updates);
-    console.log('🔄 [useGameState] Тип updates:', typeof updates);
-    
+    // Убираем все логи для предотвращения перерендеров и спама
     setGameState(prev => {
       let newState;
       
       if (typeof updates === 'function') {
         // Если updates - это функция, вызываем её с предыдущим состоянием
         newState = updates(prev);
-        console.log('🔄 [useGameState] Функция updates выполнена, новое состояние:', newState);
       } else {
         // Если updates - это объект, объединяем с предыдущим состоянием
         newState = { ...prev, ...updates };
-        console.log('🔄 [useGameState] Объект updates применен, новое состояние:', newState);
       }
-      
-      // Проверяем тип players в новом состоянии
-      console.log('🔄 [useGameState] Новое состояние.players type:', typeof newState.players);
-      console.log('🔄 [useGameState] Новое состояние.players isArray:', Array.isArray(newState.players));
-      console.log('🔄 [useGameState] Новое состояние.players length:', newState.players?.length);
       
       return newState;
     });

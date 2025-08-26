@@ -309,14 +309,65 @@ const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 const ROOMS_FILE = path.join(__dirname, '../shared/rooms.json');
 function persistRooms() {
   try {
+    // Создаем копию комнат для сохранения, убирая циклические ссылки
+    const roomsToSave = {};
+    
+    Object.keys(rooms).forEach(roomId => {
+      const room = rooms[roomId];
+      if (room) {
+        // Создаем чистую копию комнаты без циклических ссылок
+        const cleanRoom = {
+          roomId: room.roomId,
+          displayName: room.displayName,
+          originalRequestedId: room.originalRequestedId,
+          maxPlayers: room.maxPlayers,
+          currentPlayers: room.currentPlayers ? room.currentPlayers.map(player => ({
+            id: player.id,
+            username: player.username,
+            socketId: player.socketId,
+            offline: player.offline,
+            ready: player.ready,
+            profession: player.profession,
+            balance: player.balance,
+            salary: player.salary,
+            expenses: player.expenses,
+            passiveIncome: player.passiveIncome,
+            totalExpenses: player.totalExpenses,
+            monthlyCashflow: player.monthlyCashflow,
+            assets: player.assets,
+            charity: player.charity
+          })) : [],
+          status: room.status,
+          password: room.password,
+          hostId: room.hostId,
+          timer: room.timer,
+          currentTurn: room.currentTurn,
+          board: room.board,
+          createdAt: room.createdAt,
+          orderDetermination: room.orderDetermination ? {
+            phase: room.orderDetermination.phase,
+            players: room.orderDetermination.players.map(p => ({
+              id: p.id,
+              username: p.username,
+              diceRoll: p.diceRoll,
+              tieBreakRoll: p.tieBreakRoll
+            })),
+            timer: room.orderDetermination.timer
+          } : null
+        };
+        
+        roomsToSave[roomId] = cleanRoom;
+      }
+    });
+    
     // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ПЕРЕД СОХРАНЕНИЕМ
-    Object.values(rooms).forEach(room => {
+    Object.values(roomsToSave).forEach(room => {
       if (room && room.currentPlayers) {
         cleanupGuestPlayers(room);
       }
     });
     
-    fs.writeFileSync(ROOMS_FILE, JSON.stringify(rooms, null, 2));
+    fs.writeFileSync(ROOMS_FILE, JSON.stringify(roomsToSave, null, 2));
   } catch (e) {
     console.error('Persist rooms error:', e);
   }
@@ -1830,8 +1881,17 @@ io.on('connection', (socket) => {
         roomId: room.roomId,
         status: room.status,
         currentTurn: room.currentTurn,
-        playersCount: room.currentPlayers.length
+        playersCount: room.currentPlayers.length,
+        hostId: room.hostId,
+        maxPlayers: room.maxPlayers
       });
+      
+      // Проверяем и устанавливаем hostId если его нет
+      if (!room.hostId && room.currentPlayers.length > 0) {
+        room.hostId = room.currentPlayers[0].id;
+        console.log(`👑 [SERVER] Auto-setting hostId for room ${roomId}: ${room.hostId}`);
+      }
+      
       socket.emit('roomData', {
         roomId: room.roomId,
         maxPlayers: room.maxPlayers,
@@ -2112,6 +2172,300 @@ function startRoomTimers(roomId) {
 
   // Сохраняем таймер
   roomTimers.set(roomId, { cleanupTimer });
+}
+
+// Функция запуска таймера определения очередности
+function startOrderDeterminationTimer(roomId) {
+  const room = rooms[roomId];
+  if (!room || !room.orderDetermination) return;
+  
+  console.log('⏰ [SERVER] Starting order determination timer for room:', roomId);
+  
+  // Запускаем таймер (60 секунд на бросок кубиков)
+  room.orderDetermination.timerInterval = setInterval(() => {
+    const r = rooms[roomId];
+    if (!r || !r.orderDetermination) return;
+    
+    r.orderDetermination.timer -= 1;
+    
+    if (r.orderDetermination.timer <= 0) {
+      clearInterval(r.orderDetermination.timerInterval);
+      
+      console.log('⏰ [SERVER] Order determination timer expired for room:', roomId);
+      
+      // Автоматически бросаем кубики для игроков, которые не бросили
+      r.orderDetermination.players.forEach(p => {
+        if (p.diceRoll === null) {
+          p.diceRoll = Math.floor(Math.random() * 6) + 1;
+          console.log('🎲 [SERVER] Auto roll for', p.username, ':', p.diceRoll);
+        }
+      });
+      
+      // Определяем финальный порядок
+      determineFinalOrder(roomId);
+    } else {
+      // Отправляем обновление таймера
+      io.to(roomId).emit('orderDeterminationTimerUpdate', {
+        remainingTime: r.orderDetermination.timer,
+        phase: 'initial_roll'
+      });
+    }
+  }, 1000);
+}
+
+// Функция определения финального порядка игроков
+function determineFinalOrder(roomId) {
+  const room = rooms[roomId];
+  if (!room || !room.orderDetermination) return;
+  
+  console.log('🎯 [SERVER] Determining final order for room:', roomId);
+  
+  // Сортируем игроков по результату броска (высший первый)
+  const sortedPlayers = [...room.orderDetermination.players].sort((a, b) => {
+    if (a.diceRoll === b.diceRoll) {
+      // При одинаковых результатах сортируем по ID для стабильности
+      return a.id.localeCompare(b.id);
+    }
+    return b.diceRoll - a.diceRoll; // По убыванию
+  });
+  
+  // Проверяем, есть ли ничьи (одинаковые результаты)
+  const hasTies = sortedPlayers.some((player, index) => {
+    if (index === 0) return false;
+    return player.diceRoll === sortedPlayers[index - 1].diceRoll;
+  });
+  
+  if (hasTies) {
+    console.log('🎯 [SERVER] Ties detected, starting tie break phase');
+    
+    // Переходим в фазу переигровки
+    room.orderDetermination.phase = 'tie_break';
+    room.orderDetermination.tieBreakPlayers = sortedPlayers.filter((player, index) => {
+      if (index === 0) return false;
+      return player.diceRoll === sortedPlayers[index - 1].diceRoll;
+    });
+    
+    // Добавляем первого игрока с таким же результатом
+    const firstTieValue = sortedPlayers[0].diceRoll;
+    const firstTiePlayer = sortedPlayers.find(p => p.diceRoll === firstTieValue);
+    if (firstTiePlayer && !room.orderDetermination.tieBreakPlayers.find(p => p.id === firstTiePlayer.id)) {
+      room.orderDetermination.tieBreakPlayers.unshift(firstTiePlayer);
+    }
+    
+    // Сбрасываем результаты переигровки
+    room.orderDetermination.tieBreakPlayers.forEach(p => {
+      p.tieBreakRoll = null;
+    });
+    
+    // Запускаем таймер переигровки (30 секунд)
+    room.orderDetermination.tieBreakTimer = 30;
+    room.orderDetermination.tieBreakTimerInterval = setInterval(() => {
+      const r = rooms[roomId];
+      if (!r || !r.orderDetermination) return;
+      
+      r.orderDetermination.tieBreakTimer -= 1;
+      
+      if (r.orderDetermination.tieBreakTimer <= 0) {
+        clearInterval(r.orderDetermination.tieBreakTimerInterval);
+        
+        // Автоматически бросаем кубики для игроков, которые не бросили
+        r.orderDetermination.tieBreakPlayers.forEach(p => {
+          if (p.tieBreakRoll === null) {
+            p.tieBreakRoll = Math.floor(Math.random() * 6) + 1;
+            console.log('🎲 [SERVER] Auto tie break roll for', p.username, ':', p.tieBreakRoll);
+          }
+        });
+        
+        // Определяем финальный порядок с переигровкой
+        determineFinalOrderWithTieBreak(roomId);
+      } else {
+        // Отправляем обновление таймера
+        io.to(roomId).emit('orderDeterminationTimerUpdate', {
+          remainingTime: r.orderDetermination.tieBreakTimer,
+          phase: 'tie_break'
+        });
+      }
+    }, 1000);
+    
+    // Уведомляем клиентов о начале переигровки
+    io.to(roomId).emit('orderDeterminationPhaseChanged', {
+      phase: 'tie_break',
+      tieBreakPlayers: room.orderDetermination.tieBreakPlayers
+    });
+    
+  } else {
+    console.log('🎯 [SERVER] No ties, finalizing order');
+    
+    // Ничьих нет, финализируем порядок
+    finalizeOrder(roomId, sortedPlayers);
+  }
+}
+
+// Функция определения финального порядка с переигровкой
+function determineFinalOrderWithTieBreak(roomId) {
+  const room = rooms[roomId];
+  if (!room || !room.orderDetermination) return;
+  
+  console.log('🎯 [SERVER] Determining final order with tie break for room:', roomId);
+  
+  // Сортируем игроков по результату переигровки
+  const tieBreakPlayers = room.orderDetermination.tieBreakPlayers || [];
+  const sortedTieBreakPlayers = [...tieBreakPlayers].sort((a, b) => {
+    if (a.tieBreakRoll === b.tieBreakRoll) {
+      // При одинаковых результатах переигровки сортируем по основному броску
+      if (a.diceRoll === b.diceRoll) {
+        return a.id.localeCompare(b.id); // По ID для стабильности
+      }
+      return b.diceRoll - a.diceRoll;
+    }
+    return b.tieBreakRoll - a.tieBreakRoll; // По убыванию
+  });
+  
+  // Обновляем позиции игроков с переигровкой
+  sortedTieBreakPlayers.forEach((player, index) => {
+    const orderPlayer = room.orderDetermination.players.find(p => p.id === player.id);
+    if (orderPlayer) {
+      orderPlayer.finalPosition = index;
+    }
+  });
+  
+  // Определяем позиции остальных игроков
+  const nonTiePlayers = room.orderDetermination.players.filter(p => 
+    !tieBreakPlayers.find(tp => tp.id === p.id)
+  );
+  
+  // Сортируем по основному броску
+  const sortedNonTiePlayers = nonTiePlayers.sort((a, b) => b.diceRoll - a.diceRoll);
+  
+  // Назначаем позиции (начиная с позиции после игроков с переигровкой)
+  sortedNonTiePlayers.forEach((player, index) => {
+    player.finalPosition = tieBreakPlayers.length + index;
+  });
+  
+  // Собираем финальный порядок
+  const finalOrder = [...room.orderDetermination.players].sort((a, b) => a.finalPosition - b.finalPosition);
+  
+  // Финазируем порядок
+  finalizeOrder(roomId, finalOrder);
+}
+
+// Функция финализации порядка и начала игры
+function finalizeOrder(roomId, finalOrder) {
+  const room = rooms[roomId];
+  if (!room || !room.orderDetermination) return;
+  
+  console.log('🎯 [SERVER] Finalizing order for room:', roomId);
+  
+  // Обновляем порядок игроков в комнате
+  const newPlayerOrder = [];
+  finalOrder.forEach((orderPlayer, index) => {
+    const actualPlayer = room.currentPlayers.find(p => p.id === orderPlayer.id);
+    if (actualPlayer) {
+      actualPlayer.gameOrder = index;
+      actualPlayer.position = 0; // Начинаем с позиции 0
+      newPlayerOrder.push(actualPlayer);
+    }
+  });
+  
+  // Обновляем порядок игроков в комнате
+  room.currentPlayers = newPlayerOrder;
+  
+  // Устанавливаем первого игрока как текущий ход
+  room.currentTurn = newPlayerOrder[0].id;
+  
+  // Меняем статус комнаты на "игра началась"
+  room.status = 'started';
+  
+  // Очищаем состояние определения очередности
+  delete room.orderDetermination;
+  
+  // Уведомляем клиентов о завершении определения очередности
+  io.to(roomId).emit('orderDeterminationCompleted', {
+    finalOrder: newPlayerOrder.map(p => ({
+      id: p.id,
+      username: p.username,
+      position: p.gameOrder
+    })),
+    currentTurn: room.currentTurn
+  });
+  
+  // Отправляем обновленные данные комнаты
+  io.to(roomId).emit('roomData', {
+    roomId: room.roomId,
+    maxPlayers: room.maxPlayers,
+    status: room.status,
+    hostId: room.hostId,
+    timer: room.timer,
+    currentTurn: room.currentTurn
+  });
+  
+  // Отправляем обновленный список игроков
+  io.to(roomId).emit('playersUpdate', room.currentPlayers);
+  
+  // Запускаем игровой таймер
+  startGameTimer(roomId);
+  
+  console.log('🎯 [SERVER] Order determination completed for room:', roomId);
+  console.log('🎯 [SERVER] Final order:', newPlayerOrder.map(p => `${p.username} (${p.gameOrder})`));
+  console.log('🎯 [SERVER] Current turn:', room.currentTurn);
+  
+  // Сохраняем состояние
+  persistRooms();
+}
+
+// Функция запуска игрового таймера
+function startGameTimer(roomId) {
+  const room = rooms[roomId];
+  if (!room) return;
+  
+  // Запускаем таймер хода (2 минуты на ход)
+  room.turnTimer = 120;
+  room.turnTimerInterval = setInterval(() => {
+    const r = rooms[roomId];
+    if (!r) return;
+    
+    r.turnTimer -= 1;
+    
+    if (r.turnTimer <= 0) {
+      // Время хода истекло, переходим к следующему игроку
+      nextTurn(roomId);
+    } else {
+      // Отправляем обновление таймера
+      io.to(roomId).emit('turnTimerUpdate', {
+        remaining: r.turnTimer,
+        currentTurn: r.currentTurn
+      });
+    }
+  }, 1000);
+}
+
+// Функция перехода к следующему ходу
+function nextTurn(roomId) {
+  const room = rooms[roomId];
+  if (!room || !room.currentPlayers.length) return;
+  
+  // Находим текущего игрока
+  const currentPlayerIndex = room.currentPlayers.findIndex(p => p.id === room.currentTurn);
+  if (currentPlayerIndex === -1) return;
+  
+  // Переходим к следующему игроку
+  const nextPlayerIndex = (currentPlayerIndex + 1) % room.currentPlayers.length;
+  const nextPlayer = room.currentPlayers[nextPlayerIndex];
+  
+  // Обновляем текущий ход
+  room.currentTurn = nextPlayer.id;
+  room.turnTimer = 120; // Сбрасываем таймер
+  
+  // Уведомляем клиентов о смене хода
+  io.to(roomId).emit('turnChanged', {
+    playerId: room.currentTurn,
+    previousPlayerId: room.currentPlayers[currentPlayerIndex].id
+  });
+  
+  console.log('🔄 [SERVER] Turn changed to:', nextPlayer.username);
+  
+  // Сохраняем состояние
+  persistRooms();
 }
 
 // Запускаем сервер

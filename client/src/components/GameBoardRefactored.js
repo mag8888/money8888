@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Typography, Avatar } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useLogout } from '../hooks/useLogout';
@@ -32,16 +32,39 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
     getTransferablePlayers
   } = useGameState(roomId);
 
+  // Состояние фазы игры
+  const [gamePhase, setGamePhase] = useState('waiting'); // waiting, diceRoll, playing, finished
+  
+  // Состояние анимации кубика
+  const [diceAnimation, setDiceAnimation] = useState({
+    isRolling: false,
+    currentValue: null,
+    showAnimation: false,
+    rollingFrames: [],
+    isAnimationComplete: false, // Флаг завершения анимации
+    currentFrameIndex: 0 // Индекс текущего кадра анимации
+  });
+
+  // Состояние таймера очередности
+  const [orderTimer, setOrderTimer] = useState({
+    isActive: false,
+    timeLeft: 300, // 5 минут = 300 секунд
+    totalTime: 300
+  });
+
+  // Состояние очередности игроков
+  const [playerOrder, setPlayerOrder] = useState([]);
+
   // Принудительно запрашиваем список игроков при загрузке компонента
   useEffect(() => {
     if (roomId && socket) {
-      console.log('🎮 [GameBoard] Запрашиваем список игроков при загрузке');
+
       socket.emit('getPlayers', roomId);
       socket.emit('getRoom', roomId);
       
       // Повторно запрашиваем через небольшую задержку
       const timer = setTimeout(() => {
-        console.log('🎮 [GameBoard] Повторно запрашиваем список игроков');
+  
         socket.emit('getPlayers', roomId);
         socket.emit('getRoom', roomId);
       }, 1000);
@@ -50,17 +73,51 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
     }
   }, [roomId]);
 
+  // Запускаем таймер очередности сразу после входа в комнату
+  useEffect(() => {
+    if (roomId && socket) {
+      // Запускаем таймер на 5 минут для определения очередности
+      setOrderTimer(prev => ({
+        ...prev,
+        isActive: true,
+        timeLeft: 300,
+        totalTime: 300
+      }));
+
+      // Запускаем обратный отсчет
+      const countdownInterval = setInterval(() => {
+        setOrderTimer(prev => {
+          if (prev.timeLeft <= 1) {
+            // Время вышло - завершаем определение очередности
+            clearInterval(countdownInterval);
+            return {
+              ...prev,
+              isActive: false,
+              timeLeft: 0
+            };
+          }
+          return {
+            ...prev,
+            timeLeft: prev.timeLeft - 1
+          };
+        });
+      }, 1000);
+
+      return () => clearInterval(countdownInterval);
+    }
+  }, [roomId, socket]);
+
   // Периодически обновляем список игроков
   useEffect(() => {
     if (roomId && socket) {
       const interval = setInterval(() => {
-        console.log('🎮 [GameBoard] Периодическое обновление списка игроков');
+        // Убираем лишний лог для уменьшения спама
         socket.emit('getPlayers', roomId);
-      }, 5000); // Каждые 5 секунд
+      }, 10000); // Увеличиваем интервал до 10 секунд
       
       return () => clearInterval(interval);
     }
-  }, [roomId]);
+  }, [roomId, socket]);
 
   // Используем хук для Socket.IO событий
   useSocketEvents(
@@ -71,6 +128,123 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
     updateFreedomState,
     updateExitState
   );
+
+  // Слушаем события комнаты для обновления gamePhase
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleRoomData = (roomData) => {
+
+      
+      // Обновляем gamePhase в зависимости от статуса комнаты
+      if (roomData.status === 'determining_order') {
+
+        setGamePhase('diceRoll');
+      } else if (roomData.status === 'started') {
+
+        setGamePhase('playing');
+      } else if (roomData.status === 'waiting') {
+
+        setGamePhase('waiting');
+      }
+    };
+
+    const handleOrderDeterminationStarted = (orderData) => {
+
+      setGamePhase('diceRoll');
+    };
+
+    socket.on('roomData', handleRoomData);
+    socket.on('orderDeterminationStarted', handleOrderDeterminationStarted);
+
+    return () => {
+      socket.off('roomData', handleRoomData);
+      socket.off('orderDeterminationStarted', handleOrderDeterminationStarted);
+    };
+  }, [socket]);
+
+  // Функция броска кубика
+  const handleRollDice = () => {
+    if (diceAnimation.isRolling) return;
+    
+    // Генерируем случайное число от 1 до 6
+    const randomValue = Math.floor(Math.random() * 6) + 1;
+    
+    // Создаем массив случайных кадров для анимации (61 кадр для полной анимации)
+    const frames = [];
+    for (let i = 0; i < 61; i++) {
+      frames.push(Math.floor(Math.random() * 6) + 1);
+    }
+    
+    // Устанавливаем начальное состояние анимации
+    setDiceAnimation(prev => ({
+      ...prev,
+      isRolling: true,
+      showAnimation: true,
+      rollingFrames: frames,
+      currentValue: null,
+      isAnimationComplete: false,
+      currentFrameIndex: 0
+    }));
+    
+    // Создаем интервал для анимации кадров
+    let frameIndex = 0;
+    const animationInterval = setInterval(() => {
+      frameIndex++;
+      
+      // Обновляем текущий кадр в состоянии
+      setDiceAnimation(prev => ({
+        ...prev,
+        currentFrameIndex: frameIndex
+      }));
+      
+      // Останавливаем анимацию после 61 кадра (0-60)
+      if (frameIndex >= 60) {
+        // Очищаем интервал
+        clearInterval(animationInterval);
+        
+        // Устанавливаем финальное состояние
+        setDiceAnimation(prev => ({
+          ...prev,
+          isRolling: false,
+          showAnimation: true,
+          currentValue: randomValue,
+          rollingFrames: [],
+          isAnimationComplete: true,
+          currentFrameIndex: 0
+        }));
+        
+        // Вызываем функцию rollDice
+        if (rollDice && typeof rollDice === 'function') {
+          rollDice(randomValue);
+        }
+        
+        return;
+      }
+    }, 100); // 100мс для более плавной анимации
+    
+    // Принудительная остановка через 6.1 секунды как страховка
+    setTimeout(() => {
+      // Очищаем интервал если он еще активен
+      clearInterval(animationInterval);
+      
+      // Принудительно устанавливаем финальное состояние
+      setDiceAnimation(prev => ({
+        ...prev,
+        isRolling: false,
+        showAnimation: true,
+        currentValue: randomValue,
+        rollingFrames: [],
+        isAnimationComplete: true,
+        currentFrameIndex: 0
+      }));
+      
+      // Вызываем функцию rollDice если еще не вызвали
+      if (rollDice && typeof rollDice === 'function') {
+        rollDice(randomValue);
+      }
+    }, 6100);
+  };
 
   // Используем хук для игровой логики
   const {
@@ -94,7 +268,7 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
 
   // Обработчики событий
   const handleExitGame = useCallback(() => {
-    console.log('🔄 [GameBoard] Exit game confirmed');
+    
     updateExitState({ modalOpen: false });
     
     if (onExit) {
@@ -121,7 +295,7 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
   }, [updateExitState]);
 
   const handleCellClick = useCallback((position, cellType) => {
-    console.log('🔄 [GameBoard] Cell clicked:', { position, cellType });
+    
     
     if (gameState.isMyTurn) {
       // Здесь можно добавить логику для обработки клика по клетке
@@ -158,9 +332,10 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
 
   // Обновляем активы игрока при изменении состояния
   useEffect(() => {
-    if (currentPlayer?.assets) {
-      console.log('🔄 [GameBoard] Player assets updated:', currentPlayer.assets);
-    }
+    // Убираем лишний лог для уменьшения спама
+    // if (currentPlayer?.assets) {
+    //   console.log('🔄 [GameBoard] Player assets updated:', currentPlayer.assets);
+    // }
   }, [currentPlayer?.assets]);
 
   return (
@@ -265,12 +440,7 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
             gap: 2
           }}
         >
-          {console.log('🎮 [GameBoard] Передаем в GameField:', {
-            isMyTurn: gameState.isMyTurn,
-            diceValue: diceState.displayDice,
-            isRolling: diceState.isRolling,
-            rollDice: typeof rollDice
-          })}
+
           <GameField
             players={gameState.players}
             currentTurn={gameState.currentTurn}
@@ -279,6 +449,8 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
             isMyTurn={gameState.isMyTurn}
             diceValue={diceState.displayDice}
             isRolling={diceState.isRolling}
+            gamePhase={gamePhase}
+            diceAnimation={diceAnimation}
           />
           
           {/* Управление игрой под полем */}
@@ -300,17 +472,7 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
 
         {/* Правая панель - Управление */}
         <Box sx={{ width: 300 }}>
-          {console.log('🎮 [GameBoard] Передаем в GameControls:', {
-            isMyTurn: gameState.isMyTurn,
-            currentTurn: gameState.currentTurn,
-            playersCount: gameState.players?.length || 0,
-            players: gameState.players,
-            myId: gameState.myId,
-            turnBanner: gameState.turnBanner,
-            rollDice: typeof rollDice,
-            diceState: diceState,
-            turnTimerState: turnTimerState
-          })}
+
           <GameControls
             isMyTurn={gameState.isMyTurn}
             currentTurn={gameState.currentTurn}
@@ -341,10 +503,12 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
             onResumeTimer={resumeTurnTimer}
             isHost={gameState.hostId === gameState.myId}
             timerPaused={turnTimerState.paused}
-            onRollDice={rollDice}
-            isRolling={diceState.isRolling}
+            onRollDice={handleRollDice}
+            isRolling={diceAnimation.isRolling}
             hasCharity={currentPlayer?.charity || false}
             roomId={roomId}
+            gamePhase={gamePhase}
+            diceAnimation={diceAnimation}
           />
         </Box>
       </Box>

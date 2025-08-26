@@ -2,6 +2,7 @@ import React from 'react';
 import BusinessIcon from '@mui/icons-material/Business';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import { FAST_TRACK_BUSINESSES } from '../data/fastTrack';
 
 // Конфигурация клеток игрового поля
 export const CELL_CONFIG = {
@@ -36,11 +37,11 @@ export const CELL_CONFIG = {
   // Внешний квадрат - 56 клеток Быстрый Путь
   outerSquare: [
     // Верхний ряд (1-14)
-    { type: 'fastTrack', icon: <BusinessIcon />, color: '#4CAF50', name: 'Быстрый Путь 1' },
-    { type: 'fastTrack', icon: <BusinessIcon />, color: '#4CAF50', name: 'Быстрый Путь 2' },
-    { type: 'fastTrack', icon: <BusinessIcon />, color: '#4CAF50', name: 'Быстрый Путь 3' },
-    { type: 'fastTrack', icon: <BusinessIcon />, color: '#4CAF50', name: 'Быстрый Путь 4' },
-    { type: 'fastTrack', icon: <BusinessIcon />, color: '#4CAF50', name: 'Быстрый Путь 5' },
+    { type: 'fastTrack', icon: <BusinessIcon />, color: '#4CAF50', name: FAST_TRACK_BUSINESSES[0]?.name || 'Быстрый Путь 1', data: FAST_TRACK_BUSINESSES[0] },
+    { type: 'fastTrack', icon: <BusinessIcon />, color: '#4CAF50', name: FAST_TRACK_BUSINESSES[1]?.name || 'Быстрый Путь 2', data: FAST_TRACK_BUSINESSES[1] },
+    { type: 'fastTrack', icon: <BusinessIcon />, color: '#4CAF50', name: FAST_TRACK_BUSINESSES[2]?.name || 'Быстрый Путь 3', data: FAST_TRACK_BUSINESSES[2] },
+    { type: 'fastTrack', icon: <BusinessIcon />, color: '#4CAF50', name: FAST_TRACK_BUSINESSES[3]?.name || 'Быстрый Путь 4', data: FAST_TRACK_BUSINESSES[3] },
+    { type: 'fastTrack', icon: <BusinessIcon />, color: '#4CAF50', name: FAST_TRACK_BUSINESSES[4]?.name || 'Быстрый Путь 5', data: FAST_TRACK_BUSINESSES[4] },
     { type: 'fastTrack', icon: <BusinessIcon />, color: '#4CAF50', name: 'Быстрый Путь 6' },
     { type: 'fastTrack', icon: <BusinessIcon />, color: '#4CAF50', name: 'Быстрый Путь 7' },
     { type: 'fastTrack', icon: <BusinessIcon />, color: '#4CAF50', name: 'Быстрый Путь 8' },

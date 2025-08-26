@@ -239,16 +239,19 @@ const GameField = ({
   onRollDice, 
   isMyTurn,
   diceValue,
-  isRolling 
+  isRolling,
+  gamePhase,
+  diceAnimation
 }) => {
-  console.log('🎯 [GameField] Получены пропсы:', {
-    players: players?.length || 0,
-    currentTurn,
-    isMyTurn,
-    diceValue,
-    isRolling,
-    onRollDice: typeof onRollDice
-  });
+  // Убираем лишние логи для уменьшения спама
+  // console.log('🎯 [GameField] Получены пропсы:', {
+  //   players: players?.length || 0,
+  //   currentTurn,
+  //   isMyTurn,
+  //   diceValue,
+  //   isRolling,
+  //   onRollDice: typeof onRollDice
+  // });
 
   // Состояние стопок карточек
   const [cardDecks, setCardDecks] = useState({
@@ -273,7 +276,6 @@ const GameField = ({
   const [gameStarted, setGameStarted] = useState(false);
   
   // Состояние системы ходов
-  const [gamePhase, setGamePhase] = useState('waiting'); // waiting, diceRoll, playing, finished
   const [playerOrder, setPlayerOrder] = useState([]); // Порядок игроков
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0); // Индекс текущего игрока
   const [diceResults, setDiceResults] = useState({}); // Результаты бросков кубиков
@@ -283,24 +285,29 @@ const GameField = ({
   const [playerTokens, setPlayerTokens] = useState({});
   const [movingPlayers, setMovingPlayers] = useState(new Set());
   
+
+  
   // Убираем localIsMyTurn, используем только isMyTurn из пропсов
   
-  console.log('🚀 [GameField] Компонент инициализирован с пропсами:', {
-    players: players?.length || 0,
-    currentTurn,
-    isMyTurn,
-    diceValue
-  });
+
   
-  console.log('📊 [GameField] Состояния компонента:', {
-    playerProfession: playerProfession?.name || 'null',
-    playerBalance,
-    gameStarted,
-    gamePhase,
-    currentPlayerIndex,
-    turnTimer,
-    isMyTurn
-  });
+  // Убираем лишние логи для уменьшения спама
+  // console.log('🚀 [GameField] Компонент инициализирован с пропсами:', {
+  //   players: players?.length || 0,
+  //   currentTurn,
+  //   isMyTurn,
+  //   diceValue
+  // });
+  
+  // console.log('📊 [GameField] Состояния компонента:', {
+  //   playerProfession: playerProfession?.name || 'null',
+  //   playerBalance,
+  //   gameStarted,
+  //   gamePhase,
+  //   currentPlayerIndex,
+  //   turnTimer,
+  //   isMyTurn
+  // });
 
   // Функция перетасовки колоды
   const handleShuffleDeck = (deckType) => {
@@ -325,6 +332,8 @@ const GameField = ({
     }, 600);
   };
 
+
+  
   // Функция взятия карты из колоды
   const drawCard = (deckType) => {
     setCardDecks(prev => ({
@@ -397,7 +406,7 @@ const GameField = ({
   // Функции для системы ходов
   const rollDiceForOrder = useCallback(() => {
     const diceValue = Math.floor(Math.random() * 6) + 1;
-    console.log('🎲 [GameField] Бросок кубика для очередности:', diceValue);
+    
     
     // Здесь должна быть логика отправки результата на сервер
     // Пока что просто логируем
@@ -407,7 +416,7 @@ const GameField = ({
   }, []);
 
   const startTurn = useCallback(() => {
-    console.log('🔄 [GameField] Начинается ход игрока:', currentPlayerIndex);
+    
     setTurnTimer(120); // Сброс таймера на 2 минуты
     // setLocalIsMyTurn(true); // Удалено
     
@@ -419,7 +428,7 @@ const GameField = ({
   }, [currentPlayerIndex, playerOrder.length]);
 
   const endTurn = useCallback(() => {
-    console.log('⏭️ [GameField] Завершается ход игрока:', currentPlayerIndex);
+    
     // setLocalIsMyTurn(false); // Удалено
     
     // Сброс кубика при переходе хода
@@ -434,13 +443,14 @@ const GameField = ({
   }, [currentPlayerIndex, playerOrder.length, startTurn]);
 
   const skipTurn = useCallback(() => {
-    console.log('⏭️ [GameField] Ход пропущен игроком:', currentPlayerIndex);
+    
     endTurn();
   }, [currentPlayerIndex, endTurn]);
 
   // Функция для движения фишки игрока
   const movePlayerToken = useCallback((playerId, diceValue) => {
-    console.log(`🎯 [GameField] Движение фишки игрока ${playerId} на ${diceValue} клеток`);
+    // Убираем лишние логи для уменьшения спама
+  // console.log(`🎯 [GameField] Движение фишки игрока ${playerId} на ${diceValue} клеток`);
     
     // Находим игрока
     const player = players?.find(p => p.id === playerId);
@@ -453,7 +463,7 @@ const GameField = ({
     const currentPos = player.position || 0;
     const newPos = Math.min(currentPos + diceValue, 23); // Максимум 23 клетки (внутренний круг)
     
-    console.log(`📍 [GameField] Позиция игрока ${player.username}: ${currentPos} → ${newPos}`);
+    
     
     // Обновляем состояние фишек
     setPlayerTokens(prev => ({
@@ -486,7 +496,7 @@ const GameField = ({
         }
       }));
       
-      console.log(`✅ [GameField] Фишка игрока ${player.username} завершила движение на позиции ${newPos}`);
+
     }, moveDuration);
     
     // Очищаем таймер при размонтировании компонента
@@ -497,11 +507,11 @@ const GameField = ({
   const handleDiceRoll = useCallback(() => {
     if (!isMyTurn || !currentTurn) return;
     
-    console.log('🎲 [GameField] Бросок кубика для игрока:', currentTurn);
+    
     
     // Генерируем случайное значение кубика (1-6)
     const diceValue = Math.floor(Math.random() * 6) + 1;
-    console.log(`🎲 [GameField] Выпало: ${diceValue}`);
+    
     
     // Двигаем фишку игрока
     movePlayerToken(currentTurn, diceValue);
@@ -518,7 +528,7 @@ const GameField = ({
       interval = setInterval(() => {
         setTurnTimer(prev => {
           if (prev <= 1) {
-            console.log('⏰ [GameField] Время хода истекло! Автоматический переход хода');
+      
             endTurn();
             return 0;
           }
@@ -755,6 +765,22 @@ const GameField = ({
                           backgroundSize: '700px 700px',
           animation: 'twinkle 4s ease-in-out infinite alternate',
           zIndex: 0
+        },
+        '@keyframes diceRoll': {
+          '0%': { transform: 'translate(-50%, -50%) rotate(0deg) scale(1)' },
+          '25%': { transform: 'translate(-50%, -50%) rotate(90deg) scale(1.1)' },
+          '50%': { transform: 'translate(-50%, -50%) rotate(180deg) scale(0.9)' },
+          '75%': { transform: 'translate(-50%, -50%) rotate(270deg) scale(1.1)' },
+          '100%': { transform: 'translate(-50%, -50%) rotate(360deg) scale(1)' }
+        },
+        '@keyframes diceResult': {
+          '0%': { transform: 'translate(-50%, -50%) scale(0.5) rotate(0deg)', opacity: 0 },
+          '50%': { transform: 'translate(-50%, -50%) scale(1.2) rotate(180deg)', opacity: 0.8 },
+          '100%': { transform: 'translate(-50%, -50%) scale(1) rotate(360deg)', opacity: 1 }
+        },
+        '@keyframes fadeIn': {
+          '0%': { opacity: 0, transform: 'translateY(20px)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' }
         },
         '@keyframes logoGlow': {
           '0%': {
@@ -1022,7 +1048,7 @@ const GameField = ({
               if (fallback) fallback.style.display = 'flex';
             }}
             onLoad={(e) => {
-              console.log('✅ [GameField] Лого успешно загружено');
+        
               // Скрываем fallback текст
               const fallback = e.target.parentNode.querySelector('.logo-fallback');
               if (fallback) fallback.style.display = 'none';
@@ -1102,6 +1128,10 @@ const GameField = ({
       ))}
 
       {/* Пунктирные линии убраны */}
+
+      {/* Кубик теперь отображается в правой панели GameControls */}
+
+
 
       {/* Стопки карточек - размещены по центру в сетке 2x2 */}
       <Box sx={{
@@ -1271,6 +1301,10 @@ const GameField = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Кнопка "Бросить кубик" теперь находится в правом меню GameControls */}
+
+      {/* Анимация кубика теперь находится в правом меню GameControls */}
 
       {/* Убираем компонент выбора профессии - теперь она назначается при регистрации */}
     </Box>

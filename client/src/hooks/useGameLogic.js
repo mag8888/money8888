@@ -46,7 +46,7 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
   // Слушаем серверные события таймера
   useEffect(() => {
     const handleTurnTimerUpdate = (data) => {
-      console.log('⏰ [useGameLogic] Turn timer update:', data);
+
       setTurnTimerState({
         timer: data.remaining,
         isActive: data.isActive,
@@ -74,31 +74,32 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
   useEffect(() => {
     if (gameState.isMyTurn) {
       setTurnTimerState({ timer: 120, isActive: true });
-      console.log('⏰ [useGameLogic] Таймер запущен для игрока:', gameState.myId);
+
     } else {
       setTurnTimerState({ timer: 120, isActive: false });
-      console.log('⏸️ [useGameLogic] Таймер остановлен');
+
     }
   }, [gameState.isMyTurn, gameState.myId]);
 
   // Автоматический запуск таймера при инициализации игры
   useEffect(() => {
     if (gameState.players && gameState.players.length > 0) {
-      console.log('🎯 [useGameLogic] Проверяем игроков:', {
-        playersCount: gameState.players.length,
-        myId: gameState.myId,
-        currentTurn: gameState.currentTurn,
-        isMyTurn: gameState.isMyTurn
-      });
+      // Убираем лишние логи для уменьшения спама
+      // console.log('🎯 [useGameLogic] Проверяем игроков:', {
+      //   playersCount: gameState.players.length,
+      //   myId: gameState.myId,
+      //   currentTurn: gameState.currentTurn,
+      //   isMyTurn: gameState.isMyTurn
+      // });
       
       // Проверяем, чей сейчас ход
       if (gameState.myId && gameState.currentTurn) {
         const isMyTurn = gameState.currentTurn === gameState.myId;
-        console.log('🎯 [useGameLogic] Проверяем ход:', { 
-          myId: gameState.myId, 
-          currentTurn: gameState.currentTurn, 
-          isMyTurn 
-        });
+        // console.log('🎯 [useGameLogic] Проверяем ход:', { 
+        //   myId: gameState.myId, 
+        //   currentTurn: gameState.currentTurn, 
+        //   isMyTurn 
+        // });
         
         updateGameState({ 
           isMyTurn,
@@ -110,26 +111,27 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
 
   // Бросок кубиков
   const rollDice = useCallback(() => {
-    console.log('🎲 [useGameLogic] rollDice вызвана!', {
-      isRolling: diceState.isRolling,
-      isMyTurn: gameState.isMyTurn,
-      myId: gameState.myId,
-      players: gameState.players?.length || 0,
-      diceState: diceState,
-      gameState: {
-        players: gameState.players?.length || 0,
-        isMyTurn: gameState.isMyTurn,
-        currentTurn: gameState.currentTurn
-      }
-    });
+    // Убираем лишние логи для уменьшения спама
+    // console.log('🎲 [useGameLogic] rollDice вызвана!', {
+    //   isRolling: diceState.isRolling,
+    //   isMyTurn: gameState.isMyTurn,
+    //   myId: gameState.myId,
+    //   players: gameState.players?.length || 0,
+    //   diceState: diceState,
+    //   gameState: {
+    //   players: gameState.players?.length || 0,
+    //   isMyTurn: gameState.isMyTurn,
+    //   currentTurn: gameState.currentTurn
+    //   }
+    // });
 
     if (diceState.isRolling) {
-      console.log('❌ [useGameLogic] Кубик уже бросается');
+      // console.log('❌ [useGameLogic] Кубик уже бросается');
       return;
     }
     
     // Убираем проверку isMyTurn - кубик можно бросать всегда
-    console.log('✅ [useGameLogic] Начинаем бросок кубика...');
+    // console.log('✅ [useGameLogic] Начинаем бросок кубика...');
     setDiceState(prev => ({ ...prev, isRolling: true }));
 
     // Получаем текущего игрока для проверки благотворительности
@@ -174,10 +176,10 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
         const d1 = Math.floor(Math.random() * 6) + 1;
         const d2 = Math.floor(Math.random() * 6) + 1;
         total = d1 + d2;
-        console.log('🎲 [useGameLogic] Бросок с благотворительностью (2 кубика):', { d1, d2, total });
+        // console.log('🎲 [useGameLogic] Бросок с благотворительностью (2 кубика):', { d1, d2, total });
       } else {
         total = Math.floor(Math.random() * 6) + 1;
-        console.log('🎲 [useGameLogic] Обычный бросок (1 кубик):', total);
+        // console.log('🎲 [useGameLogic] Обычный бросок (1 кубик):', total);
       }
       
       setDiceState(prev => ({
@@ -201,7 +203,7 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
           ...prev,
           timerDice: total
         }));
-        console.log('🎲 [useGameLogic] Перенесли значение кубика в таймер:', total);
+        // console.log('🎲 [useGameLogic] Перенесли значение кубика в таймер:', total);
       }, 2000);
       
       // Очищаем таймер при размонтировании
@@ -216,7 +218,7 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
   const handleEndTurn = useCallback(() => {
     if (!gameState.isMyTurn) return;
     
-    console.log('🔄 [GameLogic] Ending turn for player:', gameState.myId);
+    // console.log('🔄 [GameLogic] Ending turn for player:', gameState.myId);
     socket.emit('endTurn', roomId, gameState.myId);
     
     // Сбрасываем состояние хода
@@ -228,7 +230,7 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
   const handleTransferMoney = useCallback((toPlayerId, amount) => {
     if (!toPlayerId || amount <= 0) return;
     
-    console.log('🔄 [GameLogic] Transferring money:', { toPlayerId, amount });
+    // console.log('🔄 [GameLogic] Transferring money:', { toPlayerId, amount });
     socket.emit('transferMoney', roomId, gameState.myId, toPlayerId, amount);
   }, [roomId, gameState.myId]);
 
@@ -236,7 +238,7 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
   const handleBuyDeal = useCallback((card, useCredit = false) => {
     if (!card) return;
     
-    console.log('🔄 [GameLogic] Buying deal:', { card, useCredit });
+    // console.log('🔄 [GameLogic] Buying deal:', { card, useCredit });
     socket.emit('buyDeal', roomId, gameState.myId, card, useCredit);
     
     // Обновляем статистику игры
@@ -250,7 +252,7 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
   const handleSkipDeal = useCallback((card) => {
     if (!card) return;
     
-    console.log('🔄 [GameLogic] Skipping deal:', card);
+    // console.log('🔄 [GameLogic] Skipping deal:', card);
     socket.emit('skipDeal', roomId, gameState.myId, card);
   }, [roomId, gameState.myId]);
 
@@ -276,7 +278,7 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
       won
     };
     
-    console.log('🔄 [GameLogic] Game ended, updating rating:', gameData);
+    // console.log('🔄 [GameLogic] Game ended, updating rating:', gameData);
     
     try {
       // Отправляем данные на сервер для обновления рейтинга
@@ -289,12 +291,12 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
       });
       
       if (response.ok) {
-        console.log('✅ [GameLogic] Rating updated successfully');
+        // console.log('✅ [GameLogic] Rating updated successfully');
       } else {
-        console.error('❌ [GameLogic] Failed to update rating');
+        // console.error('❌ [GameLogic] Failed to update rating');
       }
     } catch (error) {
-      console.error('❌ [GameLogic] Error updating rating:', error);
+      // console.error('❌ [GameLogic] Error updating rating:', error);
     }
     
     // Сбрасываем статистику игры
@@ -358,14 +360,14 @@ export const useGameLogic = (roomId, gameState, updateGameState) => {
   // Функции управления таймером для хоста
   const pauseTurnTimer = useCallback(() => {
     if (roomId) {
-      console.log('⏸️ [useGameLogic] Pausing turn timer');
+
       socket.emit('pauseTurnTimer', roomId);
     }
   }, [roomId]);
 
   const resumeTurnTimer = useCallback(() => {
     if (roomId) {
-      console.log('▶️ [useGameLogic] Resuming turn timer');
+
       socket.emit('resumeTurnTimer', roomId);
     }
   }, [roomId]);

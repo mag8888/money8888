@@ -2,152 +2,282 @@ export const PROFESSIONS = [
   {
     id: 1,
     name: "Дворник",
-    salary: 2000,
-    expenses: 800,
+    // Доходы
+    salary: 2000, // Зарплата (основной доход)
+    passiveIncome: 0, // Пассивный доход
+    dividends: 0, // Дивиденды от бизнеса/акций/недвижимости
+    
+    // Расходы (нельзя погасить)
+    taxRate: 0.25, // Налоговая ставка 25%
+    taxAmount: 500, // Налоги (25% от зарплаты)
+    otherExpenses: 300, // Прочие расходы 10-15%
+    
+    // Кредиты (можно гасить)
+    creditAuto: 150, // Кредит на авто (5-7% от зарплаты)
+    creditEducation: 0, // Кредит на образование
+    creditHousing: 0, // Кредит на жилье
+    creditCards: 0, // Кредиты по картам
+    
+    // Итоговые расчеты
+    totalIncome: 2000, // Общий доход (зарплата + пассивный + дивиденды)
+    totalExpenses: 950, // Общие расходы (налоги + прочие + кредиты)
+    cashFlow: 1050, // Денежный поток (доход - расходы)
+    
+    // Баланс
     balance: 1000,
-    passiveIncome: 0,
-    description: "Работа по уборке территории",
-    charity: false
+    description: "Работа по уборке территории"
   },
   {
     id: 2,
     name: "Курьер",
+    // Доходы
     salary: 2500,
-    expenses: 900,
-    balance: 1200,
     passiveIncome: 0,
-    description: "Доставка товаров и документов",
-    charity: false
+    dividends: 0,
+    
+    // Расходы (нельзя погасить)
+    taxRate: 0.25,
+    taxAmount: 625,
+    otherExpenses: 375,
+    
+    // Кредиты (можно гасить)
+    creditAuto: 175,
+    creditEducation: 0,
+    creditHousing: 0,
+    creditCards: 0,
+    
+    // Итоговые расчеты
+    totalIncome: 2500,
+    totalExpenses: 1175,
+    cashFlow: 1325,
+    
+    // Баланс
+    balance: 2500,
+    description: "Доставка товаров и документов"
   },
   {
     id: 3,
     name: "Продавец",
+    // Доходы
     salary: 3000,
-    expenses: 1000,
-    balance: 1500,
     passiveIncome: 0,
-    description: "Работа в магазине",
-    charity: false
+    dividends: 0,
+    
+    // Расходы (нельзя погасить)
+    taxRate: 0.25,
+    taxAmount: 750,
+    otherExpenses: 450,
+    
+    // Кредиты (можно гасить)
+    creditAuto: 210,
+    creditEducation: 0,
+    creditHousing: 0,
+    creditCards: 0,
+    
+    // Итоговые расчеты
+    totalIncome: 3000,
+    totalExpenses: 1410,
+    cashFlow: 1590,
+    
+    // Баланс
+    balance: 3000,
+    description: "Работа в торговле"
   },
   {
     id: 4,
     name: "Водитель",
+    // Доходы
     salary: 3500,
-    expenses: 1100,
-    balance: 1800,
     passiveIncome: 0,
-    description: "Управление транспортным средством",
-    charity: false
+    dividends: 0,
+    
+    // Расходы (нельзя погасить)
+    taxRate: 0.25,
+    taxAmount: 875,
+    otherExpenses: 525,
+    
+    // Кредиты (можно гасить)
+    creditAuto: 245,
+    creditEducation: 0,
+    creditHousing: 0,
+    creditCards: 0,
+    
+    // Итоговые расчеты
+    totalIncome: 3500,
+    totalExpenses: 1645,
+    cashFlow: 1855,
+    
+    // Баланс
+    balance: 3500,
+    description: "Управление транспортными средствами"
   },
   {
     id: 5,
     name: "Официант",
+    // Доходы
     salary: 4000,
-    expenses: 1200,
-    balance: 2000,
     passiveIncome: 0,
-    description: "Обслуживание в ресторане",
-    charity: false
+    dividends: 0,
+    
+    // Расходы (нельзя погасить)
+    taxRate: 0.25,
+    taxAmount: 1000,
+    otherExpenses: 600,
+    
+    // Кредиты (можно гасить)
+    creditAuto: 280,
+    creditEducation: 0,
+    creditHousing: 0,
+    creditCards: 0,
+    
+    // Итоговые расчеты
+    totalIncome: 4000,
+    totalExpenses: 1880,
+    cashFlow: 2120,
+    
+    // Баланс
+    balance: 4000,
+    description: "Обслуживание в ресторане"
   },
   {
     id: 6,
-    name: "Секретарь",
-    salary: 4500,
-    expenses: 1300,
-    balance: 2200,
+    name: "Учитель",
+    // Доходы
+    salary: 5000,
     passiveIncome: 0,
-    description: "Административная работа",
-    charity: false
+    dividends: 0,
+    
+    // Расходы (нельзя погасить)
+    taxRate: 0.25,
+    taxAmount: 1250,
+    otherExpenses: 750,
+    
+    // Кредиты (можно гасить)
+    creditAuto: 350,
+    creditEducation: 0,
+    creditHousing: 0,
+    creditCards: 0,
+    
+    // Итоговые расчеты
+    totalIncome: 5000,
+    totalExpenses: 2350,
+    cashFlow: 2650,
+    
+    // Баланс
+    balance: 5000,
+    description: "Преподавание в школе"
   },
   {
     id: 7,
-    name: "Учитель",
-    salary: 5000,
-    expenses: 1400,
-    balance: 2500,
+    name: "Медсестра",
+    // Доходы
+    salary: 6000,
     passiveIncome: 0,
-    description: "Преподавание в школе",
-    charity: false
+    dividends: 0,
+    
+    // Расходы (нельзя погасить)
+    taxRate: 0.25,
+    taxAmount: 1500,
+    otherExpenses: 900,
+    
+    // Кредиты (можно гасить)
+    creditAuto: 420,
+    creditEducation: 0,
+    creditHousing: 0,
+    creditCards: 0,
+    
+    // Итоговые расчеты
+    totalIncome: 6000,
+    totalExpenses: 2820,
+    cashFlow: 3180,
+    
+    // Баланс
+    balance: 6000,
+    description: "Медицинское обслуживание"
   },
   {
     id: 8,
-    name: "Медсестра",
-    salary: 5500,
-    expenses: 1500,
-    balance: 2800,
+    name: "Инженер",
+    // Доходы
+    salary: 8000,
     passiveIncome: 0,
-    description: "Медицинский персонал",
-    charity: false
+    dividends: 0,
+    
+    // Расходы (нельзя погасить)
+    taxRate: 0.25,
+    taxAmount: 2000,
+    otherExpenses: 1200,
+    
+    // Кредиты (можно гасить)
+    creditAuto: 560,
+    creditEducation: 0,
+    creditHousing: 0,
+    creditCards: 0,
+    
+    // Итоговые расчеты
+    totalIncome: 8000,
+    totalExpenses: 3760,
+    cashFlow: 4240,
+    
+    // Баланс
+    balance: 8000,
+    description: "Техническое проектирование"
   },
   {
     id: 9,
-    name: "Бухгалтер",
-    salary: 6000,
-    expenses: 1600,
-    balance: 3000,
+    name: "Врач",
+    // Доходы
+    salary: 10000,
     passiveIncome: 0,
-    description: "Ведение финансовой отчетности",
-    charity: false
+    dividends: 0,
+    
+    // Расходы (нельзя погасить)
+    taxRate: 0.25,
+    taxAmount: 2500,
+    otherExpenses: 1500,
+    
+    // Кредиты (можно гасить)
+    creditAuto: 700,
+    creditEducation: 0,
+    creditHousing: 0,
+    creditCards: 0,
+    
+    // Итоговые расчеты
+    totalIncome: 10000,
+    totalExpenses: 4700,
+    cashFlow: 5300,
+    
+    // Баланс
+    balance: 10000,
+    description: "Медицинская практика"
   },
   {
     id: 10,
-    name: "Инженер",
-    salary: 7000,
-    expenses: 1800,
-    balance: 3500,
-    passiveIncome: 0,
-    description: "Техническое проектирование",
-    charity: false
-  },
-  {
-    id: 11,
-    name: "Врач",
-    salary: 8000,
-    expenses: 2000,
-    balance: 4000,
-    passiveIncome: 0,
-    description: "Медицинская практика",
-    charity: false
-  },
-  {
-    id: 12,
-    name: "Юрист",
-    salary: 9000,
-    expenses: 2200,
-    balance: 4500,
-    passiveIncome: 0,
-    description: "Правовая консультация",
-    charity: false
-  },
-  {
-    id: 13,
-    name: "Менеджер",
-    salary: 10000,
-    expenses: 2500,
-    balance: 5000,
-    passiveIncome: 0,
-    description: "Управление командой",
-    charity: false
-  },
-  {
-    id: 14,
-    name: "Директор",
+    name: "Бизнесмен",
+    // Доходы
     salary: 12000,
-    expenses: 3000,
-    balance: 6000,
-    passiveIncome: 0,
-    description: "Руководство компанией",
-    charity: false
-  },
-  {
-    id: 15,
-    name: "Предприниматель",
-    salary: 15000,
-    expenses: 4000,
-    balance: 7500,
-    passiveIncome: 0,
-    description: "Владелец бизнеса",
-    charity: false
+    passiveIncome: 1000, // Пассивный доход от бизнеса
+    dividends: 500, // Дивиденды от акций
+    
+    // Расходы (нельзя погасить)
+    taxRate: 0.25,
+    taxAmount: 3000,
+    otherExpenses: 1800,
+    
+    // Кредиты (можно гасить)
+    creditAuto: 840,
+    creditEducation: 0,
+    creditHousing: 0,
+    creditCards: 0,
+    
+    // Итоговые расчеты
+    totalIncome: 13500, // 12000 + 1000 + 500
+    totalExpenses: 5640,
+    cashFlow: 7860,
+    
+    // Баланс
+    balance: 12000,
+    description: "Владелец бизнеса"
   }
 ];
 
