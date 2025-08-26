@@ -33,26 +33,70 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
 
   // Вспомогательные функции для единой логики
   const getCurrentPlayer = () => {
-    const currentPlayer = players.find(player => player.id === playerData?.id);
+    console.log('🔍 [SimpleRoomSetup] getCurrentPlayer called with:', {
+      playerData: playerData,
+      players: players.map(p => ({ id: p.id, username: p.username, profession: p.profession }))
+    });
     
-    // Если не найден по ID, пробуем найти по username
-    if (!currentPlayer) {
-      const playerByUsername = players.find(player => player.username === playerData?.username);
-      if (playerByUsername) {
-        console.log('🔍 [SimpleRoomSetup] Found player by username instead of ID:', playerByUsername);
-        return playerByUsername;
+    // Проверяем, что playerData соответствует текущему пользователю из localStorage
+    const savedCurrentUser = localStorage.getItem('potok-deneg_currentUser');
+    if (savedCurrentUser) {
+      const parsedCurrentUser = JSON.parse(savedCurrentUser);
+      console.log('🔍 [SimpleRoomSetup] Checking localStorage currentUser:', parsedCurrentUser);
+      
+      // Если playerData не соответствует currentUser из localStorage, очищаем localStorage
+      if (playerData?.username !== parsedCurrentUser?.username || playerData?.id !== parsedCurrentUser?.id) {
+        console.log('⚠️ [SimpleRoomSetup] playerData mismatch with localStorage currentUser:', {
+          playerDataUsername: playerData?.username,
+          playerDataId: playerData?.id,
+          localStorageUsername: parsedCurrentUser?.username,
+          localStorageId: parsedCurrentUser?.id
+        });
+        
+        // Очищаем localStorage и перезагружаем страницу
+        localStorage.clear();
+        console.log('🧹 [SimpleRoomSetup] Cleared localStorage due to mismatch, reloading page');
+        window.location.reload();
+        return null;
       }
     }
     
-    console.log('🔍 [SimpleRoomSetup] getCurrentPlayer result:', {
-      currentPlayer: currentPlayer,
-      playerData: playerData,
-      players: players,
-      foundById: !!players.find(player => player.id === playerData?.id),
-      foundByUsername: !!players.find(player => player.username === playerData?.username)
+    // Сначала ищем по точному совпадению ID
+    const currentPlayer = players.find(player => player.id === playerData?.id);
+    
+    if (currentPlayer) {
+      console.log('✅ [SimpleRoomSetup] Found player by ID:', currentPlayer);
+      return currentPlayer;
+    }
+    
+    // Если не найден по ID, пробуем найти по username
+    const playerByUsername = players.find(player => player.username === playerData?.username);
+    if (playerByUsername) {
+      console.log('✅ [SimpleRoomSetup] Found player by username:', playerByUsername);
+      return playerByUsername;
+    }
+    
+    // Дополнительная проверка: ищем по username из localStorage
+    const savedUsername = localStorage.getItem('potok-deneg_username');
+    if (savedUsername && savedUsername !== playerData?.username) {
+      console.log('⚠️ [SimpleRoomSetup] Username mismatch detected:', {
+        playerDataUsername: playerData?.username,
+        savedUsername: savedUsername
+      });
+      
+      // Очищаем неправильный username из localStorage
+      localStorage.removeItem('potok-deneg_username');
+      console.log('🧹 [SimpleRoomSetup] Cleared mismatched username from localStorage');
+    }
+    
+    // Если ничего не найдено, возвращаем null
+    console.log('❌ [SimpleRoomSetup] No player found for:', {
+      playerDataId: playerData?.id,
+      playerDataUsername: playerData?.username,
+      availablePlayers: players.map(p => ({ id: p.id, username: p.username }))
     });
     
-    return currentPlayer;
+    return null;
   };
 
   // Единая функция для получения готовности текущего игрока
@@ -123,6 +167,14 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
       profession: currentPlayer.profession,
       playerData: playerData
     });
+    
+    // Проверяем, что это действительно текущий игрок
+    if (currentPlayer.username !== playerData?.username) {
+      console.log('⚠️ [SimpleRoomSetup] WARNING: Current player username mismatch!', {
+        currentPlayerUsername: currentPlayer.username,
+        playerDataUsername: playerData?.username
+      });
+    }
     
     return currentPlayer.profession;
   };
@@ -307,6 +359,11 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
     // Настраиваем игрока при входе в комнату
     if (playerData) {
       console.log('👤 [SimpleRoomSetup] Setting up player:', playerData);
+      
+      // Очищаем старые данные игрока из localStorage перед настройкой
+      localStorage.removeItem('potok-deneg_username');
+      console.log('🧹 [SimpleRoomSetup] Cleared old username from localStorage');
+      
       socket.emit('setupPlayer', roomId, playerData);
       console.log('👤 [SimpleRoomSetup] setupPlayer emitted');
     } else {
@@ -317,6 +374,11 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
         color: '#' + Math.floor(Math.random()*16777215).toString(16)
       };
       console.log('👤 [SimpleRoomSetup] Creating default player data:', defaultPlayerData);
+      
+      // Очищаем старые данные игрока из localStorage перед настройкой
+      localStorage.removeItem('potok-deneg_username');
+      console.log('🧹 [SimpleRoomSetup] Cleared old username from localStorage');
+      
       socket.emit('setupPlayer', roomId, defaultPlayerData);
       console.log('👤 [SimpleRoomSetup] setupPlayer emitted with default data');
     }
@@ -617,6 +679,16 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
         roomId={roomId}
         players={players}
         timer={orderDeterminationTimer}
+        socket={socket}
+        phase={orderDetermination.phase}
+        onRollDice={(roomId, playerId) => {
+          console.log('🎲 [SimpleRoomSetup] Rolling dice for order determination:', { roomId, playerId });
+          socket.emit('rollDiceForOrder', { roomId, playerId });
+        }}
+        onTieBreakRoll={(roomId, playerId) => {
+          console.log('🎲 [SimpleRoomSetup] Rolling dice for tie break:', { roomId, playerId });
+          socket.emit('rollDiceForTieBreak', { roomId, playerId });
+        }}
         onComplete={() => setOrderDetermination(null)}
       />
     );
@@ -829,6 +901,38 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
                   : 'Нажмите кнопку "Готов к игре" когда будете готовы начать'
                 }
               </div>
+                    {/* Отладочная информация */}
+      <div style={{ fontSize: '0.8rem', color: '#999', marginTop: '10px' }}>
+        🔍 Отладка: {getCurrentPlayer()?.username} | Профессия: {getCurrentPlayer()?.profession?.name || 'Нет'}
+        <br />
+        🏠 RoomData: {roomData ? `hostId: ${roomData.hostId}, status: ${roomData.status}` : 'null'}
+        <br />
+        👑 Host Check: {isHost() ? '✅ Да' : '❌ Нет'} | Can Start: {canStartGame() ? '✅ Да' : '❌ Нет'}
+        <br />
+        🎯 Профессия детально: {JSON.stringify(getCurrentPlayer()?.profession)}
+        <br />
+        🔍 hasProfession(): {hasProfession() ? 'true' : 'false'}
+        <br />
+        <button 
+          onClick={() => {
+            localStorage.removeItem('potok-deneg_username');
+            console.log('🧹 [SimpleRoomSetup] Manually cleared username from localStorage');
+            window.location.reload();
+          }}
+          style={{ 
+            fontSize: '0.7rem', 
+            padding: '2px 6px', 
+            marginLeft: '10px',
+            backgroundColor: '#ff4444',
+            color: 'white',
+            border: 'none',
+            borderRadius: '3px',
+            cursor: 'pointer'
+          }}
+        >
+          Очистить localStorage
+        </button>
+      </div>
             </div>
           )}
           
@@ -976,7 +1080,6 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
                 allHaveProfessions: players.every(p => isValidProfession(p.profession))
               });
               
-              // Принудительно показываем кнопку для хоста с отладочной информацией
               if (hostCheck) {
                 console.log('✅ [SimpleRoomSetup] Showing start button for host');
                 return true;
@@ -989,9 +1092,9 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
                   socketId: socket?.id
                 });
                 
-                // ВРЕМЕННО: Принудительно показываем кнопку для отладки
-                console.log('🔧 [SimpleRoomSetup] TEMPORARY: Forcing start button display for debugging');
-                return true;
+                // Проверяем, может ли игрок быть хостом по другим критериям
+                console.log('🔧 [SimpleRoomSetup] Checking alternative host criteria');
+                return false;
               }
             })() ? (
               <div>

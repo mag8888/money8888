@@ -6,9 +6,8 @@ import RoomSetupWrapper from './components/RoomSetupWrapper';
 import GameBoardWrapper from './components/GameBoardWrapper';
 import RatingsPage from './components/RatingsPage';
 import { useLogout } from './hooks/useLogout';
-import { getRandomProfession } from './data/professions';
 import './styles/global-fixes.css';
-import './websocket-fix.js';
+// import './websocket-fix.js'; // Временно отключено для отладки
 
 // Компонент-обертка для использования useNavigate
 function AppContent() {
@@ -46,17 +45,8 @@ function AppContent() {
   const handleUserRegister = (userData) => {
     console.log('🔄 [App] User registered:', userData);
     
-    // Автоматически назначаем случайную профессию при регистрации
-    const randomProfession = getRandomProfession();
-    const userWithProfession = {
-      ...userData,
-      profession: randomProfession,
-      balance: randomProfession.balance // Начисляем баланс согласно профессии
-    };
-    
-    console.log('🎯 [App] Assigned profession:', randomProfession.name, 'Balance:', randomProfession.balance);
-    
-    setCurrentUser(userWithProfession);
+    // Устанавливаем пользователя без автоматического назначения профессии
+    setCurrentUser(userData);
     navigate('/rooms');
   };
 
@@ -64,17 +54,8 @@ function AppContent() {
   const handleUserLogin = (userData) => {
     console.log('🔄 [App] User logged in:', userData);
     
-    // Автоматически назначаем случайную профессию при входе в игру
-    const randomProfession = getRandomProfession();
-    const userWithProfession = {
-      ...userData,
-      profession: randomProfession,
-      balance: randomProfession.balance // Начисляем баланс согласно профессии
-    };
-    
-    console.log('🎯 [App] Assigned profession:', randomProfession.name, 'Balance:', randomProfession.balance);
-    
-    setCurrentUser(userWithProfession);
+    // Устанавливаем пользователя без автоматического назначения профессии
+    setCurrentUser(userData);
     navigate('/rooms');
   };
 

@@ -87,7 +87,7 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
     // Если не нашли, ищем по текущему пользователю из контекста
     if (!myId && playersList.length > 0) {
       // Пытаемся найти игрока по текущему пользователю (если доступен)
-      const currentUser = JSON.parse(localStorage.getItem('potok-deneg_currentUser') || '{}');
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
       if (currentUser.username) {
         currentPlayer = playersList.find(p => p.username === currentUser.username);
         if (currentPlayer) {
@@ -180,9 +180,9 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
     }
     
     // Если не нашли, ищем по текущему пользователю из контекста
-    if (!myId && playersWithColors.length > 0) {
+    if (!myId) {
       // Пытаемся найти игрока по текущему пользователю (если доступен)
-      const currentUser = JSON.parse(localStorage.getItem('potok-deneg_currentUser') || '{}');
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
       if (currentUser.username) {
         currentPlayer = playersWithColors.find(p => p.username === currentUser.username);
         if (currentPlayer) {
@@ -194,17 +194,14 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
           console.log('🎯 [playersUpdate] Saved correct username to localStorage:', currentPlayer.username);
         }
       }
-      
-      // Если все еще не нашли, берем первого игрока (для тестирования)
-      if (!myId) {
-        currentPlayer = playersWithColors[0];
-        myId = currentPlayer.id;
-        console.log('🎯 [playersUpdate] Using first player as current:', currentPlayer.username, 'ID:', myId);
-        
-        // Сохраняем username in localStorage для будущих подключений
-        localStorage.setItem('potok-deneg_username', currentPlayer.username);
-        console.log('🎯 [playersUpdate] Saved username to localStorage:', currentPlayer.username);
-      }
+    }
+    
+    // Если все еще не нашли, НЕ берем первого игрока автоматически
+    if (!myId) {
+      console.log('❌ [playersUpdate] Could not identify current player from players list');
+      console.log('❌ [playersUpdate] Available players:', playersWithColors.map(p => ({ username: p.username, id: p.id })));
+      console.log('❌ [playersUpdate] Current user from localStorage:', JSON.parse(localStorage.getItem('currentUser') || '{}'));
+      console.log('❌ [playersUpdate] Saved username from localStorage:', savedUsername);
     }
     
     console.log('🎯 [playersUpdate] Final myId:', myId, 'currentPlayer:', currentPlayer?.username);

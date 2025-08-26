@@ -33,6 +33,11 @@ const OrderDetermination = ({
 
   // Определяем, мой ли сейчас ход
   useEffect(() => {
+    if (!socket || !socket.id) {
+      console.warn('⚠️ [OrderDetermination] Socket not available or no ID');
+      return;
+    }
+    
     if (phase === 'tie_break') {
       // В фазе переигровки проверяем, участвую ли я
       const tieBreakPlayer = players.find(p => p.id === socket.id);
@@ -42,7 +47,7 @@ const OrderDetermination = ({
       const me = players.find(p => p.id === socket.id);
       setIsMyTurn(me && !me.diceRoll);
     }
-  }, [players, phase, socket.id]);
+  }, [players, phase, socket]);
 
   // Обработчик броска кубика
   const handleRollDice = () => {

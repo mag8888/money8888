@@ -16,79 +16,9 @@ import { getRandomProfession } from '../data/professions';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import { CELL_CONFIG, PLAYER_COLORS } from '../data/gameCells';
 
-// Конфигурация клеток игрового поля согласно списку
-const CELL_CONFIG = {
-  // Малый круг - 24 клетки (0-23) - Крысиные Бега
-  innerCircle: [
-    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 0 🟢 Зеленая возможность малая/большая
-    { type: 'doodad', icon: <ShoppingCartIcon />, color: '#E91E63', name: 'Всякая всячина' }, // 1 🟡 Розовая всякая всячина (траты 100-4000$)
-    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 2 🟢 Зеленая возможность малая/большая
-    { type: 'charity', icon: <VolunteerActivismIcon />, color: '#FF9800', name: 'Благотворительность' }, // 3 🟠 Оранжевая Благотворительность ❤️
-    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 4 🟢 Зеленая возможность малая/большая
-    { type: 'payday', icon: <AttachMoneyIcon />, color: '#FFD700', name: 'PayDay' }, // 5 🟡 Желтая PayDay 💰
-    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 6 🟢 Зеленая возможность малая/большая
-    { type: 'market', icon: <TrendingUpIcon />, color: '#00BCD4', name: 'Рынок' }, // 7 🔵 Голубая рынок
-    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 8 🟢 Зеленая возможность малая/большая
-    { type: 'doodad', icon: <ShoppingCartIcon />, color: '#E91E63', name: 'Всякая всячина' }, // 9 🟡 Розовая всякая всячина (траты 100-4000$)
-    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 10 🟢 Зеленая возможность малая/большая
-    { type: 'child', icon: <ChildCareIcon />, color: '#9C27B0', name: 'Ребенок' }, // 11 🟣 Фиолетовая Ребенок 👶
-    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 12 🟢 Зеленая возможность малая/большая
-    { type: 'payday', icon: <AttachMoneyIcon />, color: '#FFD700', name: 'PayDay' }, // 13 🟡 Желтая PayDay 💰
-    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 14 🟢 Зеленая возможность малая/большая
-    { type: 'market', icon: <TrendingUpIcon />, color: '#00BCD4', name: 'Рынок' }, // 15 🔵 Рынок
-    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 16 🟢 Зеленая возможность малая/большая
-    { type: 'doodad', icon: <ShoppingCartIcon />, color: '#E91E63', name: 'Всякая всячина' }, // 17 🟡 Розовая всякая всячина (траты 100-4000$)
-    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 18 🟢 Зеленая возможность малая/большая
-    { type: 'downsized', icon: <WorkOutlineIcon />, color: '#000000', name: 'Потеря' }, // 19 ⚫ Черная Потеря 💸
-    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 20 🟢 Зеленая возможность малая/большая
-    { type: 'payday', icon: <AttachMoneyIcon />, color: '#FFD700', name: 'PayDay' }, // 21 🟡 Желтая PayDay 💰
-    { type: 'opportunity', icon: <HomeIcon />, color: '#4CAF50', name: 'Возможность' }, // 22 🟢 Зеленая возможность малая/большая
-    { type: 'market', icon: <TrendingUpIcon />, color: '#00BCD4', name: 'Рынок' } // 23 🔵 Рынок
-  ],
-  // Внешний квадрат - 50 клеток Быстрый Путь
-  outerSquare: [
-    { type: 'cashflowDay', icon: <AttachMoneyIcon />, color: '#4CAF50', name: 'День Потока' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' },
-    { type: 'fastTrack', icon: <FlightTakeoffIcon />, color: '#9C27B0', name: 'Fast Track' }
-  ]
-};
-
-// Конфигурация цветов для фишек игроков
-const PLAYER_COLORS = [
-  '#FF6B6B', // Красный
-  '#4ECDC4', // Бирюзовый
-  '#45B7D1', // Синий
-  '#96CEB4', // Зеленый
-  '#FFEAA7', // Желтый
-  '#DDA0DD', // Фиолетовый
-  '#FF8C42', // Оранжевый
-  '#98D8C8'  // Мятный
-];
+// Используем конфигурацию из отдельного файла
 
 // Компонент фишки игрока
 const PlayerToken = React.memo(({ 
@@ -694,63 +624,67 @@ const GameField = ({
     }
     
     // Внешний квадрат: 56 клеток по периметру (14 + 14 + 14 + 14)
-    // Позиционируем так чтобы малый круг был строго по центру большого
-    const outerFieldSize = 700;
-    const innerCircleRadius = 150; // Радиус малого круга
-    const outerSquareSize = 14 * (cellSize + 2); // Размер стороны квадрата (14×14)
+    // Размещаем равномерно по периметру фона 700x700
+    const cellSpacing = cellSize + 2;
     
-    // Вычисляем отступы так чтобы большой квадрат описывал малый круг
-    const marginX = 350 - (outerSquareSize / 2); // Центрируем по X
-    const marginY = 350 - (outerSquareSize / 2) - 20; // Поднимаем на 20px вверх
+    // Вычисляем размеры внешнего квадрата (14x14 клеток)
+    const outerSquareWidth = 14 * cellSpacing; // 14 клеток по ширине
+    const outerSquareHeight = 14 * cellSpacing; // 14 клеток по высоте
     
-    // Верхний ряд (1-14): 14 клеток - цифры идут по порядку
+    // Центрируем внешний квадрат в поле 700x700
+    const marginX = (700 - outerSquareWidth) / 2;
+    const marginY = (700 - outerSquareHeight) / 2;
+    
+    // Верхний ряд (1-14): 14 клеток слева направо (подняли вверх на 1 клетку, растянули на 15%, сдвинули влево на 17px)
     for (let i = 0; i < 14; i++) {
       positions.push({
         position: 24 + i,
-        x: marginX + i * (cellSize + 2),
-        y: marginY,
+        x: marginX + i * (cellSpacing * 1.15) - 42, // Растянули по ширине на 15% и сдвинули влево на 42px (17+15+10)
+        y: marginY - cellSpacing, // Подняли вверх на 1 клеткупи
         ...CELL_CONFIG.outerSquare[i % CELL_CONFIG.outerSquare.length],
-        number: i + 1, // Нумерация от 1 до 14 (по порядку)
+        number: i + 1, // Нумерация от 1 до 14
         isInner: false
       });
     }
     
-    // Правый столбец (15-28): 14 клеток - цифры идут вниз
+    // Нижний ряд (15-28): 14 клеток слева направо (дублируем верхний ряд вниз на ~700px)
     for (let i = 0; i < 14; i++) {
       positions.push({
         position: 38 + i,
-        x: marginX + (13 * (cellSize + 2)), // x координата клетки 14
-        y: marginY + (i + 1) * (cellSize + 2),
+        x: marginX + i * (cellSpacing * 1.15) - 42, // Те же параметры что и у верхнего ряда
+        y: marginY + 700 - (cellSpacing * 2), // Размещаем примерно на 700px ниже, но подняли вверх на 2 клетки (1.5 + 0.5)
         ...CELL_CONFIG.outerSquare[(14 + i) % CELL_CONFIG.outerSquare.length],
-        number: i + 15, // Нумерация от 15 до 28 (по порядку)
+        number: i + 15, // Нумерация от 15 до 28
         isInner: false
       });
     }
     
-    // Нижний ряд (29-42): 14 клеток - цифры идут в обратную сторону
-    for (let i = 0; i < 14; i++) {
+    // Левый столбец (15-26): 12 клеток сверху вниз (копия правого столбца в левом краю)
+    for (let i = 0; i < 12; i++) {
       positions.push({
         position: 52 + i,
-        x: marginX + (13 - i) * (cellSize + 2),
-        y: marginY + (14 * (cellSize + 2)), // y координата клетки 28
-        ...CELL_CONFIG.outerSquare[(28 + i) % CELL_CONFIG.outerSquare.length],
-        number: 42 - i, // Нумерация от 42 до 29 (в обратную сторону)
+        x: marginX - 42, // Прямо под клетку 1, сдвинули влево на 42px
+        y: marginY + (i * (cellSpacing * 1.15)) + 5, // Равномерно распределяем по высоте, увеличили высоту на 15%, сдвинули вниз на 5px
+        ...CELL_CONFIG.outerSquare[(14 + i) % CELL_CONFIG.outerSquare.length],
+        number: i + 15, // Нумерация от 15 до 26
         isInner: false
       });
     }
     
-    // Левый столбец (43-50): 14 клеток - цифры идут вверх
-    for (let i = 0; i < 14; i++) {
+    // Правый столбец (15-26): 12 клеток сверху вниз (в области красного прямоугольника)
+    for (let i = 0; i < 12; i++) {
       positions.push({
         position: 66 + i,
-        x: marginX, // x координата клетки 1
-        y: marginY + (i + 1) * (cellSize + 2),
-        ...CELL_CONFIG.outerSquare[(42 + i) % CELL_CONFIG.outerSquare.length],
-        number: i + 43, // Нумерация от 43 до 50 (по порядку)
+        x: marginX + 14 * (cellSpacing * 1.15) - 42 - 42 - 5 - 3, // Справа от основного пути, сдвинули влево на 92px (42+42+5+3)
+        y: marginY + (i * (cellSpacing * 1.15)) + 5, // Равномерно распределяем по высоте, увеличили высоту на 15%, сдвинули вниз на 5px (3+2)
+        ...CELL_CONFIG.outerSquare[(14 + i) % CELL_CONFIG.outerSquare.length],
+        number: i + 15, // Нумерация от 15 до 26
         isInner: false
       });
     }
     
+    // Убрали правый столбец, нижний ряд и левый столбец
+    // Оставили только верхний ряд
 
     return positions;
   }, []);
@@ -797,12 +731,50 @@ const GameField = ({
             radial-gradient(1px 1px at 570px 40px, #fff, transparent),
             radial-gradient(1px 1px at 610px 80px, rgba(255,255,255,0.6), transparent),
             radial-gradient(2px 2px at 640px 30px, #ddd, transparent),
-            radial-gradient(2px 2px at 680px 70px, rgba(255,255,255,0.8), transparent)
+            radial-gradient(2px 2px at 680px 70px, rgba(255,255,255,0.8), transparent),
+            radial-gradient(2px 2px at 20px 650px, #eee, transparent),
+            radial-gradient(2px 2px at 60px 690px, rgba(255,255,255,0.8), transparent),
+            radial-gradient(1px 1px at 100px 650px, #fff, transparent),
+            radial-gradient(1px 1px at 140px 690px, rgba(255,255,255,0.6), transparent),
+            radial-gradient(2px 2px at 180px 650px, #ddd, transparent),
+            radial-gradient(2px 2px at 220px 690px, rgba(255,255,255,0.8), transparent),
+            radial-gradient(1px 1px at 260px 650px, #fff, transparent),
+            radial-gradient(1px 1px at 300px 690px, rgba(255,255,255,0.6), transparent),
+            radial-gradient(2px 2px at 340px 650px, #ddd, transparent),
+            radial-gradient(2px 2px at 380px 690px, rgba(255,255,255,0.8), transparent),
+            radial-gradient(1px 1px at 420px 650px, #fff, transparent),
+            radial-gradient(1px 1px at 460px 690px, rgba(255,255,255,0.6), transparent),
+            radial-gradient(2px 2px at 500px 650px, #ddd, transparent),
+            radial-gradient(2px 2px at 540px 690px, rgba(255,255,255,0.8), transparent),
+            radial-gradient(1px 1px at 580px 650px, #fff, transparent),
+            radial-gradient(1px 1px at 620px 690px, rgba(255,255,255,0.6), transparent),
+            radial-gradient(2px 2px at 660px 650px, #ddd, transparent),
+            radial-gradient(2px 2px at 700px 690px, rgba(255,255,255,0.6), transparent)
           `,
           backgroundRepeat: 'repeat',
-          backgroundSize: '700px 700px',
+                          backgroundSize: '700px 700px',
           animation: 'twinkle 4s ease-in-out infinite alternate',
           zIndex: 0
+        },
+        '@keyframes logoGlow': {
+          '0%': {
+            opacity: 0.6,
+            transform: 'translate(-50%, -50%) scale(1)'
+          },
+          '100%': {
+            opacity: 1,
+            transform: 'translate(-50%, -50%) scale(1.1)'
+          }
+        },
+        '@keyframes starryNight': {
+          '0%, 100%': { backgroundPosition: '0% 0%, 0% 0%, 0% 0%' },
+          '25%': { backgroundPosition: '0% 0%, 0% 0%, 50% 50%' },
+          '50%': { backgroundPosition: '0% 0%, 0% 0%, 100% 100%' },
+          '75%': { backgroundPosition: '0% 0%, 0% 0%, 50% 50%' }
+        },
+        '@keyframes twinkle': {
+          '0%': { opacity: 0.3 },
+          '100%': { opacity: 1 }
         }
       }}
     >
@@ -971,6 +943,31 @@ const GameField = ({
             pointerEvents: 'none'
           }}
         >
+        
+        {/* Светлая подсветка под логотипом */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '120%',
+            height: '120%',
+            background: `
+              radial-gradient(ellipse at center, 
+                rgba(255, 215, 0, 0.3) 0%, 
+                rgba(255, 215, 0, 0.2) 30%, 
+                rgba(255, 215, 0, 0.1) 60%, 
+                rgba(255, 215, 0, 0.05) 80%, 
+                transparent 100%
+              )
+            `,
+            borderRadius: '50%',
+            zIndex: 50,
+            filter: 'blur(8px)',
+            animation: 'logoGlow 3s ease-in-out infinite alternate'
+          }}
+        />
         
         {/* Центральное лого - точно по центру */}
         <motion.div

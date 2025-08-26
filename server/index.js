@@ -15,6 +15,42 @@ const pool = new Pool({ /* config */ });
 
 const Rating = require('./models/Rating');
 
+// Функция для исправления hostId в существующих комнатах
+const fixHostIdInRooms = () => {
+  console.log('🔧 [SERVER] Fixing hostId in existing rooms...');
+  
+  Object.keys(rooms).forEach(roomId => {
+    const room = rooms[roomId];
+    
+    // Если у комнаты нет hostId или hostId не соответствует ни одному игроку
+    if (!room.hostId || !room.currentPlayers.find(p => p.socketId === room.hostId)) {
+      // Находим первого активного игрока
+      const activePlayer = room.currentPlayers.find(p => !p.offline);
+      
+      if (activePlayer) {
+        room.hostId = activePlayer.socketId;
+        console.log(`👑 [SERVER] Fixed hostId for room ${roomId}: ${activePlayer.username}`);
+      } else if (room.currentPlayers.length > 0) {
+        // Если нет активных игроков, берем первого
+        room.hostId = room.currentPlayers[0].socketId;
+        console.log(`👑 [SERVER] Fixed hostId for room ${roomId} (no active players): ${room.currentPlayers[0].username}`);
+      }
+      
+      // Отправляем обновленные данные комнаты
+      io.to(roomId).emit('roomData', { 
+        roomId: room.roomId, 
+        maxPlayers: room.maxPlayers, 
+        status: room.status, 
+        hostId: room.hostId, 
+        timer: room.timer, 
+        currentTurn: room.currentTurn 
+      });
+    }
+  });
+  
+  console.log('✅ [SERVER] hostId fixing completed');
+};
+
 // Импортируем профессии
 const PROFESSIONS = [
   {
@@ -257,10 +293,13 @@ app.post('/api/admin/cleanup-duplicates', async (req, res) => {
 
 
 
-// Connect to MongoDB
+// Connect to MongoDB (optional)
 mongoose.connect('mongodb://localhost:27017/potok-deneg')
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .then(() => console.log('✅ MongoDB connected successfully'))
+  .catch(err => {
+    console.warn('⚠️ MongoDB connection failed, continuing without database:', err.message);
+    console.log('ℹ️ Server will run with in-memory storage only');
+  });
 
 // Load configurations
 const configPath = path.join(__dirname, '../shared/seed_v1.json');
@@ -295,6 +334,9 @@ function loadRooms() {
           cleanupGuestPlayers(room);
         }
       });
+      
+      // Исправляем hostId в загруженных комнатах
+      fixHostIdInRooms();
     }
   } catch (e) {
     console.error('Load rooms error:', e);
@@ -361,6 +403,9 @@ function ensureDefaultRoom() {
       cleanupGuestPlayers(room);
     }
   });
+  
+  // Исправляем hostId во всех комнатах
+  fixHostIdInRooms();
 }
 // Функция ПОЛНОЙ очистки гостевых и тестовых игроков
 const cleanupGuestPlayers = (room) => {
@@ -756,6 +801,9 @@ io.on('connection', (socket) => {
     console.log('🎮 [SERVER] setupPlayer called:', { roomId, socketId: socket.id, playerData });
     console.log('🎮 [SERVER] Available rooms:', Object.keys(rooms));
     
+    // Сначала исправляем существующие проблемы с hostId
+    fixHostIdInRooms();
+    
     // ПОЛНОСТЬЮ ОТКЛЮЧАЕМ СОЗДАНИЕ ГОСТЕВЫХ ИГРОКОВ
     // Проверяем, есть ли данные игрока для настройки
     if (!playerData || !playerData.username || playerData.username.trim() === '') {
@@ -833,6 +881,10 @@ io.on('connection', (socket) => {
       });
       
       io.to(roomId).emit('playersUpdate', room.currentPlayers);
+      
+      // Исправляем hostId после переподключения игрока
+      fixHostIdInRooms();
+      
       return;
     }
     
@@ -855,6 +907,10 @@ io.on('connection', (socket) => {
       });
       
       io.to(roomId).emit('playersUpdate', room.currentPlayers);
+      
+      // Исправляем hostId после переподключения игрока
+      fixHostIdInRooms();
+      
       return;
     }
     
@@ -899,6 +955,36 @@ io.on('connection', (socket) => {
       roomId: roomId
     };
     
+    // Если это первый игрок в комнате, делаем его хостом
+    if (room.currentPlayers.length === 0) {
+      room.hostId = player.socketId;
+      console.log('👑 [SERVER] First player in room, setting as host:', {
+        username: player.username,
+        socketId: player.socketId,
+        roomId: roomId
+      });
+    }
+    
+    // Если у комнаты нет хоста, назначаем первого активного игрока
+    if (!room.hostId) {
+      room.hostId = player.socketId;
+      console.log('👑 [SERVER] Room has no host, setting first active player as host:', {
+        username: player.username,
+        socketId: player.socketId,
+        roomId: roomId
+      });
+    }
+    
+    // Проверяем, что хост все еще активен
+    if (room.hostId && !room.currentPlayers.find(p => p.socketId === room.hostId)) {
+      room.hostId = player.socketId;
+      console.log('👑 [SERVER] Previous host is offline, setting new host:', {
+        username: player.username,
+        socketId: player.socketId,
+        roomId: roomId
+      });
+    }
+    
     room.currentPlayers.push(player);
     socket.join(roomId);
     
@@ -924,7 +1010,22 @@ io.on('connection', (socket) => {
     cleanupDuplicatePlayers(room);
     
     io.to(roomId).emit('playersUpdate', room.currentPlayers);
+    
+    // Отправляем обновленные данные комнаты (включая hostId)
+    io.to(roomId).emit('roomData', { 
+      roomId: room.roomId, 
+      maxPlayers: room.maxPlayers, 
+      status: room.status, 
+      hostId: room.hostId, 
+      timer: room.timer, 
+      currentTurn: room.currentTurn 
+    });
+    
     persistRooms();
+    
+    // Исправляем hostId после добавления игрока
+    fixHostIdInRooms();
+    
     const roomsList = getSortedRoomsList();
     io.emit('roomsList', roomsList);
   });
@@ -1788,6 +1889,9 @@ io.on('connection', (socket) => {
       console.log(`✅ [SERVER] getPlayers: Room ${roomId} found, Socket ID: ${socket.id}`);
       console.log(`👥 [SERVER] getPlayers: Current players:`, rooms[roomId].currentPlayers.map(p => ({ id: p.id, username: p.username })));
       
+      // Исправляем проблемы с hostId перед отправкой списка игроков
+      fixHostIdInRooms();
+      
       // Проверяем, есть ли текущий игрок в списке
       const currentPlayer = rooms[roomId].currentPlayers.find(p => p.id === socket.id);
       if (!currentPlayer) {
@@ -1927,6 +2031,9 @@ io.on('connection', (socket) => {
       // Уведомляем остальных игроков в комнате
       if (room.currentPlayers.length > 0) {
         io.to(roomId).emit('playersUpdate', room.currentPlayers);
+        
+        // Исправляем hostId после выхода игрока
+        fixHostIdInRooms();
       }
     }
   });
@@ -1942,6 +2049,19 @@ io.on('connection', (socket) => {
       
       if (player) {
         console.log(`Player ${player.username} disconnected from room ${roomId}`);
+        
+        // Если это был хост, назначаем нового хостом первого активного игрока
+        if (room.hostId === socket.id) {
+          const activePlayers = room.currentPlayers.filter(p => p.socketId !== socket.id && !p.offline);
+          if (activePlayers.length > 0) {
+            room.hostId = activePlayers[0].socketId;
+            console.log(`👑 [SERVER] Host disconnected, new host assigned: ${activePlayers[0].username}`);
+          } else {
+            room.hostId = null;
+            console.log(`👑 [SERVER] Host disconnected, no active players left`);
+          }
+        }
+        
         player.offline = true;
         player.socketId = null;
         
@@ -1958,6 +2078,18 @@ io.on('connection', (socket) => {
         // Уведомляем остальных игроков в комнате
         if (room.currentPlayers.length > 0) {
           io.to(roomId).emit('playersUpdate', room.currentPlayers);
+          // Также отправляем обновленные данные комнаты
+          io.to(roomId).emit('roomData', { 
+            roomId: room.roomId, 
+            maxPlayers: room.maxPlayers, 
+            status: room.status, 
+            hostId: room.hostId, 
+            timer: room.timer, 
+            currentTurn: room.currentTurn 
+          });
+          
+          // Исправляем hostId после отключения игрока
+          fixHostIdInRooms();
         }
       }
     });

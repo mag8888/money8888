@@ -128,7 +128,7 @@
     ],
     "status": "waiting",
     "password": "",
-    "hostId": "s71-VLlMgtXNg-0GAABH",
+    "hostId": null,
     "timer": {
       "hours": 3,
       "remaining": 10800
@@ -174,16 +174,16 @@
     },
     "createdAt": 1756128069186
   },
-  "room2": {
-    "roomId": "room2",
-    "displayName": "666",
-    "originalRequestedId": "room1_878639",
+  "room1": {
+    "roomId": "room1",
+    "displayName": "777",
+    "originalRequestedId": "room1_746467",
     "maxPlayers": 2,
     "currentPlayers": [
       {
-        "id": "f0-0V-xKUE_V_eyRAAAX",
+        "id": "U8f3CELacEbBlesWAAAJ",
         "fixedId": "1756108619266",
-        "socketId": "SEOsI6aD-3xIib4mAAAZ",
+        "socketId": null,
         "username": "xqrmedia",
         "ready": true,
         "position": 0,
@@ -210,9 +210,9 @@
         "charityTurns": 0,
         "_lastRollOptions": null,
         "seat": null,
-        "offline": false,
-        "roomId": "room2",
-        "readyAt": 1756136901172
+        "offline": true,
+        "roomId": "room1",
+        "readyAt": 1756144785890
       },
       {
         "id": "1756108628790",
@@ -245,13 +245,13 @@
         "_lastRollOptions": null,
         "seat": null,
         "offline": true,
-        "roomId": "room2",
-        "readyAt": 1756136915744
+        "roomId": "room1",
+        "readyAt": 1756144775617
       }
     ],
     "status": "determining_order",
     "password": "",
-    "hostId": "SEOsI6aD-3xIib4mAAAZ",
+    "hostId": null,
     "timer": {
       "hours": 3,
       "remaining": 10800
@@ -295,12 +295,527 @@
         ]
       }
     },
-    "createdAt": 1756136884182,
+    "createdAt": 1756144755184,
     "orderDetermination": {
       "phase": "initial_roll",
       "players": [
         {
-          "id": "f0-0V-xKUE_V_eyRAAAX",
+          "id": "U8f3CELacEbBlesWAAAJ",
+          "username": "xqrmedia",
+          "diceRoll": null,
+          "finalPosition": null
+        },
+        {
+          "id": "1756108628790",
+          "username": "romeoproo1",
+          "diceRoll": null,
+          "finalPosition": null
+        }
+      ],
+      "timer": 60,
+      "autoRolls": []
+    }
+  },
+  "room3": {
+    "roomId": "room3",
+    "displayName": "888",
+    "originalRequestedId": "room1_012980",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "eiDaP0g_6sIcNx8zAAAF",
+        "fixedId": "1756108619266",
+        "socketId": "AgOe9rkXQ03isXb6AAAk",
+        "username": "xqrmedia",
+        "ready": true,
+        "position": 0,
+        "profession": {
+          "id": 2,
+          "name": "Курьер",
+          "salary": 2500,
+          "expenses": 300,
+          "balance": 2500,
+          "passiveIncome": 0,
+          "description": "Доставка товаров и документов",
+          "charity": false
+        },
+        "balance": 2500,
+        "passiveIncome": 0,
+        "salary": 2500,
+        "expenses": 300,
+        "childCost": 500,
+        "totalExpenses": 300,
+        "monthlyCashflow": 2200,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "seat": null,
+        "offline": false,
+        "roomId": "room3",
+        "readyAt": 1756165037540
+      }
+    ],
+    "status": "waiting",
+    "password": "",
+    "hostId": "AgOe9rkXQ03isXb6AAAk",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1756165024776
+  },
+  "room2": {
+    "roomId": "room2",
+    "displayName": "1666",
+    "originalRequestedId": "room1_862344",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "5bUWXRxzzcWwHGzPAAAH",
+        "fixedId": "1756108619266",
+        "socketId": null,
+        "username": "xqrmedia",
+        "ready": true,
+        "position": 0,
+        "profession": {
+          "id": 1,
+          "name": "Дворник",
+          "salary": 2000,
+          "expenses": 200,
+          "balance": 2000,
+          "passiveIncome": 0,
+          "description": "Уборка улиц и дворов",
+          "charity": false
+        },
+        "balance": 2000,
+        "passiveIncome": 0,
+        "salary": 2000,
+        "expenses": 200,
+        "childCost": 500,
+        "totalExpenses": 200,
+        "monthlyCashflow": 1800,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "seat": null,
+        "offline": true,
+        "roomId": "room2",
+        "readyAt": 1756175881074
+      },
+      {
+        "id": "1756108628790",
+        "fixedId": "1756108628790",
+        "socketId": null,
+        "username": "romeoproo1",
+        "ready": true,
+        "position": 0,
+        "profession": {
+          "id": 2,
+          "name": "Курьер",
+          "salary": 2500,
+          "expenses": 300,
+          "balance": 2500,
+          "passiveIncome": 0,
+          "description": "Доставка товаров и документов",
+          "charity": false
+        },
+        "balance": 2500,
+        "passiveIncome": 0,
+        "salary": 2500,
+        "expenses": 300,
+        "childCost": 500,
+        "totalExpenses": 300,
+        "monthlyCashflow": 2200,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "seat": null,
+        "offline": true,
+        "roomId": "room2",
+        "readyAt": 1756175893124
+      }
+    ],
+    "status": "determining_order",
+    "password": "",
+    "hostId": null,
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1756175872510,
+    "orderDetermination": {
+      "phase": "initial_roll",
+      "players": [
+        {
+          "id": "VsZuGNSGECTeecf4AAAB",
+          "username": "xqrmedia",
+          "diceRoll": null,
+          "finalPosition": null
+        },
+        {
+          "id": "1756108628790",
+          "username": "romeoproo1",
+          "diceRoll": null,
+          "finalPosition": null
+        }
+      ],
+      "timer": 60,
+      "autoRolls": []
+    }
+  },
+  "room5": {
+    "roomId": "room5",
+    "displayName": "1555",
+    "originalRequestedId": "room1_432863",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "e1vfkpqIaDKKc16RAAAY",
+        "fixedId": "1756108619266",
+        "socketId": null,
+        "username": "xqrmedia",
+        "ready": true,
+        "position": 0,
+        "profession": {
+          "id": 1,
+          "name": "Дворник",
+          "salary": 2000,
+          "expenses": 200,
+          "balance": 2000,
+          "passiveIncome": 0,
+          "description": "Уборка улиц и дворов",
+          "charity": false
+        },
+        "balance": 2000,
+        "passiveIncome": 0,
+        "salary": 2000,
+        "expenses": 200,
+        "childCost": 500,
+        "totalExpenses": 200,
+        "monthlyCashflow": 1800,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "seat": null,
+        "offline": true,
+        "roomId": "room5",
+        "readyAt": 1756173505727
+      },
+      {
+        "id": "1756108628790",
+        "fixedId": "1756108628790",
+        "socketId": null,
+        "username": "romeoproo1",
+        "ready": true,
+        "position": 0,
+        "profession": {
+          "id": 2,
+          "name": "Курьер",
+          "salary": 2500,
+          "expenses": 300,
+          "balance": 2500,
+          "passiveIncome": 0,
+          "description": "Доставка товаров и документов",
+          "charity": false
+        },
+        "balance": 2500,
+        "passiveIncome": 0,
+        "salary": 2500,
+        "expenses": 300,
+        "childCost": 500,
+        "totalExpenses": 300,
+        "monthlyCashflow": 2200,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "seat": null,
+        "offline": true,
+        "roomId": "room5",
+        "readyAt": 1756173494034
+      }
+    ],
+    "status": "determining_order",
+    "password": "",
+    "hostId": null,
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1756173477665,
+    "orderDetermination": {
+      "phase": "initial_roll",
+      "players": [
+        {
+          "id": "e1vfkpqIaDKKc16RAAAY",
+          "username": "xqrmedia",
+          "diceRoll": null,
+          "finalPosition": null
+        },
+        {
+          "id": "1756108628790",
+          "username": "romeoproo1",
+          "diceRoll": null,
+          "finalPosition": null
+        }
+      ],
+      "timer": 60,
+      "autoRolls": []
+    }
+  },
+  "room4": {
+    "roomId": "room4",
+    "displayName": "1777",
+    "originalRequestedId": "room1_514832",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "9hurwMSPg5__GWd2AAAV",
+        "fixedId": "1756108619266",
+        "socketId": "kqcveHLCr-myEaieAAAb",
+        "username": "xqrmedia",
+        "ready": true,
+        "position": 0,
+        "profession": {
+          "id": 1,
+          "name": "Дворник",
+          "salary": 2000,
+          "expenses": 200,
+          "balance": 2000,
+          "passiveIncome": 0,
+          "description": "Уборка улиц и дворов",
+          "charity": false
+        },
+        "balance": 2000,
+        "passiveIncome": 0,
+        "salary": 2000,
+        "expenses": 200,
+        "childCost": 500,
+        "totalExpenses": 200,
+        "monthlyCashflow": 1800,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "seat": null,
+        "offline": false,
+        "roomId": "room4",
+        "readyAt": 1756178542221
+      },
+      {
+        "id": "1756108628790",
+        "fixedId": "1756108628790",
+        "socketId": "9hurwMSPg5__GWd2AAAV",
+        "username": "romeoproo1",
+        "ready": true,
+        "position": 0,
+        "profession": {
+          "id": 2,
+          "name": "Курьер",
+          "salary": 2500,
+          "expenses": 300,
+          "balance": 2500,
+          "passiveIncome": 0,
+          "description": "Доставка товаров и документов",
+          "charity": false
+        },
+        "balance": 2500,
+        "passiveIncome": 0,
+        "salary": 2500,
+        "expenses": 300,
+        "childCost": 500,
+        "totalExpenses": 300,
+        "monthlyCashflow": 2200,
+        "assets": [],
+        "liabilities": {},
+        "children": 0,
+        "charityTurns": 0,
+        "_lastRollOptions": null,
+        "seat": null,
+        "offline": false,
+        "roomId": "room4",
+        "readyAt": 1756178553975
+      }
+    ],
+    "status": "determining_order",
+    "password": "",
+    "hostId": "kqcveHLCr-myEaieAAAb",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1756178534997,
+    "orderDetermination": {
+      "phase": "initial_roll",
+      "players": [
+        {
+          "id": "9hurwMSPg5__GWd2AAAV",
           "username": "xqrmedia",
           "diceRoll": null,
           "finalPosition": null
