@@ -1001,5 +1001,109 @@
     },
     "createdAt": 1756280945261,
     "orderDetermination": null
+  },
+  "room4": {
+    "roomId": "room4",
+    "displayName": "4777",
+    "originalRequestedId": "room1_540121",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "CMXuQwaMWcelu-25AAAJ",
+        "username": "romeoproo1",
+        "socketId": null,
+        "offline": true,
+        "ready": true,
+        "profession": {
+          "id": 11,
+          "name": "Врач",
+          "salary": 8000,
+          "expenses": 2000,
+          "balance": 4000,
+          "passiveIncome": 0,
+          "description": "Медицинская практика",
+          "charity": false
+        },
+        "balance": 4000,
+        "salary": 8000,
+        "expenses": 2000,
+        "passiveIncome": 0,
+        "totalExpenses": 2000,
+        "monthlyCashflow": 6000,
+        "assets": []
+      },
+      {
+        "id": "Mns_ZYfIGhKSllmWAAAH",
+        "username": "xqrmedia",
+        "socketId": "Mns_ZYfIGhKSllmWAAAH",
+        "offline": false,
+        "ready": true,
+        "profession": {
+          "id": 4,
+          "name": "Водитель",
+          "salary": 3500,
+          "expenses": 1100,
+          "balance": 1800,
+          "passiveIncome": 0,
+          "description": "Управление транспортным средством",
+          "charity": false
+        },
+        "balance": 1800,
+        "salary": 3500,
+        "expenses": 1100,
+        "passiveIncome": 0,
+        "totalExpenses": 1100,
+        "monthlyCashflow": 2400,
+        "assets": []
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": "Mns_ZYfIGhKSllmWAAAH",
+    "timer": {
+      "hours": 3,
+      "remaining": 9573
+    },
+    "currentTurn": "CMXuQwaMWcelu-25AAAJ",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1756283049250,
+    "orderDetermination": null
   }
 }

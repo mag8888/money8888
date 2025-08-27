@@ -169,38 +169,38 @@ export const FAST_TRACK_CELLS = [
   // Клетка 12 - МЕЧТА (голубая)
   {
     id: 12,
-    name: 'Объехать 100 стран',
-    description: 'Путешествие по всему миру и знакомство с разными культурами.',
+    name: 'Подняться на все высочайшие вершины мира',
+    description: 'Покорение семи высочайших вершин планеты (Seven Summits).',
     type: 'dream',
     cost: 500000,
     monthlyIncome: 0,
     category: 'dream',
     color: '#87CEEB', // Голубой
-    icon: <TravelIcon />
+    icon: <MountainIcon />
   },
   // Клетка 13 - БИЗНЕС (зеленая)
   {
     id: 13,
-    name: 'Мини-отель/бутик-гостиница',
-    description: 'Создание небольшого, но престижного отеля.',
+    name: 'Франшиза популярного ресторана',
+    description: 'Приобретение франшизы известной сети ресторанов.',
     type: 'business',
-    cost: 200000,
-    monthlyIncome: 4000,
+    cost: 320000,
+    monthlyIncome: 8000,
     category: 'business',
     color: '#4CAF50', // Зеленый
-    icon: <HotelIcon />
+    icon: <RestaurantIcon />
   },
-  // Клетка 14 - МЕЧТА (голубая)
+  // Клетка 14 - ДЕНЬГИ (желтая)
   {
     id: 14,
-    name: 'Стать автором книги-бестселлера',
-    description: 'Создание литературного произведения, которое покорит мир.',
-    type: 'dream',
-    cost: 300000,
+    name: 'Объехать 100 стран',
+    description: 'Выплата/бонус, связанный с большим турне — получаете 500 000$.',
+    type: 'money',
+    cost: 500000,
     monthlyIncome: 0,
-    category: 'dream',
-    color: '#87CEEB', // Голубой
-    icon: <BookIcon />
+    category: 'money',
+    color: '#FFD700', // Желтый
+    icon: <MoneyIcon />
   },
   // Клетка 15 - БИЗНЕС (зеленая)
   {
