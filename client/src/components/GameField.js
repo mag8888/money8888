@@ -156,7 +156,8 @@ const GameCell = React.memo(({
   playerInitial,
   onClick,
   number,
-  isInner
+  isInner,
+  playerDreams // Новый проп для мечт игроков
 }) => {
   // Используем цвета по таблице типов клеток
   let cellColor = color;
@@ -228,6 +229,34 @@ const GameCell = React.memo(({
           {number}
         </Typography>
       )}
+      
+      {/* Знаки игроков на клетках-мечтах */}
+      {type === 'dream' && playerDreams && playerDreams[position] && (
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: -8,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: '#FF69B4',
+            color: 'white',
+            borderRadius: '50%',
+            width: 20,
+            height: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            border: '2px solid white',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+            zIndex: 10
+          }}
+          title={`К этой мечте стремится ${playerDreams[position].username}`}
+        >
+          ❤️
+        </Box>
+      )}
     </motion.div>
   );
 });
@@ -242,7 +271,8 @@ const GameField = ({
   diceValue,
   isRolling,
   gamePhase,
-  diceAnimation
+  diceAnimation,
+  playerDreams // Новый проп для мечт игроков
 }) => {
   // Убираем лишние логи для уменьшения спама
   // console.log('🎯 [GameField] Получены пропсы:', {
@@ -1139,6 +1169,7 @@ const GameField = ({
             playerInitial={null}
             onClick={handleCellClick}
             isInner={isInner}
+            playerDreams={playerDreams}
           />
         </Box>
       ))}

@@ -30,8 +30,10 @@ const DealOffer = ({ roomId, userId }) => {
             </option>
           ))}
       </select>
-      <input placeholder="Детали сделки" value={dealDetails} onChange={e => setDealDetails(e.target.value)} />
-      <input type="number" placeholder="Цена" value={price} onChange={e => setPrice(e.target.value)} />
+      <label htmlFor="dealDetails" style={{ marginLeft: '12px', marginRight: '8px' }}>Детали сделки</label>
+      <input id="dealDetails" placeholder="Детали сделки" value={dealDetails} onChange={e => setDealDetails(e.target.value)} />
+      <label htmlFor="dealPrice" style={{ marginLeft: '12px', marginRight: '8px' }}>Цена</label>
+      <input id="dealPrice" type="number" placeholder="Цена" value={price} onChange={e => setPrice(e.target.value)} />
       <button onClick={offerDeal}>Предложить</button>
     </div>
   );

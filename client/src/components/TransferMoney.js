@@ -27,8 +27,10 @@ const TransferMoney = ({ roomId, userId }) => {
   return (
     <div>
       <h2>Перевести деньги</h2>
-      <input placeholder="Кому" value={toUser} onChange={e => setToUser(e.target.value)} />
-      <input type="number" placeholder="Сумма" value={amount} onChange={e => setAmount(e.target.value)} />
+      <label htmlFor="transferToUser" style={{ marginRight: '8px' }}>Кому</label>
+      <input id="transferToUser" placeholder="Кому" value={toUser} onChange={e => setToUser(e.target.value)} />
+      <label htmlFor="transferAmount" style={{ marginLeft: '12px', marginRight: '8px' }}>Сумма</label>
+      <input id="transferAmount" type="number" placeholder="Сумма" value={amount} onChange={e => setAmount(e.target.value)} />
       <button onClick={transfer}>Перевести</button>
       <h2>Перевести актив</h2>
       <select value={targetPlayer} onChange={e => setTargetPlayer(e.target.value)}>

@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { useGameNavigation } from '../hooks/useGameState';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import socket from '../socket';
 import OrderDetermination from './OrderDetermination';
 import { PROFESSIONS } from '../data/professions';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
+import DreamSelectionModal from './DreamSelectionModal';
+import { useDreamSelection } from '../hooks/useDreamSelection';
 
 const SimpleRoomSetup = ({ roomId, playerData }) => {
   console.log('🔍 [SimpleRoomSetup] Component props:', { roomId, playerData });
   const [players, setPlayers] = useState([]);
+  const navigate = useNavigate();
   const [roomData, setRoomData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ text: '', type: '' });
@@ -16,9 +19,25 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
   const [orderDetermination, setOrderDetermination] = useState(null);
   const [orderDeterminationTimer, setOrderDeterminationTimer] = useState(60);
   const [tieBreakTimer, setTieBreakTimer] = useState(30);
+  // Флаг для игнорирования общего таймера во время определения очередности
+  const isDeterminingOrderRef = useRef(false);
+  useEffect(() => { isDeterminingOrderRef.current = !!orderDetermination; }, [orderDetermination]);
+  // Счетчики тиков таймера для отладки
+  const odTicksRef = useRef(0);       // orderDeterminationTimerUpdate
+  const gameTicksRef = useRef(0);     // timerUpdate (игровой)
   
   // Состояние для готовности игрока
   const [playerReady, setPlayerReady] = useState(false);
+  
+  // Хук для выбора мечты
+  const {
+    selectedDream,
+    dreamSelectionModalOpen,
+    openDreamSelection,
+    closeDreamSelection,
+    handleDreamSelected,
+    resetDreamSelection
+  } = useDreamSelection();
   
   // Переменные для отслеживания выбора профессий игроками 1-10
   const [player1HasProfession, setPlayer1HasProfession] = useState(false);
@@ -226,8 +245,9 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
     const allReady = areAllPlayersReady();
     const allHaveProfessions = players.every(player => isValidProfession(player.profession));
     const enoughPlayers = players.length >= 2;
+    const hasDream = !!selectedDream; // Проверяем наличие выбранной мечты
     
-    const result = hostCheck && allReady && allHaveProfessions && enoughPlayers;
+    const result = hostCheck && allReady && allHaveProfessions && enoughPlayers && hasDream;
     
     console.log('🎮 [SimpleRoomSetup] canStartGame check:', {
       roomData: !!roomData,
@@ -236,6 +256,7 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
       allReady,
       allHaveProfessions,
       enoughPlayers,
+      hasDream,
       result,
       players: players.map(p => ({ 
         id: p.id, 
@@ -340,12 +361,12 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
     }
   };
 
-  // Используем хук для автоматического перехода на игровое поле
-  const { handleGameStarted } = useGameNavigation(socket, roomId, (gameData) => {
+  // Функция для обработки начала игры
+  const handleGameStarted = (gameData) => {
     console.log('🎮 [SimpleRoomSetup] Game started callback:', gameData);
     // Обновляем статус комнаты
     setRoomData(prev => ({ ...prev, status: 'started' }));
-  });
+  };
 
   // Функция для возврата к списку комнат
   const handleBackToRooms = () => {
@@ -498,8 +519,15 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
       // Обновляем статус комнаты
       setRoomData(prev => ({ ...prev, status: 'started' }));
       
-      // Навигация теперь происходит автоматически через хук useGameState
-      console.log('🚀 [SimpleRoomSetup] Navigation will be handled by useGameState hook');
+      // Навигация на игровое поле
+      try {
+        const target = `/game/${roomId}`;
+        console.log('🚀 [SimpleRoomSetup] Navigating to game board:', target);
+        navigate(target);
+      } catch (e) {
+        console.warn('⚠️ [SimpleRoomSetup] navigate to game failed, fallback reload', e);
+        window.location.href = `/game/${roomId}`;
+      }
     });
 
     // Подписываемся на обновление данных комнаты
@@ -513,6 +541,24 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
         currentTurn: roomData?.currentTurn
       });
       setRoomData(roomData);
+
+      // Если сервер перевёл комнату в started во время восстановления — перейдём на доску
+      if (roomData?.status === 'started') {
+        const target = `/game/${roomId}`;
+        console.log('🚀 [SimpleRoomSetup] roomData indicates started, navigating:', target);
+        navigate(target);
+      }
+
+      // ВАЖНО: если мы перезашли и статус комнаты — определение очередности,
+      // сразу показываем страницу OrderDetermination и подтягиваем таймер/игроков
+      if (roomData?.status === 'determining_order') {
+        setOrderDetermination({
+          phase: roomData?.orderDetermination?.phase || 'initial_roll'
+        });
+        setOrderDeterminationTimer(roomData?.orderDetermination?.timer || 180);
+        // Подтягиваем актуальный список игроков
+        socket.emit('getPlayers', roomId);
+      }
     });
 
     // Подписываемся на обновление списка игроков
@@ -522,12 +568,7 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
       
       // Обновляем переменные игроков 1-10
       updatePlayerProfessionVariables(playersList);
-      
-      // Дополнительно запрашиваем данные комнаты, если их еще нет
-      if (!roomData) {
-        console.log('🏠 [SimpleRoomSetup] Requesting room data after players list update');
-        socket.emit('getRoom', roomId);
-      }
+
     });
 
     // Подписываемся на изменение хода
@@ -535,10 +576,7 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
       console.log('🎯 [SimpleRoomSetup] Turn changed to:', currentTurn);
     });
 
-    // Подписываемся на обновление таймера
-    socket.on('timerUpdate', (remainingTime) => {
-      console.log('⏰ [SimpleRoomSetup] Timer update:', remainingTime);
-    });
+    // Общий таймер подключаем отдельно, только когда игра началась (см. ниже)
 
     // Подписываемся на начало определения очередности
     socket.on('orderDeterminationStarted', (data) => {
@@ -551,8 +589,16 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
 
     // Подписываемся на обновление таймера определения очередности
     socket.on('orderDeterminationTimerUpdate', (data) => {
-      console.log('⏰ [SimpleRoomSetup] Order determination timer update:', data);
-      if (data.roomId === roomId) {
+      odTicksRef.current += 1;
+      console.log('⏰ [SimpleRoomSetup][OD_TIMER]', {
+        roomId,
+        tick: odTicksRef.current,
+        remaining: data?.remainingTime,
+        phase: data?.phase,
+        statusNow: roomData?.status
+      });
+      // Сервер не присылает roomId в этом событии — обновляем напрямую
+      if (typeof data?.remainingTime === 'number') {
         setOrderDeterminationTimer(data.remainingTime);
       }
     });
@@ -634,6 +680,22 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
     };
   }, [roomId]);
 
+  // Подключаем общий игровой таймер только в статусе started
+  useEffect(() => {
+    if (!roomData || roomData.status !== 'started') return;
+    const handleTimer = (remainingTime) => {
+      gameTicksRef.current += 1;
+      console.log('⏰ [SimpleRoomSetup][GAME_TIMER]', {
+        roomId,
+        tick: gameTicksRef.current,
+        remaining: remainingTime,
+        statusNow: roomData?.status
+      });
+    };
+    socket.on('timerUpdate', handleTimer);
+    return () => socket.off('timerUpdate', handleTimer);
+  }, [roomData?.status, roomId]);
+
   // Функция для начала игры
   const startGame = () => {
     if (!canStartGame()) {
@@ -641,7 +703,17 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
       return;
     }
     
-    console.log('🎮 [SimpleRoomSetup] Starting game for room:', roomId);
+    // Проверяем, что все игроки выбрали мечты
+    if (!selectedDream) {
+      setMessage({ text: '❌ Сначала выберите мечту!', type: 'error' });
+      return;
+    }
+    
+    console.log('🎮 [SimpleRoomSetup] Starting game with dream:', selectedDream);
+    
+    // Отправляем выбранную мечту на сервер
+    socket.emit('setPlayerDream', { roomId, dream: selectedDream });
+    
     socket.emit('startGame', roomId);
     setMessage({ text: '🚀 Запускаем игру...', type: 'info' });
   };
@@ -819,6 +891,16 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
             <h3 style={{ margin: '0 0 15px 0', color: '#FFD700' }}>📊 Статус комнаты</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
               <div>
+                <strong>Комната:</strong> 
+                <span style={{ 
+                  color: '#FFD700',
+                  marginLeft: '8px',
+                  fontWeight: 'bold'
+                }}>
+                  {roomId}
+                </span>
+              </div>
+              <div>
                 <strong>Статус:</strong> 
                 <span style={{ 
                   color: roomData.status === 'waiting' ? '#FFD700' : 
@@ -946,6 +1028,10 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
         <br />
         👑 Host Check: {isHost() ? '✅ Да' : '❌ Нет'} | Can Start: {canStartGame() ? '✅ Да' : '❌ Нет'}
         <br />
+        🔍 Детальная проверка: Хост={isHost() ? '✅' : '❌'} | Все готовы={areAllPlayersReady() ? '✅' : '❌'} | Профессии={players.every(player => isValidProfession(player.profession)) ? '✅' : '❌'} | Игроков={players.length >= 2 ? '✅' : '❌'} | Мечта={!!selectedDream ? '✅' : '❌'}
+        <br />
+        👥 Готовность игроков: {players.map(p => `${p.username}: ${p.ready ? '✅' : '❌'}`).join(' | ')}
+        <br />
         🎯 Профессия детально: {JSON.stringify(getCurrentPlayer()?.profession)}
         <br />
         🔍 hasProfession(): {hasProfession() ? 'true' : 'false'}
@@ -1030,38 +1116,71 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
               </div>
             )}
             
-            {/* Кнопки готовности всегда видны */}
-            <div style={{ display: 'flex', gap: '10px' }}>
+            {/* Кнопки готовности и выбора мечты */}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {/* Кнопка выбора мечты */}
               <button 
-                onClick={() => handleSetReady(true)}
+                onClick={openDreamSelection}
                 disabled={!hasProfession()}
                 style={{
                   padding: '12px 24px',
-                  backgroundColor: !hasProfession() ? '#666' : (getCurrentPlayerReady() ? '#66BB6A' : '#4CAF50'),
+                  backgroundColor: !hasProfession() ? '#666' : (selectedDream ? '#9C27B0' : '#673AB7'),
                   color: 'white',
-                  border: !hasProfession() ? 'none' : (getCurrentPlayerReady() ? '2px solid #4CAF50' : 'none'),
+                  border: !hasProfession() ? 'none' : (selectedDream ? '2px solid #9C27B0' : 'none'),
                   borderRadius: '8px',
                   fontSize: '16px',
                   cursor: !hasProfession() ? 'not-allowed' : 'pointer',
                   transition: 'all 0.3s ease',
-                  transform: !hasProfession() ? 'scale(1)' : (getCurrentPlayerReady() ? 'scale(1.05)' : 'scale(1)'),
-                  boxShadow: !hasProfession() ? 'none' : (getCurrentPlayerReady() ? '0 4px 15px rgba(76, 175, 80, 0.3)' : 'none'),
+                  transform: !hasProfession() ? 'scale(1)' : (selectedDream ? 'scale(1.05)' : 'scale(1)'),
+                  boxShadow: !hasProfession() ? 'none' : (selectedDream ? '0 4px 15px rgba(156, 39, 176, 0.3)' : 'none'),
                   opacity: !hasProfession() ? 0.6 : 1
                 }}
                 onMouseEnter={(e) => {
                   if (!hasProfession()) return;
+                  if (!selectedDream) {
+                    e.target.style.backgroundColor = '#9C27B0';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!hasProfession()) return;
+                  if (!selectedDream) {
+                    e.target.style.backgroundColor = '#673AB7';
+                  }
+                }}
+              >
+                {!hasProfession() ? '❌ Нет профессии' : (selectedDream ? '⭐ Мечта выбрана!' : '⭐ Выбор мечты')}
+              </button>
+              
+              <button 
+                onClick={() => handleSetReady(true)}
+                disabled={!hasProfession() || !selectedDream}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: !hasProfession() || !selectedDream ? '#666' : (getCurrentPlayerReady() ? '#66BB6A' : '#4CAF50'),
+                  color: 'white',
+                  border: !hasProfession() || !selectedDream ? 'none' : (getCurrentPlayerReady() ? '2px solid #4CAF50' : 'none'),
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  cursor: !hasProfession() || !selectedDream ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease',
+                  transform: !hasProfession() || !selectedDream ? 'scale(1)' : (getCurrentPlayerReady() ? 'scale(1.05)' : 'scale(1)'),
+                  boxShadow: !hasProfession() || !selectedDream ? 'none' : (getCurrentPlayerReady() ? '0 4px 15px rgba(76, 175, 80, 0.3)' : 'none'),
+                  opacity: !hasProfession() || !selectedDream ? 0.6 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (!hasProfession() || !selectedDream) return;
                   if (!getCurrentPlayerReady()) {
                     e.target.style.backgroundColor = '#66BB6A';
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!hasProfession()) return;
+                  if (!hasProfession() || !selectedDream) return;
                   if (!getCurrentPlayerReady()) {
                     e.target.style.backgroundColor = '#4CAF50';
                   }
                 }}
               >
-                {!hasProfession() ? '❌ Нет профессии' : (getCurrentPlayerReady() ? '✅ ГОТОВ!' : '✅ Готов к игре')}
+                {!hasProfession() ? '❌ Нет профессии' : !selectedDream ? '❌ Выберите мечту' : (getCurrentPlayerReady() ? '✅ ГОТОВ!' : '✅ Готов к игре')}
               </button>
               <button 
                 onClick={() => handleSetReady(false)}
@@ -1092,7 +1211,7 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
                   }
                 }}
               >
-                {!hasProfession() ? '❌ Нет профессии' : (!getCurrentPlayerReady() ? '⏸️ НЕ ГОТОВ!' : '⏸️ Не готов')}
+                {!hasProfession() ? '❌ НЕТ ПРОФ' : (!getCurrentPlayerReady() ? '⏸️ НЕ ГОТОВ!' : '⏸️ Не готов')}
               </button>
             </div>
           </div>
@@ -1194,6 +1313,7 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
             Хост: {isHost() ? '✅' : '❌'} | 
             Готовы: {areAllPlayersReady() ? '✅' : '❌'} | 
             Профессии: {players.every(p => isValidProfession(p.profession)) ? '✅' : '❌'} | 
+            Мечта: {selectedDream ? '✅' : '❌'} |
             Игроков: {players.length}/2
           </Typography>
         </Box>
@@ -1209,7 +1329,8 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
                         🔍 Отладка: {isHost() ? '✅ Вы хост' : '❌ Вы не хост'} | 
                         Игроков: {players.length} | 
                         Готовы: {getReadyPlayersCount()} | 
-                        С профессиями: {players.filter(p => isValidProfession(p.profession)).length}
+                        С профессиями: {players.filter(p => isValidProfession(p.profession)).length} |
+                        Мечта: {selectedDream ? '✅' : '❌'}
                       </div>
                       <div style={{ marginBottom: '10px', fontSize: '0.8rem', color: '#999' }}>
                         🔍 Ваша профессия: {getCurrentPlayer()?.profession ? 
@@ -1217,7 +1338,8 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
                             getCurrentPlayer().profession : 
                             getCurrentPlayer().profession?.name || 'Неизвестно'
                           ) : 'Нет профессии'} | 
-                        hasProfession(): {hasProfession() ? 'true' : 'false'}
+                        hasProfession(): {hasProfession() ? 'true' : 'false'} |
+                        Мечта: {selectedDream ? selectedDream.name : 'Не выбрана'}
                       </div>
                       <div style={{ marginBottom: '10px', fontSize: '0.8rem', color: '#999' }}>
                         🔍 Переменные игроков: 
@@ -1232,21 +1354,32 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
                         P9:{player9HasProfession ? '✅' : '❌'} 
                         P10:{player10HasProfession ? '✅' : '❌'}
                       </div>
+                      <div style={{ marginBottom: '10px', fontSize: '0.8rem', color: '#999' }}>
+                        🔍 Мечта: {selectedDream ? `✅ ${selectedDream.name}` : '❌ Не выбрана'}
+                      </div>
                       <ul style={{ margin: '5px 0', paddingLeft: '20px', color: '#FF9800' }}>
+                                                <li style={{ marginBottom: '5px' }}>
+                          <span style={{ 
+                            color: players.every(p => isValidProfession(p.profession)) ? '#4CAF50' : '#FF9800' 
+                          }}>
+                            {players.every(p => isValidProfession(p.profession)) ? '✅' : '⏳'} 
+                            Профессии выбраны: {players.filter(p => isValidProfession(p.profession)).length}/{players.length}
+                          </span>
+                        </li>
                         <li style={{ marginBottom: '5px' }}>
-                                                  <span style={{ 
-                          color: players.every(p => isValidProfession(p.profession)) ? '#4CAF50' : '#FF9800' 
-                        }}>
-                          {players.every(p => isValidProfession(p.profession)) ? '✅' : '⏳'} 
-                          Профессии выбраны: {players.filter(p => isValidProfession(p.profession)).length}/{players.length}
-                        </span>
+                          <span style={{ 
+                            color: selectedDream ? '#4CAF50' : '#FF9800' 
+                          }}>
+                            {selectedDream ? '✅' : '⏳'} 
+                            Мечта выбрана: {selectedDream ? selectedDream.name : 'Не выбрана'}
+                          </span>
                         </li>
                         <li style={{ marginBottom: '5px' }}>
                           <span style={{ 
                             color: players.every(p => p.ready) ? '#4CAF50' : '#FF9800' 
                           }}>
-                                            {areAllPlayersReady() ? '✅' : '⏳'}
-                Игроки готовы: {getReadyPlayersCount()}/{players.length}
+                            {areAllPlayersReady() ? '✅' : '⏳'}
+                            Игроки готовы: {getReadyPlayersCount()}/{players.length}
                           </span>
                         </li>
                         <li style={{ marginBottom: '5px' }}>
@@ -1255,6 +1388,14 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
                           }}>
                             {players.length >= 2 ? '✅' : '⏳'} 
                             Минимум игроков: {players.length}/2
+                          </span>
+                        </li>
+                        <li style={{ marginBottom: '5px' }}>
+                          <span style={{ 
+                            color: selectedDream ? '#4CAF50' : '#FF9800' 
+                          }}>
+                            {selectedDream ? '✅' : '⏳'} 
+                            Мечта выбрана: {selectedDream ? selectedDream.name : 'Не выбрана'}
                           </span>
                         </li>
                       </ul>
@@ -1634,6 +1775,160 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
           Нажмите, чтобы вернуться к списку комнат
         </div>
       </div>
+      
+      {/* Модальное окно выбора мечты */}
+      <DreamSelectionModal
+        open={dreamSelectionModalOpen}
+        onClose={closeDreamSelection}
+        onDreamSelected={handleDreamSelected}
+        dreams={[
+          // Клетка 2
+          {
+            id: 2,
+            name: 'Построить дом мечты для семьи',
+            description: 'Реализация мечты о собственном доме для семьи.',
+            cost: 100000,
+            icon: '🏠'
+          },
+          // Клетка 6
+          {
+            id: 6,
+            name: 'Посетить Антарктиду',
+            description: 'Экстремальное путешествие на самый южный континент.',
+            cost: 150000,
+            icon: '❄️'
+          },
+          // Клетка 12
+          {
+            id: 12,
+            name: 'Объехать 100 стран',
+            description: 'Путешествие по всему миру и знакомство с разными культурами.',
+            cost: 500000,
+            icon: '🌍'
+          },
+          // Клетка 14
+          {
+            id: 14,
+            name: 'Стать автором книги-бестселлера',
+            description: 'Создание литературного произведения, которое покорит мир.',
+            cost: 300000,
+            icon: '📚'
+          },
+          // Клетка 16
+          {
+            id: 16,
+            name: 'Жить год на яхте в Средиземном море',
+            description: 'Годовая жизнь на роскошной яхте в прекрасном климате.',
+            cost: 300000,
+            icon: '⛵'
+          },
+          // Клетка 18
+          {
+            id: 18,
+            name: 'Создать фонд поддержки талантов',
+            description: 'Основание благотворительного фонда для помощи одаренным людям.',
+            cost: 300000,
+            icon: '🎭'
+          },
+          // Клетка 20
+          {
+            id: 20,
+            name: 'Организовать мировой фестиваль',
+            description: 'Проведение масштабного международного культурного события.',
+            cost: 200000,
+            icon: '🎪'
+          },
+          // Клетка 24
+          {
+            id: 24,
+            name: 'Туристический комплекс (эко-ранчо)',
+            description: 'Создание экологического туристического комплекса.',
+            cost: 1000000,
+            icon: '🏕️'
+          },
+          // Клетка 26
+          {
+            id: 26,
+            name: 'Биржа',
+            description: 'Разово выплачивается 500 000$ если выпало 5 или 6 на кубике.',
+            cost: 50000,
+            icon: '💹'
+          },
+          // Клетка 28
+          {
+            id: 28,
+            name: 'NFT-платформа',
+            description: 'Создание платформы для торговли NFT.',
+            cost: 400000,
+            icon: '🖼️'
+          },
+          // Клетка 30
+          {
+            id: 30,
+            name: 'Школа иностранных языков',
+            description: 'Создание школы для изучения иностранных языков.',
+            cost: 20000,
+            icon: '🌐'
+          },
+          // Клетка 32
+          {
+            id: 32,
+            name: 'Создать школу будущего для детей',
+            description: 'Создание инновационной школы для детей.',
+            cost: 300000,
+            icon: '🎓'
+          },
+          // Клетка 35
+          {
+            id: 35,
+            name: 'Кругосветное плавание на паруснике',
+            description: 'Кругосветное путешествие на парусном судне.',
+            cost: 200000,
+            icon: '🌊'
+          },
+          // Клетка 37
+          {
+            id: 37,
+            name: 'Белоснежная Яхта',
+            description: 'Приобретение роскошной белоснежной яхты.',
+            cost: 300000,
+            icon: '🛥️'
+          },
+          // Клетка 42
+          {
+            id: 42,
+            name: 'Белоснежная Яхта',
+            description: 'Приобретение роскошной белоснежной яхты.',
+            cost: 300000,
+            icon: '🛥️'
+          },
+          // Клетка 44
+          {
+            id: 44,
+            name: 'Организовать благотворительный фонд',
+            description: 'Создание благотворительного фонда.',
+            cost: 200000,
+            icon: '💝'
+          },
+          // Клетка 46
+          {
+            id: 46,
+            name: 'Полёт в космос',
+            description: 'Реализация мечты о космическом путешествии.',
+            cost: 250000,
+            icon: '🚀'
+          },
+          // Клетка 48
+          {
+            id: 48,
+            name: 'Кругосветное путешествие',
+            description: 'Путешествие вокруг света для изучения разных стран.',
+            cost: 300000,
+            icon: '🌏'
+          }
+        ]}
+        currentPlayer={getCurrentPlayer()}
+      />
     </div>
   );
 };

@@ -924,11 +924,22 @@ io.on('connection', (socket) => {
       existingById.offline = false;
       existingById.roomId = roomId;
       
+      // Обновляем профессию и другие данные, если они есть в playerData
+      if (playerData.profession && !existingById.profession) {
+        existingById.profession = playerData.profession;
+        existingById.salary = playerData.profession.salary || 0;
+        existingById.expenses = playerData.profession.expenses || 0;
+        existingById.totalExpenses = playerData.profession.expenses || 0;
+        existingById.monthlyCashflow = (playerData.profession.salary || 0) - (playerData.profession.expenses || 0);
+        console.log('💼 [SERVER] Updated existing player profession:', existingById.profession);
+      }
+      
       socket.join(roomId);
       console.log('✅ [SERVER] Existing player reconnected:', {
         id: existingById.id,
         username: existingById.username,
-        socketId: existingById.socketId
+        socketId: existingById.socketId,
+        profession: existingById.profession
       });
       
       io.to(roomId).emit('playersUpdate', room.currentPlayers);
@@ -965,9 +976,63 @@ io.on('connection', (socket) => {
       return;
     }
     
-    // Новый игрок только если статус ожидания
+    // Если статус не waiting, разрешаем переподключение игрока, который уже числится в этой комнате
     if (room.status !== 'waiting') {
-      console.log('❌ [SERVER] Room not in waiting status, cannot add new player');
+      const allowedRejoin = (
+        // Во время определения очередности: если игрок есть в списке orderDetermination.players
+        (room.status === 'determining_order' && room.orderDetermination &&
+          room.orderDetermination.players &&
+          room.orderDetermination.players.some(p => p.username === playerData.username || p.id === playerData.id))
+        ||
+        // Во время игры: если игрок ранее был среди currentPlayers (мог быть очищен при дисконнекте)
+        room.currentPlayers.some(p => p.username === playerData.username || p.fixedId === playerData.id)
+      );
+
+      if (!allowedRejoin) {
+        console.log('❌ [SERVER] Room not in waiting status, cannot add new player');
+        return;
+      }
+
+      // Если переподключение разрешено: либо обновляем существующего, либо добавляем заново как возвращающегося
+      let player = room.currentPlayers.find(p => p.username === playerData.username || p.fixedId === playerData.id);
+      if (player) {
+        player.socketId = socket.id;
+        player.offline = false;
+        player.roomId = roomId;
+      } else {
+        player = {
+          id: playerData.id,
+          fixedId: playerData.id,
+          socketId: socket.id,
+          username: playerData.username,
+          color: playerData.color,
+          ready: true,
+          position: 0,
+          profession: playerData.profession || null,
+          balance: playerData.balance || 2000,
+          passiveIncome: playerData.passiveIncome || 0,
+          salary: playerData.profession?.salary || 0,
+          expenses: playerData.profession?.expenses || 0,
+          childCost: 500,
+          totalExpenses: playerData.profession?.expenses || 0,
+          monthlyCashflow: (playerData.profession?.salary || 0) - (playerData.profession?.expenses || 0),
+          assets: playerData.assets || [],
+          liabilities: playerData.liabilities || {},
+          children: 0,
+          charityTurns: 0,
+          _lastRollOptions: null,
+          seat: null,
+          offline: false,
+          roomId: roomId
+        };
+        room.currentPlayers.push(player);
+      }
+
+      socket.join(roomId);
+      io.to(roomId).emit('playersUpdate', room.currentPlayers);
+      fixHostIdInRooms();
+      persistRooms();
+      console.log('🔁 [SERVER] Player rejoined during status', room.status, ':', player.username);
       return;
     }
     
@@ -978,7 +1043,7 @@ io.on('connection', (socket) => {
       return;
     }
     
-    // Создаем игрока без профессии (должен выбрать сам)
+    // Создаем игрока с профессией из playerData, если она есть
     const player = {
       id: playerData.id,
       fixedId: playerData.id,
@@ -987,15 +1052,15 @@ io.on('connection', (socket) => {
       color: playerData.color,
       ready: false,
       position: 0,
-      // Игрок должен выбрать профессию сам
-      profession: null,
-      balance: 2000, // Базовый баланс
-      passiveIncome: 0,
-      salary: 0, // Будет установлено при выборе профессии
-      expenses: 0, // Будет установлено при выборе профессии
+      // Используем профессию из playerData, если она есть
+      profession: playerData.profession || null,
+      balance: playerData.balance || 2000, // Используем баланс из playerData или базовый
+      passiveIncome: playerData.passiveIncome || 0,
+      salary: playerData.profession?.salary || 0, // Устанавливаем из профессии
+      expenses: playerData.profession?.expenses || 0, // Устанавливаем из профессии
       childCost: 500,
-      totalExpenses: 0,
-      monthlyCashflow: 0,
+      totalExpenses: playerData.profession?.expenses || 0,
+      monthlyCashflow: (playerData.profession?.salary || 0) - (playerData.profession?.expenses || 0),
       assets: playerData.assets || [],
       liabilities: playerData.liabilities || {},
       children: 0,
@@ -1240,12 +1305,12 @@ io.on('connection', (socket) => {
         room.orderDetermination = {
           phase: 'initial_roll',
           players: room.currentPlayers.map(p => ({
-            id: p.id,
+            id: p.id, // Используем id игрока для консистентности
             username: p.username,
             diceRoll: null,
             finalPosition: null
           })),
-          timer: 60, // 1 минута на бросок кубиков
+          timer: 180, // 3 минуты на бросок кубиков
           autoRolls: [] // Список игроков для автоброска
         };
         
@@ -1261,7 +1326,6 @@ io.on('connection', (socket) => {
           maxPlayers: room.maxPlayers, 
           status: room.status, 
           hostId: room.hostId, 
-          timer: room.timer, 
           currentTurn: null // Пока нет текущего хода
         });
         
@@ -1286,17 +1350,29 @@ io.on('connection', (socket) => {
         startOrderDeterminationTimer(roomId);
         
         // Start game timer
+        // Перезапускаем общий игровой таймер безопасно и эмитим только когда игра действительно началась
+        if (room.timerInterval) {
+          clearInterval(room.timerInterval);
+        }
         const timerInterval = setInterval(() => {
           const r = rooms[roomId];
           if (!r) return clearInterval(timerInterval);
+          // Не шлём общий timerUpdate во время определения очередности
+          if (r.status !== 'started') {
+            console.log('⏰ [SERVER][SKIP_GAME_TIMER]', { roomId, status: r.status, remaining: r.timer?.remaining });
+            return;
+          }
           r.timer.remaining -= 1;
+          console.log('⏰ [SERVER][GAME_TIMER_TICK]', { roomId, remaining: r.timer.remaining });
           if (r.timer.remaining <= 0) {
             clearInterval(timerInterval);
             io.to(roomId).emit('gameEnded', 'Timer expired');
           } else {
-            io.to(roomId).emit('timerUpdate', r.timer.remaining);
+            // Общий timerUpdate отключён — используем только turnTimerUpdate
+            // io.to(roomId).emit('timerUpdate', r.timer.remaining);
           }
         }, 1000);
+        room.timerInterval = timerInterval;
         
         console.log('startGame: game successfully started for room', roomId);
         
@@ -1316,6 +1392,39 @@ io.on('connection', (socket) => {
       console.log('startGame blocked: need status=waiting and >=2 players. Current:', { status: room.status, players: room.currentPlayers.length });
       if (typeof ack === 'function') ack(false, 'INVALID_STATE');
     }
+  });
+
+  // Start game after order determination
+  socket.on('startGameAfterOrder', (roomId) => {
+    console.log('🎮 [SERVER] startGameAfterOrder received for room:', roomId);
+    
+    const room = rooms[roomId];
+    if (!room) {
+      console.log('❌ [SERVER] startGameAfterOrder: Room not found:', roomId);
+      return;
+    }
+    
+    if (room.status !== 'determining_order') {
+      console.log('❌ [SERVER] startGameAfterOrder: Room not in determining_order status:', room.status);
+      return;
+    }
+    
+    if (!room.orderDetermination) {
+      console.log('❌ [SERVER] startGameAfterOrder: No orderDetermination found');
+      return;
+    }
+    
+    // Проверяем, что все игроки бросили кубики
+    const allRolled = room.orderDetermination.players.every(p => p.diceRoll !== null);
+    if (!allRolled) {
+      console.log('❌ [SERVER] startGameAfterOrder: Not all players rolled dice yet');
+      return;
+    }
+    
+    console.log('✅ [SERVER] startGameAfterOrder: All players rolled, starting game');
+    
+    // Определяем финальный порядок
+    determineFinalOrder(roomId);
   });
 
   // Loan/Repay
@@ -1428,11 +1537,35 @@ io.on('connection', (socket) => {
       const options = [d1, d2, d1 + d2];
       player._lastRollOptions = { d1, d2, options };
       console.log('rollDice: charity roll', { playerId, d1, d2, options });
+      
+      // Отправляем событие для нового модуля DiceRoller
+      io.to(roomId).emit('gameDiceRoll', {
+        playerId: playerId,
+        username: player.username,
+        diceRoll: d1 + d2,
+        d1: d1,
+        d2: d2,
+        options: options
+      });
+      
+      // Отправляем также старое событие для совместимости
       io.to(roomId).emit('diceRolled', { playerId, dice: d1 + d2, d1, d2, options });
     } else {
       const dice = Math.floor(Math.random() * 6) + 1;
       if (player) player._lastRollOptions = { d1: dice, d2: 0, options: [dice] };
       console.log('rollDice: normal roll', { playerId, dice });
+      
+      // Отправляем событие для нового модуля DiceRoller
+      io.to(roomId).emit('gameDiceRoll', {
+        playerId: playerId,
+        username: player.username,
+        diceRoll: dice,
+        d1: dice,
+        d2: 0,
+        options: [dice]
+      });
+      
+      // Отправляем также старое событие для совместимости
       io.to(roomId).emit('diceRolled', { playerId, dice, d1: dice, d2: 0, options: [dice] });
     }
   });
@@ -1473,7 +1606,7 @@ io.on('connection', (socket) => {
     
     // Уведомляем всех о результате броска
     io.to(roomId).emit('orderDeterminationRoll', {
-      playerId: playerId,
+      playerId: orderPlayer.id, // Используем id из orderDetermination
       username: orderPlayer.username,
       diceRoll,
       isAutoRoll: false
@@ -1483,15 +1616,16 @@ io.on('connection', (socket) => {
     const allRolled = room.orderDetermination.players.every(p => p.diceRoll !== null);
     
     if (allRolled) {
-      console.log('🎲 [SERVER] All players rolled, determining final order');
-      
-      // Останавливаем таймер определения очередности
+      console.log('🎲 [SERVER] All players rolled. Waiting for manual start...');
+      // Останавливаем таймер определения очередности, чтобы не сработал автозапуск
       if (room.orderDetermination.timerInterval) {
         clearInterval(room.orderDetermination.timerInterval);
       }
-      
-      // Определяем финальный порядок
-      determineFinalOrder(roomId);
+      // Уведомляем клиентов, что можно нажать кнопку "Начать игру"
+      io.to(roomId).emit('orderDeterminationAllRolled', {
+        roomId,
+        players: room.orderDetermination.players
+      });
     }
   });
 
@@ -1543,6 +1677,25 @@ io.on('connection', (socket) => {
     persistRooms();
   });
 
+  // Установка мечты игрока
+  socket.on('setPlayerDream', ({ roomId, dream }) => {
+    console.log('💤 [SERVER] setPlayerDream received:', { roomId, socketId: socket.id, dream });
+    const room = rooms[roomId];
+    if (!room) {
+      console.warn('💤 [SERVER] setPlayerDream rejected: room not found', roomId);
+      return;
+    }
+    const player = room.currentPlayers.find(p => p.socketId === socket.id);
+    if (!player) {
+      console.warn('💤 [SERVER] setPlayerDream rejected: player not found for socket', socket.id);
+      return;
+    }
+    player.dream = dream;
+    io.to(roomId).emit('playerUpdated', player);
+    io.to(roomId).emit('playersUpdate', room.currentPlayers);
+    persistRooms();
+  });
+
   // Бросок кубиков для переигровки ничьей
   socket.on('rollDiceForTieBreak', (roomId, playerId) => {
     console.log('🎲 [SERVER] rollDiceForTieBreak received:', { roomId, playerId, socketId: socket.id });
@@ -1578,10 +1731,10 @@ io.on('connection', (socket) => {
     console.log('🎲 [SERVER] Player', orderPlayer.username, 'tie break rolled:', tieBreakRoll);
     
     // Уведомляем всех о результате броска для переигровки
-    io.to(roomId).emit('tieBreakRoll', {
-      playerId: playerId,
+    io.to(roomId).emit('orderDeterminationTieBreakRoll', {
+      playerId: orderPlayer.id, // Используем id из orderDetermination
       username: orderPlayer.username,
-      tieBreakRoll,
+      diceRoll: tieBreakRoll,
       isAutoRoll: false
     });
     
@@ -1952,17 +2105,12 @@ io.on('connection', (socket) => {
       // Исправляем проблемы с hostId перед отправкой списка игроков
       fixHostIdInRooms();
       
-      // Проверяем, есть ли текущий игрок в списке
-      const currentPlayer = rooms[roomId].currentPlayers.find(p => p.id === socket.id);
-      if (!currentPlayer) {
-        console.log(`⚠️ [SERVER] getPlayers: Player not found by socket.id, checking by username...`);
-        // Ищем по username (для переподключений)
-        const playerByUsername = rooms[roomId].currentPlayers.find(p => p.username && !p.offline);
-        if (playerByUsername) {
-          console.log(`🔄 [SERVER] getPlayers: Found player by username, updating ID from ${playerByUsername.id} to ${socket.id}`);
-          playerByUsername.id = socket.id;
-          playerByUsername.offline = false;
-        }
+      // Безопасно обновляем ID только для игрока текущего сокета
+      const currentPlayer = rooms[roomId].currentPlayers.find(p => p.id === socket.id || p.socketId === socket.id);
+      if (currentPlayer && currentPlayer.id !== socket.id) {
+        console.log(`🔄 [SERVER] getPlayers: Updating player ID to current socket for`, { username: currentPlayer.username });
+        currentPlayer.id = socket.id;
+        currentPlayer.offline = false;
       }
       
       // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ПЕРЕД ОТПРАВКОЙ СПИСКА ИГРОКОВ
@@ -2181,7 +2329,7 @@ function startOrderDeterminationTimer(roomId) {
   
   console.log('⏰ [SERVER] Starting order determination timer for room:', roomId);
   
-  // Запускаем таймер (60 секунд на бросок кубиков)
+  // Запускаем таймер (3 минуты на бросок кубиков)
   room.orderDetermination.timerInterval = setInterval(() => {
     const r = rooms[roomId];
     if (!r || !r.orderDetermination) return;
@@ -2357,21 +2505,37 @@ function finalizeOrder(roomId, finalOrder) {
   console.log('🎯 [SERVER] Finalizing order for room:', roomId);
   
   // Обновляем порядок игроков в комнате
-  const newPlayerOrder = [];
+  let newPlayerOrder = [];
   finalOrder.forEach((orderPlayer, index) => {
-    const actualPlayer = room.currentPlayers.find(p => p.id === orderPlayer.id);
+    // Сопоставляем игрока по нескольким ключам (id/ socketId/ username),
+    // так как на разных этапах могли использоваться разные идентификаторы
+    const actualPlayer = room.currentPlayers.find(p => 
+      p.id === orderPlayer.id ||
+      p.socketId === orderPlayer.id ||
+      p.username === orderPlayer.username
+    );
     if (actualPlayer) {
       actualPlayer.gameOrder = index;
       actualPlayer.position = 0; // Начинаем с позиции 0
       newPlayerOrder.push(actualPlayer);
+    } else {
+      console.warn('⚠️ [SERVER] finalizeOrder: player from finalOrder not found in currentPlayers', orderPlayer);
     }
   });
+
+  // Если по каким-то причинам массив пуст (несовпадение ID), не падаем — используем текущий порядок
+  if (!newPlayerOrder.length) {
+    console.warn('⚠️ [SERVER] finalizeOrder: newPlayerOrder is empty, falling back to room.currentPlayers');
+    newPlayerOrder = [...room.currentPlayers];
+    // Проставим порядковые номера на всякий случай
+    newPlayerOrder.forEach((p, idx) => { p.gameOrder = idx; if (p.position == null) p.position = 0; });
+  }
   
   // Обновляем порядок игроков в комнате
   room.currentPlayers = newPlayerOrder;
   
-  // Устанавливаем первого игрока как текущий ход
-  room.currentTurn = newPlayerOrder[0].id;
+  // Устанавливаем первого игрока как текущий ход (используем socketId для совместимости с событиями)
+  room.currentTurn = newPlayerOrder[0] ? (newPlayerOrder[0].socketId || newPlayerOrder[0].id) : null;
   
   // Меняем статус комнаты на "игра началась"
   room.status = 'started';
@@ -2381,22 +2545,30 @@ function finalizeOrder(roomId, finalOrder) {
   
   // Уведомляем клиентов о завершении определения очередности
   io.to(roomId).emit('orderDeterminationCompleted', {
+    roomId,
     finalOrder: newPlayerOrder.map(p => ({
-      id: p.id,
+      id: p.id || p.socketId,
       username: p.username,
-      position: p.gameOrder
+      position: p.gameOrder,
+      diceRoll: p.diceRoll || null
     })),
     currentTurn: room.currentTurn
   });
   
-  // Отправляем обновленные данные комнаты
+  // Отправляем обновленные данные комнаты (без поля timer, чтобы не сбрасывать клиентские таймеры)
   io.to(roomId).emit('roomData', {
     roomId: room.roomId,
     maxPlayers: room.maxPlayers,
     status: room.status,
     hostId: room.hostId,
-    timer: room.timer,
     currentTurn: room.currentTurn
+  });
+
+  // Сигнализируем о старте игры для совместимости с клиентом
+  io.to(roomId).emit('gameStarted', {
+    roomId: room.roomId,
+    currentTurn: room.currentTurn,
+    players: room.currentPlayers.map(p => ({ id: p.id, username: p.username }))
   });
   
   // Отправляем обновленный список игроков
@@ -2445,7 +2617,7 @@ function nextTurn(roomId) {
   if (!room || !room.currentPlayers.length) return;
   
   // Находим текущего игрока
-  const currentPlayerIndex = room.currentPlayers.findIndex(p => p.id === room.currentTurn);
+  const currentPlayerIndex = room.currentPlayers.findIndex(p => p.socketId === room.currentTurn);
   if (currentPlayerIndex === -1) return;
   
   // Переходим к следующему игроку
@@ -2453,13 +2625,13 @@ function nextTurn(roomId) {
   const nextPlayer = room.currentPlayers[nextPlayerIndex];
   
   // Обновляем текущий ход
-  room.currentTurn = nextPlayer.id;
+  room.currentTurn = nextPlayer.socketId;
   room.turnTimer = 120; // Сбрасываем таймер
   
   // Уведомляем клиентов о смене хода
   io.to(roomId).emit('turnChanged', {
     playerId: room.currentTurn,
-    previousPlayerId: room.currentPlayers[currentPlayerIndex].id
+    previousPlayerId: room.currentPlayers[currentPlayerIndex].socketId
   });
   
   console.log('🔄 [SERVER] Turn changed to:', nextPlayer.username);

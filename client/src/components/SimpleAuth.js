@@ -206,7 +206,7 @@ const SimpleAuth = ({ onRegister, onLogin }) => {
             {/* Поле для отображаемого имени (только при регистрации) */}
             {!isLogin && (
               <div style={{ marginBottom: '24px' }}>
-                <label style={{ 
+                <label htmlFor="displayName" style={{ 
                   display: 'block', 
                   fontWeight: 'bold', 
                   marginBottom: '8px',
@@ -216,6 +216,7 @@ const SimpleAuth = ({ onRegister, onLogin }) => {
                   Имя игрока
                 </label>
                 <input
+                  id="displayName"
                   type="text"
                   placeholder="Введите ваше имя"
                   value={displayName}
@@ -234,7 +235,7 @@ const SimpleAuth = ({ onRegister, onLogin }) => {
 
             {/* Поле email */}
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ 
+              <label htmlFor="email" style={{ 
                 display: 'block', 
                 fontWeight: 'bold', 
                 marginBottom: '8px',
@@ -244,6 +245,7 @@ const SimpleAuth = ({ onRegister, onLogin }) => {
                 Email
               </label>
               <input
+                id="email"
                 type="email"
                 placeholder="your@email.com"
                 value={email}
@@ -261,7 +263,7 @@ const SimpleAuth = ({ onRegister, onLogin }) => {
 
             {/* Поле пароля */}
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ 
+              <label htmlFor="password" style={{ 
                 display: 'block', 
                 fontWeight: 'bold', 
                 marginBottom: '8px',
@@ -272,6 +274,7 @@ const SimpleAuth = ({ onRegister, onLogin }) => {
               </label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
+                  id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Введите пароль"
                   value={password}

@@ -329,7 +329,7 @@ const SimpleRoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
             marginBottom: '24px'
           }}>
             <div>
-              <label style={{ 
+              <label htmlFor="roomName" style={{ 
                 display: 'block', 
                 fontWeight: 'bold', 
                 marginBottom: '8px',
@@ -338,6 +338,7 @@ const SimpleRoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                 Название комнаты
               </label>
               <input
+                id="roomName"
                 type="text"
                 placeholder="Например: Игра с друзьями"
                 value={roomName}
@@ -354,7 +355,7 @@ const SimpleRoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
             </div>
 
             <div>
-              <label style={{ 
+              <label htmlFor="roomId" style={{ 
                 display: 'block', 
                 fontWeight: 'bold', 
                 marginBottom: '8px',
@@ -364,6 +365,7 @@ const SimpleRoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
               </label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
+                  id="roomId"
                   type="text"
                   placeholder="ID будет сгенерирован автоматически"
                   value={roomId}

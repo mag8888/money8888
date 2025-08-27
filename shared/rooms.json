@@ -7,11 +7,10 @@
     "currentPlayers": [
       {
         "id": "P_ytHzaDbpGb24tGAAAF",
-        "fixedId": "1756108628790",
-        "socketId": null,
         "username": "romeoproo1",
+        "socketId": null,
+        "offline": true,
         "ready": false,
-        "position": 0,
         "profession": {
           "name": "Без профессии",
           "salary": 2000,
@@ -21,20 +20,12 @@
           "description": "Базовая профессия"
         },
         "balance": 2000,
-        "passiveIncome": 0,
         "salary": 2000,
         "expenses": 200,
-        "childCost": 500,
+        "passiveIncome": 0,
         "totalExpenses": 200,
         "monthlyCashflow": 1800,
-        "assets": [],
-        "liabilities": {},
-        "children": 0,
-        "charityTurns": 0,
-        "_lastRollOptions": null,
-        "seat": null,
-        "offline": true,
-        "roomId": "lobby"
+        "assets": []
       }
     ],
     "status": "waiting",
@@ -83,7 +74,8 @@
         ]
       }
     },
-    "createdAt": 1756114518788
+    "createdAt": 1756114518788,
+    "orderDetermination": null
   },
   "room9": {
     "roomId": "room9",
@@ -93,11 +85,10 @@
     "currentPlayers": [
       {
         "id": "H_nYBlLO804dAjn-AAAL",
-        "fixedId": "1756108619266",
-        "socketId": null,
         "username": "xqrmedia",
+        "socketId": null,
+        "offline": true,
         "ready": true,
-        "position": 0,
         "profession": {
           "id": 2,
           "name": "Курьер",
@@ -109,21 +100,12 @@
           "charity": false
         },
         "balance": 2500,
-        "passiveIncome": 0,
         "salary": 2500,
         "expenses": 300,
-        "childCost": 500,
+        "passiveIncome": 0,
         "totalExpenses": 300,
         "monthlyCashflow": 2200,
-        "assets": [],
-        "liabilities": {},
-        "children": 0,
-        "charityTurns": 0,
-        "_lastRollOptions": null,
-        "seat": null,
-        "offline": true,
-        "roomId": "room9",
-        "readyAt": 1756134821892
+        "assets": []
       }
     ],
     "status": "waiting",
@@ -172,7 +154,8 @@
         ]
       }
     },
-    "createdAt": 1756128069186
+    "createdAt": 1756128069186,
+    "orderDetermination": null
   },
   "room1": {
     "roomId": "room1",
@@ -182,11 +165,10 @@
     "currentPlayers": [
       {
         "id": "U8f3CELacEbBlesWAAAJ",
-        "fixedId": "1756108619266",
-        "socketId": null,
         "username": "xqrmedia",
+        "socketId": null,
+        "offline": true,
         "ready": true,
-        "position": 0,
         "profession": {
           "id": 1,
           "name": "Дворник",
@@ -198,29 +180,19 @@
           "charity": false
         },
         "balance": 2000,
-        "passiveIncome": 0,
         "salary": 2000,
         "expenses": 200,
-        "childCost": 500,
+        "passiveIncome": 0,
         "totalExpenses": 200,
         "monthlyCashflow": 1800,
-        "assets": [],
-        "liabilities": {},
-        "children": 0,
-        "charityTurns": 0,
-        "_lastRollOptions": null,
-        "seat": null,
-        "offline": true,
-        "roomId": "room1",
-        "readyAt": 1756144785890
+        "assets": []
       },
       {
         "id": "1756108628790",
-        "fixedId": "1756108628790",
-        "socketId": null,
         "username": "romeoproo1",
+        "socketId": null,
+        "offline": true,
         "ready": true,
-        "position": 0,
         "profession": {
           "id": 2,
           "name": "Курьер",
@@ -232,21 +204,12 @@
           "charity": false
         },
         "balance": 2500,
-        "passiveIncome": 0,
         "salary": 2500,
         "expenses": 300,
-        "childCost": 500,
+        "passiveIncome": 0,
         "totalExpenses": 300,
         "monthlyCashflow": 2200,
-        "assets": [],
-        "liabilities": {},
-        "children": 0,
-        "charityTurns": 0,
-        "_lastRollOptions": null,
-        "seat": null,
-        "offline": true,
-        "roomId": "room1",
-        "readyAt": 1756144775617
+        "assets": []
       }
     ],
     "status": "determining_order",
@@ -302,18 +265,15 @@
         {
           "id": "U8f3CELacEbBlesWAAAJ",
           "username": "xqrmedia",
-          "diceRoll": null,
-          "finalPosition": null
+          "diceRoll": null
         },
         {
           "id": "1756108628790",
           "username": "romeoproo1",
-          "diceRoll": null,
-          "finalPosition": null
+          "diceRoll": null
         }
       ],
-      "timer": 60,
-      "autoRolls": []
+      "timer": 60
     }
   },
   "room3": {
@@ -324,11 +284,10 @@
     "currentPlayers": [
       {
         "id": "eiDaP0g_6sIcNx8zAAAF",
-        "fixedId": "1756108619266",
-        "socketId": "AgOe9rkXQ03isXb6AAAk",
         "username": "xqrmedia",
+        "socketId": "AgOe9rkXQ03isXb6AAAk",
+        "offline": false,
         "ready": true,
-        "position": 0,
         "profession": {
           "id": 2,
           "name": "Курьер",
@@ -340,21 +299,12 @@
           "charity": false
         },
         "balance": 2500,
-        "passiveIncome": 0,
         "salary": 2500,
         "expenses": 300,
-        "childCost": 500,
+        "passiveIncome": 0,
         "totalExpenses": 300,
         "monthlyCashflow": 2200,
-        "assets": [],
-        "liabilities": {},
-        "children": 0,
-        "charityTurns": 0,
-        "_lastRollOptions": null,
-        "seat": null,
-        "offline": false,
-        "roomId": "room3",
-        "readyAt": 1756165037540
+        "assets": []
       }
     ],
     "status": "waiting",
@@ -403,149 +353,8 @@
         ]
       }
     },
-    "createdAt": 1756165024776
-  },
-  "room2": {
-    "roomId": "room2",
-    "displayName": "2111",
-    "originalRequestedId": "room1_968120",
-    "maxPlayers": 2,
-    "currentPlayers": [
-      {
-        "id": "Wp1--_ORtNqtEeaVAAAH",
-        "fixedId": "1756108619266",
-        "socketId": "IIduQtlaEUImEG-WAAAF",
-        "username": "xqrmedia",
-        "ready": true,
-        "position": 0,
-        "profession": {
-          "id": 1,
-          "name": "Дворник",
-          "salary": 2000,
-          "expenses": 200,
-          "balance": 2000,
-          "passiveIncome": 0,
-          "description": "Уборка улиц и дворов",
-          "charity": false
-        },
-        "balance": 2000,
-        "passiveIncome": 0,
-        "salary": 2000,
-        "expenses": 200,
-        "childCost": 500,
-        "totalExpenses": 200,
-        "monthlyCashflow": 1800,
-        "assets": [],
-        "liabilities": {},
-        "children": 0,
-        "charityTurns": 0,
-        "_lastRollOptions": null,
-        "seat": null,
-        "offline": false,
-        "roomId": "room2",
-        "readyAt": 1756219239546
-      },
-      {
-        "id": "1756108628790",
-        "fixedId": "1756108628790",
-        "socketId": "Wp1--_ORtNqtEeaVAAAH",
-        "username": "romeoproo1",
-        "ready": true,
-        "position": 0,
-        "profession": {
-          "id": 2,
-          "name": "Курьер",
-          "salary": 2500,
-          "expenses": 300,
-          "balance": 2500,
-          "passiveIncome": 0,
-          "description": "Доставка товаров и документов",
-          "charity": false
-        },
-        "balance": 2500,
-        "passiveIncome": 0,
-        "salary": 2500,
-        "expenses": 300,
-        "childCost": 500,
-        "totalExpenses": 300,
-        "monthlyCashflow": 2200,
-        "assets": [],
-        "liabilities": {},
-        "children": 0,
-        "charityTurns": 0,
-        "_lastRollOptions": null,
-        "seat": null,
-        "offline": false,
-        "roomId": "room2",
-        "readyAt": 1756219280663
-      }
-    ],
-    "status": "determining_order",
-    "password": "",
-    "hostId": "Wp1--_ORtNqtEeaVAAAH",
-    "timer": {
-      "hours": 3,
-      "remaining": 10800
-    },
-    "currentTurn": null,
-    "board": {
-      "ratRace": {
-        "cells": 20,
-        "layout": [
-          "payday",
-          "market",
-          "smallDeal",
-          "bigDeal",
-          "doodad",
-          "charity",
-          "child",
-          "downsized",
-          "payday",
-          "market",
-          "smallDeal",
-          "bigDeal",
-          "doodad",
-          "charity",
-          "child",
-          "downsized",
-          "payday",
-          "market",
-          "smallDeal",
-          "bigDeal"
-        ]
-      },
-      "fastTrack": {
-        "cells": 50,
-        "layout": [
-          "cashflowDay",
-          "bigDeal",
-          "charity",
-          "cashflowDay",
-          "bigDeal",
-          "charity"
-        ]
-      }
-    },
-    "createdAt": 1756217983332,
-    "orderDetermination": {
-      "phase": "initial_roll",
-      "players": [
-        {
-          "id": "Wp1--_ORtNqtEeaVAAAH",
-          "username": "xqrmedia",
-          "diceRoll": null,
-          "finalPosition": null
-        },
-        {
-          "id": "1756108628790",
-          "username": "romeoproo1",
-          "diceRoll": null,
-          "finalPosition": null
-        }
-      ],
-      "timer": 60,
-      "autoRolls": []
-    }
+    "createdAt": 1756165024776,
+    "orderDetermination": null
   },
   "room5": {
     "roomId": "room5",
@@ -555,11 +364,10 @@
     "currentPlayers": [
       {
         "id": "e1vfkpqIaDKKc16RAAAY",
-        "fixedId": "1756108619266",
-        "socketId": null,
         "username": "xqrmedia",
+        "socketId": null,
+        "offline": true,
         "ready": true,
-        "position": 0,
         "profession": {
           "id": 1,
           "name": "Дворник",
@@ -571,29 +379,19 @@
           "charity": false
         },
         "balance": 2000,
-        "passiveIncome": 0,
         "salary": 2000,
         "expenses": 200,
-        "childCost": 500,
+        "passiveIncome": 0,
         "totalExpenses": 200,
         "monthlyCashflow": 1800,
-        "assets": [],
-        "liabilities": {},
-        "children": 0,
-        "charityTurns": 0,
-        "_lastRollOptions": null,
-        "seat": null,
-        "offline": true,
-        "roomId": "room5",
-        "readyAt": 1756173505727
+        "assets": []
       },
       {
         "id": "1756108628790",
-        "fixedId": "1756108628790",
-        "socketId": null,
         "username": "romeoproo1",
+        "socketId": null,
+        "offline": true,
         "ready": true,
-        "position": 0,
         "profession": {
           "id": 2,
           "name": "Курьер",
@@ -605,21 +403,12 @@
           "charity": false
         },
         "balance": 2500,
-        "passiveIncome": 0,
         "salary": 2500,
         "expenses": 300,
-        "childCost": 500,
+        "passiveIncome": 0,
         "totalExpenses": 300,
         "monthlyCashflow": 2200,
-        "assets": [],
-        "liabilities": {},
-        "children": 0,
-        "charityTurns": 0,
-        "_lastRollOptions": null,
-        "seat": null,
-        "offline": true,
-        "roomId": "room5",
-        "readyAt": 1756173494034
+        "assets": []
       }
     ],
     "status": "determining_order",
@@ -675,103 +464,80 @@
         {
           "id": "e1vfkpqIaDKKc16RAAAY",
           "username": "xqrmedia",
-          "diceRoll": null,
-          "finalPosition": null
+          "diceRoll": null
         },
         {
           "id": "1756108628790",
           "username": "romeoproo1",
-          "diceRoll": null,
-          "finalPosition": null
+          "diceRoll": null
         }
       ],
-      "timer": 60,
-      "autoRolls": []
+      "timer": 60
     }
   },
-  "room4": {
-    "roomId": "room4",
-    "displayName": "1777",
-    "originalRequestedId": "room1_514832",
+  "room7": {
+    "roomId": "room7",
+    "displayName": "2777",
+    "originalRequestedId": "room1_908874",
     "maxPlayers": 2,
     "currentPlayers": [
       {
-        "id": "9hurwMSPg5__GWd2AAAV",
-        "fixedId": "1756108619266",
-        "socketId": "kqcveHLCr-myEaieAAAb",
+        "id": "JZlemCPRIJkKjHHjAAAR",
         "username": "xqrmedia",
+        "socketId": "2a6vo76A7Am2Kp1aAAAN",
+        "offline": false,
         "ready": true,
-        "position": 0,
         "profession": {
-          "id": 1,
-          "name": "Дворник",
-          "salary": 2000,
-          "expenses": 200,
-          "balance": 2000,
+          "id": 4,
+          "name": "Водитель",
+          "salary": 3500,
+          "expenses": 1100,
+          "balance": 1800,
           "passiveIncome": 0,
-          "description": "Уборка улиц и дворов",
+          "description": "Управление транспортным средством",
           "charity": false
         },
-        "balance": 2000,
+        "balance": 1800,
+        "salary": 3500,
+        "expenses": 1100,
         "passiveIncome": 0,
-        "salary": 2000,
-        "expenses": 200,
-        "childCost": 500,
-        "totalExpenses": 200,
-        "monthlyCashflow": 1800,
-        "assets": [],
-        "liabilities": {},
-        "children": 0,
-        "charityTurns": 0,
-        "_lastRollOptions": null,
-        "seat": null,
-        "offline": false,
-        "roomId": "room4",
-        "readyAt": 1756178542221
+        "totalExpenses": 1100,
+        "monthlyCashflow": 2400,
+        "assets": []
       },
       {
         "id": "1756108628790",
-        "fixedId": "1756108628790",
-        "socketId": "9hurwMSPg5__GWd2AAAV",
         "username": "romeoproo1",
+        "socketId": "JZlemCPRIJkKjHHjAAAR",
+        "offline": false,
         "ready": true,
-        "position": 0,
         "profession": {
-          "id": 2,
-          "name": "Курьер",
-          "salary": 2500,
-          "expenses": 300,
-          "balance": 2500,
+          "id": 11,
+          "name": "Врач",
+          "salary": 8000,
+          "expenses": 2000,
+          "balance": 4000,
           "passiveIncome": 0,
-          "description": "Доставка товаров и документов",
+          "description": "Медицинская практика",
           "charity": false
         },
-        "balance": 2500,
+        "balance": 4000,
+        "salary": 8000,
+        "expenses": 2000,
         "passiveIncome": 0,
-        "salary": 2500,
-        "expenses": 300,
-        "childCost": 500,
-        "totalExpenses": 300,
-        "monthlyCashflow": 2200,
-        "assets": [],
-        "liabilities": {},
-        "children": 0,
-        "charityTurns": 0,
-        "_lastRollOptions": null,
-        "seat": null,
-        "offline": false,
-        "roomId": "room4",
-        "readyAt": 1756178553975
+        "totalExpenses": 2000,
+        "monthlyCashflow": 6000,
+        "assets": []
       }
     ],
-    "status": "determining_order",
+    "status": "started",
     "password": "",
-    "hostId": "kqcveHLCr-myEaieAAAb",
+    "hostId": "2a6vo76A7Am2Kp1aAAAN",
     "timer": {
       "hours": 3,
-      "remaining": 10800
+      "remaining": 10381
     },
-    "currentTurn": null,
+    "currentTurn": "2a6vo76A7Am2Kp1aAAAN",
     "board": {
       "ratRace": {
         "cells": 20,
@@ -810,25 +576,430 @@
         ]
       }
     },
-    "createdAt": 1756178534997,
-    "orderDetermination": {
-      "phase": "initial_roll",
-      "players": [
-        {
-          "id": "9hurwMSPg5__GWd2AAAV",
-          "username": "xqrmedia",
-          "diceRoll": null,
-          "finalPosition": null
+    "createdAt": 1756268923550,
+    "orderDetermination": null
+  },
+  "room8": {
+    "roomId": "room8",
+    "displayName": "4222",
+    "originalRequestedId": "room1_418159",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "hYCHvrFS_v5xuwIFAAAP",
+        "username": "romeoproo1",
+        "socketId": null,
+        "offline": true,
+        "ready": true,
+        "profession": {
+          "id": 11,
+          "name": "Врач",
+          "salary": 8000,
+          "expenses": 2000,
+          "balance": 4000,
+          "passiveIncome": 0,
+          "description": "Медицинская практика",
+          "charity": false
         },
-        {
-          "id": "1756108628790",
-          "username": "romeoproo1",
-          "diceRoll": null,
-          "finalPosition": null
-        }
-      ],
-      "timer": 60,
-      "autoRolls": []
-    }
+        "balance": 4000,
+        "salary": 8000,
+        "expenses": 2000,
+        "passiveIncome": 0,
+        "totalExpenses": 2000,
+        "monthlyCashflow": 6000,
+        "assets": []
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": null,
+    "timer": {
+      "hours": 3,
+      "remaining": 7294
+    },
+    "currentTurn": "hYCHvrFS_v5xuwIFAAAP",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1756277444387,
+    "orderDetermination": null
+  },
+  "room10": {
+    "roomId": "room10",
+    "displayName": "4333",
+    "originalRequestedId": "room1_774792",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "hYCHvrFS_v5xuwIFAAAP",
+        "username": "romeoproo1",
+        "socketId": null,
+        "offline": true,
+        "ready": true,
+        "profession": {
+          "id": 11,
+          "name": "Врач",
+          "salary": 8000,
+          "expenses": 2000,
+          "balance": 4000,
+          "passiveIncome": 0,
+          "description": "Медицинская практика",
+          "charity": false
+        },
+        "balance": 4000,
+        "salary": 8000,
+        "expenses": 2000,
+        "passiveIncome": 0,
+        "totalExpenses": 2000,
+        "monthlyCashflow": 6000,
+        "assets": []
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": null,
+    "timer": {
+      "hours": 3,
+      "remaining": 7621
+    },
+    "currentTurn": "ACMFLoGkxdeDa5iYAAAR",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1756277780470,
+    "orderDetermination": null
+  },
+  "room11": {
+    "roomId": "room11",
+    "displayName": "4555",
+    "originalRequestedId": "room1_009038",
+    "maxPlayers": 2,
+    "currentPlayers": [],
+    "status": "started",
+    "password": "",
+    "hostId": "DPmAEI4ZBqhNWIEMAAAX",
+    "timer": {
+      "hours": 3,
+      "remaining": 9868
+    },
+    "currentTurn": "4ulMVkYsX_AlJxiQAAAV",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1756280016881,
+    "orderDetermination": null
+  },
+  "room12": {
+    "roomId": "room12",
+    "displayName": "4555",
+    "originalRequestedId": "room1_253947",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "4ulMVkYsX_AlJxiQAAAV",
+        "username": "romeoproo1",
+        "socketId": "4ulMVkYsX_AlJxiQAAAV",
+        "offline": false,
+        "ready": true,
+        "profession": {
+          "id": 11,
+          "name": "Врач",
+          "salary": 8000,
+          "expenses": 2000,
+          "balance": 4000,
+          "passiveIncome": 0,
+          "description": "Медицинская практика",
+          "charity": false
+        },
+        "balance": 4000,
+        "salary": 8000,
+        "expenses": 2000,
+        "passiveIncome": 0,
+        "totalExpenses": 2000,
+        "monthlyCashflow": 6000,
+        "assets": []
+      },
+      {
+        "id": "DPmAEI4ZBqhNWIEMAAAX",
+        "username": "xqrmedia",
+        "socketId": null,
+        "offline": true,
+        "ready": true,
+        "profession": {
+          "id": 4,
+          "name": "Водитель",
+          "salary": 3500,
+          "expenses": 1100,
+          "balance": 1800,
+          "passiveIncome": 0,
+          "description": "Управление транспортным средством",
+          "charity": false
+        },
+        "balance": 1800,
+        "salary": 3500,
+        "expenses": 1100,
+        "passiveIncome": 0,
+        "totalExpenses": 1100,
+        "monthlyCashflow": 2400,
+        "assets": []
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": "4ulMVkYsX_AlJxiQAAAV",
+    "timer": {
+      "hours": 3,
+      "remaining": 10191
+    },
+    "currentTurn": "DPmAEI4ZBqhNWIEMAAAX",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1756280340460,
+    "orderDetermination": null
+  },
+  "room13": {
+    "roomId": "room13",
+    "displayName": "4666",
+    "originalRequestedId": "room1_695528",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "qx8zG71O9ZPaHuA-AAAb",
+        "username": "xqrmedia",
+        "socketId": "qx8zG71O9ZPaHuA-AAAb",
+        "offline": false,
+        "ready": true,
+        "profession": {
+          "id": 4,
+          "name": "Водитель",
+          "salary": 3500,
+          "expenses": 1100,
+          "balance": 1800,
+          "passiveIncome": 0,
+          "description": "Управление транспортным средством",
+          "charity": false
+        },
+        "balance": 1800,
+        "salary": 3500,
+        "expenses": 1100,
+        "passiveIncome": 0,
+        "totalExpenses": 1100,
+        "monthlyCashflow": 2400,
+        "assets": []
+      },
+      {
+        "id": "4ulMVkYsX_AlJxiQAAAV",
+        "username": "romeoproo1",
+        "socketId": "4ulMVkYsX_AlJxiQAAAV",
+        "offline": false,
+        "ready": true,
+        "profession": {
+          "id": 11,
+          "name": "Врач",
+          "salary": 8000,
+          "expenses": 2000,
+          "balance": 4000,
+          "passiveIncome": 0,
+          "description": "Медицинская практика",
+          "charity": false
+        },
+        "balance": 4000,
+        "salary": 8000,
+        "expenses": 2000,
+        "passiveIncome": 0,
+        "totalExpenses": 2000,
+        "monthlyCashflow": 6000,
+        "assets": []
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": "qx8zG71O9ZPaHuA-AAAb",
+    "timer": {
+      "hours": 3,
+      "remaining": 10769
+    },
+    "currentTurn": "qx8zG71O9ZPaHuA-AAAb",
+    "board": {
+      "ratRace": {
+        "cells": 20,
+        "layout": [
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal",
+          "doodad",
+          "charity",
+          "child",
+          "downsized",
+          "payday",
+          "market",
+          "smallDeal",
+          "bigDeal"
+        ]
+      },
+      "fastTrack": {
+        "cells": 50,
+        "layout": [
+          "cashflowDay",
+          "bigDeal",
+          "charity",
+          "cashflowDay",
+          "bigDeal",
+          "charity"
+        ]
+      }
+    },
+    "createdAt": 1756280945261,
+    "orderDetermination": null
   }
 }

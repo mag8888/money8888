@@ -54,6 +54,21 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
 
   // Состояние очередности игроков
   const [playerOrder, setPlayerOrder] = useState([]);
+  
+  // Состояние мечт игроков
+  const [playerDreams, setPlayerDreams] = useState({});
+
+  // Функция для обновления мечт игроков
+  const updatePlayerDreams = useCallback((playerId, dream) => {
+    setPlayerDreams(prev => ({
+      ...prev,
+      [dream.id]: {
+        playerId,
+        username: getCurrentPlayer()?.username || 'Игрок',
+        dream
+      }
+    }));
+  }, [getCurrentPlayer]);
 
   // Принудительно запрашиваем список игроков при загрузке компонента
   useEffect(() => {
@@ -451,6 +466,7 @@ const GameBoardRefactored = ({ roomId, playerData, onExit }) => {
             isRolling={diceState.isRolling}
             gamePhase={gamePhase}
             diceAnimation={diceAnimation}
+            playerDreams={playerDreams}
           />
           
           {/* Управление игрой под полем */}
