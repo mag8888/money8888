@@ -19,7 +19,92 @@
     },
     "fastTrack": {
       "cells": 50,
-      "layout": ["cashflowDay", "bigDeal", "charity", "cashflowDay", "bigDeal", "charity"]
+      "layout": [
+        {
+          "type": "money",
+          "name": "Вам выплачивается доход от ваших инвестиций",
+          "cost": null,
+          "income": null
+        },
+        {
+          "type": "dream",
+          "name": "Построить дом мечты для семьи",
+          "cost": 100000,
+          "income": null
+        },
+        {
+          "type": "business",
+          "name": "Кофейня в центре города",
+          "cost": 100000,
+          "income": 3000
+        },
+        {
+          "type": "loss",
+          "name": "аудит",
+          "cost": "-50%",
+          "income": null
+        },
+        {
+          "type": "business",
+          "name": "Центр здоровья и спа",
+          "cost": 270000,
+          "income": 5000
+        },
+        {
+          "type": "dream",
+          "name": "Посетить Антарктиду",
+          "cost": 150000,
+          "income": null
+        },
+        {
+          "type": "business",
+          "name": "Мобильное приложение (подписка)",
+          "cost": 420000,
+          "income": 10000
+        },
+        {
+          "type": "charity",
+          "name": "благотворительность",
+          "cost": null,
+          "income": null
+        },
+        {
+          "type": "business",
+          "name": "Агентство цифрового маркетинга",
+          "cost": 160000,
+          "income": 4000
+        },
+        {
+          "type": "loss",
+          "name": "кража 100% наличных",
+          "cost": "-100%",
+          "income": null
+        },
+        {
+          "type": "business",
+          "name": "Мини-отель/бутик-гостиница",
+          "cost": 200000,
+          "income": 5000
+        },
+        {
+          "type": "dream",
+          "name": "Подняться на все высочайшие вершины мира",
+          "cost": 500000,
+          "income": null
+        },
+        {
+          "type": "business",
+          "name": "Франшиза популярного ресторана",
+          "cost": 320000,
+          "income": 8000
+        },
+        {
+          "type": "money",
+          "name": "Объехать 100 стран",
+          "cost": 500000,
+          "income": null
+        }
+      ]
     }
   },
   "decks": {

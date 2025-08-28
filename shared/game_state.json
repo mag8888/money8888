@@ -1,0 +1,217 @@
+{
+  "rooms": {
+    "room2": {
+      "id": "room2",
+      "status": "started",
+      "currentTurn": "GdcRwSyLqYdLH9lvAAAF",
+      "players": [
+        {
+          "id": "GdcRwSyLqYdLH9lvAAAF",
+          "position": 0,
+          "balance": 2000,
+          "ready": false,
+          "offline": false,
+          "profession": null,
+          "assets": [],
+          "passiveIncome": 0
+        },
+        {
+          "id": "VyZ9OgJM1VX4WONfAAAF",
+          "username": "Player_AAAF",
+          "position": 0,
+          "balance": 2000,
+          "ready": false,
+          "offline": false,
+          "profession": null,
+          "assets": [],
+          "passiveIncome": 0
+        }
+      ],
+      "board": {
+        "innerCells": 20,
+        "outerCells": 50
+      },
+      "hostId": "GdcRwSyLqYdLH9lvAAAF"
+    },
+    "room1_697245": {
+      "id": "room1_697245",
+      "status": "waiting",
+      "currentTurn": null,
+      "players": [],
+      "maxPlayers": 2,
+      "password": "",
+      "timerHours": 3,
+      "roomName": "333",
+      "hostId": null,
+      "board": {
+        "innerCells": 20,
+        "outerCells": 50
+      }
+    },
+    "room1_962489": {
+      "id": "room1_962489",
+      "status": "waiting",
+      "currentTurn": null,
+      "players": [],
+      "maxPlayers": 2,
+      "password": "",
+      "timerHours": 3,
+      "roomName": "4444",
+      "hostId": null,
+      "board": {
+        "innerCells": 20,
+        "outerCells": 50
+      }
+    },
+    "room1_085328": {
+      "id": "room1_085328",
+      "status": "waiting",
+      "currentTurn": "nAyFN5eBxTi4GVArAAAF",
+      "players": [
+        {
+          "id": "FbOtarCvn5zcCYuwAAAH",
+          "username": "xqrmedia",
+          "position": 0,
+          "balance": 2000,
+          "ready": false,
+          "offline": false,
+          "profession": null,
+          "assets": [],
+          "passiveIncome": 0,
+          "socketId": "VGgShOCT4wEtUkhHAAAD"
+        }
+      ],
+      "maxPlayers": 2,
+      "password": "",
+      "timerHours": 3,
+      "roomName": "333",
+      "hostId": "nAyFN5eBxTi4GVArAAAF",
+      "board": {
+        "innerCells": 20,
+        "outerCells": 50
+      }
+    },
+    "room1_306976": {
+      "id": "room1_306976",
+      "status": "waiting",
+      "currentTurn": "5mjRwhM2WctQf3pYAAAJ",
+      "players": [
+        {
+          "id": "FKVE69Rf_CDWKcukAAAR",
+          "username": "xqrmedia",
+          "position": 0,
+          "balance": 2000,
+          "ready": false,
+          "offline": true,
+          "profession": null,
+          "assets": [],
+          "passiveIncome": 0
+        }
+      ],
+      "maxPlayers": 2,
+      "password": "",
+      "timerHours": 3,
+      "roomName": "ннн",
+      "hostId": "5mjRwhM2WctQf3pYAAAJ",
+      "board": {
+        "innerCells": 20,
+        "outerCells": 50
+      }
+    },
+    "room1_895101": {
+      "id": "room1_895101",
+      "status": "waiting",
+      "currentTurn": "mW1nSKfjULH-oPaOAAAN",
+      "players": [
+        {
+          "id": "mW1nSKfjULH-oPaOAAAN",
+          "username": "romeoproo1",
+          "position": 0,
+          "balance": 2000,
+          "ready": false,
+          "offline": true,
+          "profession": null,
+          "assets": [],
+          "passiveIncome": 0
+        }
+      ],
+      "maxPlayers": 2,
+      "password": "",
+      "timerHours": 3,
+      "roomName": "777",
+      "hostId": "mW1nSKfjULH-oPaOAAAN",
+      "board": {
+        "innerCells": 20,
+        "outerCells": 50
+      }
+    },
+    "room1_973008": {
+      "id": "room1_973008",
+      "status": "waiting",
+      "currentTurn": null,
+      "players": [],
+      "maxPlayers": 2,
+      "password": "",
+      "timerHours": 3,
+      "roomName": "77799",
+      "hostId": null,
+      "board": {
+        "innerCells": 20,
+        "outerCells": 50
+      }
+    },
+    "room1_698782": {
+      "id": "room1_698782",
+      "status": "waiting",
+      "currentTurn": "FbOtarCvn5zcCYuwAAAH",
+      "players": [
+        {
+          "id": "FbOtarCvn5zcCYuwAAAH",
+          "username": "xqrmedia",
+          "position": 0,
+          "balance": 2000,
+          "ready": false,
+          "offline": false,
+          "profession": null,
+          "assets": [],
+          "passiveIncome": 0,
+          "socketId": "VGgShOCT4wEtUkhHAAAD"
+        }
+      ],
+      "maxPlayers": 2,
+      "password": "",
+      "timerHours": 3,
+      "roomName": "шшш",
+      "hostId": "FbOtarCvn5zcCYuwAAAH",
+      "board": {
+        "innerCells": 20,
+        "outerCells": 50
+      }
+    },
+    "room1_813344": {
+      "id": "room1_813344",
+      "status": "waiting",
+      "currentTurn": null,
+      "players": [],
+      "maxPlayers": 2,
+      "password": "",
+      "timerHours": 3,
+      "roomName": "888",
+      "hostId": null,
+      "board": {
+        "innerCells": 20,
+        "outerCells": 50
+      }
+    }
+  },
+  "players": {
+    "GdcRwSyLqYdLH9lvAAAF": {
+      "roomId": "room2"
+    },
+    "VyZ9OgJM1VX4WONfAAAF": {
+      "username": "Player_AAAF",
+      "roomId": "room2"
+    }
+  },
+  "_lastSave": 1756315812932
+}

@@ -30,6 +30,20 @@ import { motion } from 'framer-motion'; // Assume framer-motion is installed; if
 import { Dialog, DialogTitle, DialogContent, TextField, Select, MenuItem } from '@mui/material';
 import { useLogout } from '../hooks/useLogout';
 import ExitConfirmModal from './ExitConfirmModal';
+// Конфигурация игрового поля определена в BOARD_CONFIG ниже
+import LocalCafeIcon from '@mui/icons-material/LocalCafe';
+import SpaIcon from '@mui/icons-material/Spa';
+import AcUnitIcon from '@mui/icons-material/AcUnit';
+import PhoneAndroidIcon from '@mui/icons-material/PhoneAndroid';
+import CampaignIcon from '@mui/icons-material/Campaign';
+import WarningIcon from '@mui/icons-material/Warning';
+import HotelIcon from '@mui/icons-material/Hotel';
+import LandscapeIcon from '@mui/icons-material/Landscape';
+import RestaurantIcon from '@mui/icons-material/Restaurant';
+import FlightIcon from '@mui/icons-material/Flight';
+import Dice from './Dice'; // Add this
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
 
 const GameBoard = ({ roomId, onExit }) => {
   const [players, setPlayers] = useState([]);
@@ -65,10 +79,51 @@ const GameBoard = ({ roomId, onExit }) => {
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [loanAmount, setLoanAmount] = useState(0);
   const [exitModalOpen, setExitModalOpen] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
+  const [displayPositions, setDisplayPositions] = useState({});
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
+  const [canEndTurn, setCanEndTurn] = useState(false);
+  
+  // Состояния для передачи сделок
+  const [dealTransferModalOpen, setDealTransferModalOpen] = useState(false);
+  const [selectedDeal, setSelectedDeal] = useState(null);
+  const [dealTransferTo, setDealTransferTo] = useState('');
+  const [dealTransferPrice, setDealTransferPrice] = useState(0);
+  
+  // Состояния для клеток мечты
+  const [dreamCells, setDreamCells] = useState({});
   
   // Используем централизованный хук для выхода
   const { logout } = useLogout();
   
+  // Функция для передачи сделки
+  const handleDealTransfer = () => {
+    if (!selectedDeal || !dealTransferTo || dealTransferPrice <= 0) return;
+    
+    const currentPlayer = players.find(p => p.id === myId);
+    if (!currentPlayer) return;
+    
+    socket.emit('transferDeal', roomId, currentPlayer.username, dealTransferTo, selectedDeal.id, dealTransferPrice);
+    
+    // Закрываем модал
+    setDealTransferModalOpen(false);
+    setSelectedDeal(null);
+    setDealTransferTo('');
+    setDealTransferPrice(0);
+    
+    // Показываем уведомление
+    setToast({
+      open: true,
+      message: `Сделка "${selectedDeal.name}" передана игроку ${dealTransferTo} за $${dealTransferPrice}`,
+      severity: 'success'
+    });
+  };
+
+  // Функция для покупки клетки мечты
+  const handleBuyDream = (cellId, price) => {
+    socket.emit('buyDream', roomId, cellId, price);
+  };
+
   // Функция для выхода из игры
   const handleExitGame = () => {
     console.log('🔄 [GameBoard] Exit game confirmed');
@@ -100,14 +155,23 @@ const GameBoard = ({ roomId, onExit }) => {
     const onConnect = () => {
       const newId = socket.id;
       setMyId(newId);
+      
+      // Получаем username из localStorage для подключения к комнате
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const username = currentUser.username;
+      
+      if (username) {
+        // Подключаемся к комнате с новым socket.id
+        socket.emit('joinRoom', roomId, username);
+        console.log('[socket] joinRoom emitted for username:', username);
+      }
+      
       // всегда подтянуть актуальный список игроков при входе/переподключении
       socket.emit('getPlayers', roomId);
       console.log('[socket] connected', newId, 'room', roomId, 'myId updated to:', newId);
       console.log('[socket] emitting getPlayers for roomId:', roomId);
       
-      // Запрашиваем текущий ход при подключении
-      socket.emit('getRoom', roomId);
-      console.log('[socket] emitting getRoom for roomId:', roomId);
+
     };
     socket.on('connect', onConnect);
     // запросим список сразу при монтировании на случай, если мы вошли после старта
@@ -116,7 +180,7 @@ const GameBoard = ({ roomId, onExit }) => {
     // Дополнительная проверка при монтировании
     setTimeout(() => {
       console.log('[GameBoard] Mount check - requesting fresh data...');
-      socket.emit('getRoom', roomId);
+
       socket.emit('getPlayers', roomId);
     }, 1000);
 
@@ -160,114 +224,89 @@ const GameBoard = ({ roomId, onExit }) => {
           }, 1000);
         } else {
           setTimeout(function() {
-            socket.emit('movePlayer', roomId, myId, dice);
+            socket.emit('movePlayer', roomId, dice);
             setDisplayDice(0);
           }, 1500);
         }
       }
     });
-    socket.on('playerMoved', ({ playerId, position, cellType }) => {
-      console.log('[playerMoved]', { playerId, position, cellType });
+    socket.on('playerMoved', ({ playerId, position, cell }) => {
       setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, position } : p));
+      
+      // по завершению движения разрешаем завершить ход
+      if (playerId === myId) {
+        setIsMoving(false);
+        setCanEndTurn(true);
+      }
+      setDisplayPositions(prev => {
+        const newPrev = { ...prev };
+        const currentDisplay = newPrev[playerId] || 0;
+        if (position !== currentDisplay) {
+          setIsMoving(true);
+          const step = position > currentDisplay ? 1 : -1;
+          const stepsNeeded = Math.abs(position - currentDisplay);
+          let stepsTaken = 0;
+          
+          const interval = setInterval(() => {
+            setDisplayPositions(prev2 => {
+              const updated = { ...prev2 };
+              updated[playerId] = (updated[playerId] || 0) + step;
+              return updated;
+            });
+            stepsTaken++;
+            if (stepsTaken >= stepsNeeded) {
+              clearInterval(interval);
+              setIsMoving(false);
+              if (playerId === myId) setCanEndTurn(true);
               if (playerId === myId) {
-          // Определяем тип клетки на основе позиции для малого круга
-          if (!players.find(p => p.id === playerId)?.isFastTrack) {
-            // Малый круг - определяем тип клетки по позиции
-            const cellIndex = position % INNER_COUNT;
-            let actualCellType = cellType;
-            let modalDetails = {};
-            
-            if ([0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22].includes(cellIndex)) {
-              actualCellType = 'opportunity'; // Зеленые клетки - возможность
-            } else if ([1, 9, 17].includes(cellIndex)) {
-              actualCellType = 'doodad'; // Розовые клетки - всякая всячина
-              // Генерируем случайную карточку doodad
-              const doodadCards = [
-                { name: "Блендер премиум-класса", cost: 150, description: "Мощный блендер для смузи и коктейлей с множеством функций" },
-                { name: "Умные часы", cost: 250, description: "Модные умные часы с фитнес-трекером и уведомлениями" },
-                { name: "Робот-пылесос", cost: 400, description: "Автоматический робот-пылесос с Wi-Fi управлением" },
-                { name: "Кофемашина эспрессо", cost: 600, description: "Профессиональная кофемашина для домашнего баристы" },
-                { name: "Массажное кресло", cost: 800, description: "Электрическое массажное кресло с подогревом" },
-                { name: "Игровая приставка", cost: 500, description: "Новейшая игровая консоль с VR-поддержкой" },
-                { name: "Домашний кинотеатр", cost: 1200, description: "Система объемного звука 7.1 для домашнего кинотеатра" },
-                { name: "Электросамокат", cost: 700, description: "Складной электросамокат для городских поездок" },
-                { name: "Тренажер для дома", cost: 900, description: "Многофункциональный тренажер для домашних тренировок" },
-                { name: "Умный холодильник", cost: 1800, description: "Холодильник с сенсорным экраном и интернет-подключением" },
-                { name: "Дрон с камерой", cost: 350, description: "Квадрокоптер с 4K камерой для аэросъемки" },
-                { name: "Электрогриль", cost: 200, description: "Бесдымный электрогриль для приготовления мяса дома" },
-                { name: "VR-очки", cost: 450, description: "Очки виртуальной реальности для игр и фильмов" },
-                { name: "Электровелосипед", cost: 1500, description: "Складной электровелосипед с аккумулятором на 50 км" },
-                { name: "Умная колонка", cost: 120, description: "Голосовой помощник с премиум звуком и умным домом" },
-                { name: "Проектор 4K", cost: 800, description: "Портативный проектор для домашнего кинотеатра" },
-                { name: "Электрогитара", cost: 650, description: "Профессиональная электрогитара с усилителем" },
-                { name: "3D принтер", cost: 1100, description: "Настольный 3D принтер для творчества и прототипирования" },
-                { name: "Спа-ванна джакузи", cost: 3500, description: "Портативная гидромассажная ванна для релаксации" },
-                { name: "Профессиональная камера", cost: 2200, description: "Зеркальная камера с набором объективов для фотографии" }
-              ];
-              const randomCard = doodadCards[Math.floor(Math.random() * doodadCards.length)];
-              modalDetails = { card: randomCard };
-            } else if (cellIndex === 3) {
-              actualCellType = 'charity'; // Оранжевая клетка - благотворительность
-            } else if ([5, 13, 21].includes(cellIndex)) {
-              actualCellType = 'payday'; // Желтые клетки - PayDay
-            } else if ([7, 15, 23].includes(cellIndex)) {
-              actualCellType = 'market'; // Голубые клетки - рынок
-            } else if (cellIndex === 11) {
-              actualCellType = 'child'; // Фиолетовая клетка - ребенок
-            } else if (cellIndex === 19) {
-              actualCellType = 'downsized'; // Черная клетка - увольнение
+                if (players.find(p => p.id === playerId)?.isFastTrack) {
+                  setModal({ type: cell.type, details: cell });
+                } else {
+                  const cellIndex = position % INNER_COUNT;
+                  let actualCellType = cell.type;
+                  let modalDetails = {};
+                  if ([0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22].includes(cellIndex)) {
+                    actualCellType = 'opportunity';
+                  } else if ([1, 9, 17].includes(cellIndex)) {
+                    actualCellType = 'doodad';
+                  } else if (cellIndex === 3) {
+                    actualCellType = 'charity';
+                  } else if ([5, 13, 21].includes(cellIndex)) {
+                    actualCellType = 'payday';
+                  } else if ([7, 15, 23].includes(cellIndex)) {
+                    actualCellType = 'market';
+                  } else if (cellIndex === 11) {
+                    actualCellType = 'child';
+                  } else if (cellIndex === 19) {
+                    actualCellType = 'downsized';
+                  }
+                  setModal({ type: actualCellType, details: modalDetails });
+                }
+              }
             }
-            
-            setModal({ type: actualCellType, details: modalDetails });
-          } else {
-            // Большой круг - используем переданный тип
-            setModal({ type: cellType, details: {} });
-          }
+          }, 300);
         }
+        return newPrev;
+      });
+    });
+    socket.on('playerStep', ({ playerId, position }) => {
+      setIsMoving(true);
+      setDisplayPositions(prev => ({ ...prev, [playerId]: position }));
+    });
+    
+    socket.on('canEndTurn', (canEnd) => {
+      console.log('[canEndTurn] received:', canEnd);
+      if (canEnd) {
+        setCanEndTurn(true);
+        setIsMoving(false);
+      }
     });
     socket.on('gameStarted', () => {
       console.log('[gameStarted] Game started, requesting fresh data...');
       socket.emit('getPlayers', roomId);
-      socket.emit('getRoom', roomId);
-      
-      // Принудительно запрашиваем текущий ход
-      setTimeout(function() {
-        console.log('[gameStarted] Requesting turn info after delay...');
-        socket.emit('getRoom', roomId);
-      }, 500);
+
     });
-    socket.on('roomData', (data) => {
-      console.log('[roomData] received:', data);
-      console.log('[roomData] current myId:', myId, 'socket.id:', socket.id);
-      
-      if (typeof data.currentTurn === 'string' && data.currentTurn) {
-        console.log('[roomData] setting currentTurn to:', data.currentTurn);
-        setCurrentTurn(data.currentTurn);
-        // Обновляем isMyTurn на основе полученного currentTurn
-        const isMyTurnNow = data.currentTurn === myId;
-        setIsMyTurn(isMyTurnNow);
-        console.log('[roomData] isMyTurn set to:', isMyTurnNow, 'myId:', myId, 'currentTurn:', data.currentTurn);
-        
-        // Если это наш ход, запускаем таймер
-        if (isMyTurnNow) {
-          setTurnTimer(120);
-          setTurnBanner({ text: 'Ваш ход' });
-          setTimeout(function() { setTurnBanner(null); }, 1600);
-        } else {
-          // Показываем чей ход
-          const playerName = players.find(p => p.id === data.currentTurn)?.username || `Игрок (${data.currentTurn?.slice(-4) || 'N/A'})`;
-          setTurnBanner({ text: `Ход: ${playerName}` });
-          setTimeout(function() { setTurnBanner(null); }, 1600);
-        }
-      } else {
-        console.log('[roomData] currentTurn is not a string or empty:', typeof data.currentTurn, data.currentTurn);
-      }
-      
-      if (data.status === 'started') {
-        console.log('[roomData] Game started, requesting players...');
-        socket.emit('getPlayers', roomId);
-      }
-    });
+
     socket.on('playersList', (playersList) => {
       console.log('[playersList] received:', playersList);
       console.log('[playersList] current myId:', myId, 'socket.id:', socket.id);
@@ -389,6 +428,55 @@ const GameBoard = ({ roomId, onExit }) => {
     socket.on('charityOffer', ({ cost }) => setModal({ type: 'charity', details: { cost } }));
     socket.on('downsizedEvent', () => setModal({ type: 'downsized', details: {} }));
     socket.on('opportunityEvent', () => setModal({ type: 'opportunity', details: {} }));
+    socket.on('dreamEvent', (cell) => setModal({ type: 'dream', details: cell }));
+    socket.on('lossEvent', ({ amount, reason }) => setModal({ type: 'loss', details: { amount, reason } }));
+    // New: money transfer notifications as toasts
+    socket.on('moneyTransferred', ({ from, to, amount }) => {
+      const fromName = players.find(p => p.id === from)?.username || (from || '').slice(-4);
+      const toName = players.find(p => p.id === to)?.username || (to || '').slice(-4);
+      setToast({ open: true, message: `Перевод ${amount} $: ${fromName} → ${toName}`, severity: 'success' });
+    });
+    socket.on('transferError', ({ message }) => {
+      setToast({ open: true, message: `Ошибка перевода: ${message}`, severity: 'error' });
+    });
+
+    // Новые события для передачи сделок и клеток мечты
+    socket.on('dealTransferred', ({ fromUser, toUser, deal, price }) => {
+      setToast({
+        open: true,
+        message: `Сделка "${deal}" передана от ${fromUser} к ${toUser} за $${price}`,
+        severity: 'success'
+      });
+    });
+
+    socket.on('transferDealError', ({ message }) => {
+      setToast({
+        open: true,
+        message: `Ошибка передачи сделки: ${message}`,
+        severity: 'error'
+      });
+    });
+
+    socket.on('dreamPurchased', ({ cellId, owner, price }) => {
+      setDreamCells(prev => ({
+        ...prev,
+        [cellId]: { owner, price, purchasedAt: Date.now() }
+      }));
+      
+      setToast({
+        open: true,
+        message: `Клетка мечты ${cellId} куплена игроком ${owner} за $${price}`,
+        severity: 'success'
+      });
+    });
+
+    socket.on('buyDreamError', ({ message }) => {
+      setToast({
+        open: true,
+        message: `Ошибка покупки клетки мечты: ${message}`,
+        severity: 'error'
+      });
+    });
     
     // Обработчик успешного выхода из комнаты - теперь управляется централизованно в App.js
     
@@ -400,6 +488,14 @@ const GameBoard = ({ roomId, onExit }) => {
       socket.off('charityOffer');
       socket.off('downsizedEvent');
       socket.off('opportunityEvent');
+      socket.off('dreamEvent');
+      socket.off('lossEvent');
+      socket.off('moneyTransferred');
+      socket.off('transferError');
+      socket.off('dealTransferred');
+      socket.off('transferDealError');
+      socket.off('dreamPurchased');
+      socket.off('buyDreamError');
       // leftRoom теперь обрабатывается централизованно в App.js
     };
   }, []);
@@ -454,7 +550,7 @@ const GameBoard = ({ roomId, onExit }) => {
               oscillator.stop(audioContext.currentTime + 0.3);
             }
             
-            socket.emit('endTurn', roomId, myId);
+            socket.emit('endTurn', roomId);
             return 120; // Reset timer
           }
           return prev - 1;
@@ -464,6 +560,16 @@ const GameBoard = ({ roomId, onExit }) => {
       return () => clearInterval(interval);
     }
   }, [isMyTurn, turnTimer, roomId, myId]);
+
+  useEffect(() => {
+    setDisplayPositions(prev => {
+      const newPos = {...prev};
+      players.forEach(p => {
+        if (newPos[p.id] === undefined) newPos[p.id] = p.position;
+      });
+      return newPos;
+    });
+  }, [players]);
 
   const roll = () => {
     console.log('🎲 roll() called with:', { 
@@ -475,6 +581,11 @@ const GameBoard = ({ roomId, onExit }) => {
       playersCount: players.length,
       players: players.map(p => ({ id: p.id, username: p.username }))
     });
+    
+    if (isMoving) {
+      console.log('❌ Идет перемещение фишки, бросок заблокирован');
+      return;
+    }
     
     // Проверяем, может ли игрок ходить
     if (!currentTurn) {
@@ -497,13 +608,13 @@ const GameBoard = ({ roomId, onExit }) => {
     setDisplayDice(0);
     setDisplayD1(0);
     setDisplayD2(0);
-    socket.emit('rollDice', roomId, myId);
+            socket.emit('rollDice', roomId);
   };
 
-  const move = () => socket.emit('movePlayer', roomId, myId, dice);
+      const move = () => socket.emit('movePlayer', roomId, dice);
 
   const endTurn = () => {
-    socket.emit('game.endTurn', roomId, myId);
+    socket.emit('endTurn', roomId);
     setModal(null);
   };
 
@@ -530,7 +641,7 @@ const GameBoard = ({ roomId, onExit }) => {
         <h3>Выберите результат броска</h3>
         <p>Кубики: {d1} и {d2}</p>
         {options.map((s) => (
-          <button key={s} onClick={() => { setModal(null); socket.emit('movePlayer', roomId, myId, s); }}>Идти на {s}</button>
+          <button key={s} onClick={() => { setModal(null); socket.emit('movePlayer', roomId, s); }}>Идти на {s}</button>
         ))}
       </div>
     );
@@ -538,7 +649,7 @@ const GameBoard = ({ roomId, onExit }) => {
 
   // Generate rings with desired counts
   const OUTER_COUNT = 50;
-  const INNER_COUNT = 24; // Увеличили до 24 клеток
+  const INNER_COUNT = (config?.board?.ratRace?.cells) || 20;
 
   const outerPalette = ['#7CB342','#9575CD','#FFCA28','#BA68C8','#8BC34A','#AED581','#81C784','#B39DDB','#C5E1A5','#FFD54F'];
   const innerPalette = ['#4CAF50','#E91E63','#4CAF50','#FF9800','#4CAF50','#FFC107','#4CAF50','#2196F3','#4CAF50','#E91E63','#4CAF50','#9C27B0','#4CAF50','#FFC107','#4CAF50','#2196F3','#4CAF50','#E91E63','#4CAF50','#000000','#4CAF50','#FFC107','#4CAF50','#2196F3'];
@@ -573,7 +684,12 @@ const GameBoard = ({ roomId, onExit }) => {
     return res;
   };
 
-  const outerCells = buildAlternatingCells(OUTER_COUNT, outerPalette, iconSetOuter);
+  // Создаем outerCells на основе BOARD_CONFIG
+  const outerCells = BOARD_CONFIG.cells.map((cell, index) => ({
+    icon: getIcon(cell),
+    color: colors[cell.type] || '#7CB342',
+    details: cell
+  }));
   const innerCells = buildAlternatingCells(INNER_COUNT, innerPalette, iconSetInner);
 
   // Mark loss cells: grey color and money-off icon
@@ -630,6 +746,93 @@ const GameBoard = ({ roomId, onExit }) => {
   setCell(innerCells, 11, <ChildCareIcon />, '#9C27B0');
   // Потеря/Увольнение (клетка 19)
   setCell(innerCells, 19, <MoneyOffIcon />, '#000000');
+
+  // Define colors
+  const colors = {
+    money: '#FFD54F',      // Желтый для денег
+    dream: '#90CAF9',      // Голубой для мечты
+    business: '#4CAF50',   // Зеленый для бизнеса
+    charity: '#E91E63',    // Розовый для благотворительности
+    loss: '#F44336',       // Красный для потерь
+    // Add defaults if needed
+  };
+
+  // Define getIcon
+  const getIcon = (cell) => {
+    switch (cell.name) {
+      case 'Вам выплачивается доход от ваших инвестиций':
+        return <MonetizationOnIcon sx={{ fontSize: 16 }} />;
+      case 'Построить дом мечты для семьи':
+        return <HomeIcon sx={{ fontSize: 16 }} />;
+      case 'Кофейня в центре города':
+        return <LocalCafeIcon sx={{ fontSize: 16 }} />;
+      case 'аудит':
+        return <GavelIcon sx={{ fontSize: 16 }} />;
+      case 'Центр здоровья и спа':
+        return <SpaIcon sx={{ fontSize: 16 }} />;
+      case 'Посетить Антарктиду':
+        return <AcUnitIcon sx={{ fontSize: 16 }} />;
+      case 'Мобильное приложение (подписка)':
+        return <PhoneAndroidIcon sx={{ fontSize: 16 }} />;
+      case 'благотворительность':
+        return <VolunteerActivismIcon sx={{ fontSize: 16 }} />;
+      case 'Агентство цифрового маркетинга':
+        return <CampaignIcon sx={{ fontSize: 16 }} />;
+      case 'кража 100% наличных':
+        return <WarningIcon sx={{ fontSize: 16 }} />;
+      case 'Мини-отель/бутик-гостиница':
+        return <HotelIcon sx={{ fontSize: 16 }} />;
+      case 'Подняться на все высочайшие вершины мира':
+        return <LandscapeIcon sx={{ fontSize: 16 }} />;
+      case 'Франшиза популярного ресторана':
+        return <RestaurantIcon sx={{ fontSize: 16 }} />;
+      case 'Объехать 100 стран':
+        return <FlightIcon sx={{ fontSize: 16 }} />;
+      default:
+        return <BusinessIcon sx={{ fontSize: 16 }} />;
+    }
+  };
+
+  // Update outerCells to use our custom cell configuration
+  const outerLayout = BOARD_CONFIG;
+  // outerCells уже объявлены выше, используем их
+  const dreamIndices = outerLayout
+    .map((c, i) => (c && typeof c === 'object' && c.type === 'dream' ? i : -1))
+    .filter(i => i >= 0);
+
+  const animateMove = (playerId, targetPosition) => {
+    setIsMoving(true);
+    setDisplayPositions(prev => {
+      const current = prev[playerId] || 0;
+      const step = targetPosition > current ? 1 : -1;
+      const stepsNeeded = Math.abs(targetPosition - current);
+      let stepsTaken = 0;
+      
+      const interval = setInterval(() => {
+        setDisplayPositions(prev2 => ({
+          ...prev2,
+          [playerId]: prev2[playerId] + step
+        }));
+        stepsTaken++;
+        if (stepsTaken >= stepsNeeded) {
+          clearInterval(interval);
+          setIsMoving(false);
+          // modal
+        }
+      }, 300);
+      return prev;
+    });
+  };
+
+  // Submit transfer helper
+  const submitTransfer = () => {
+    if (transferTo && transferAmount > 0) {
+      socket.emit('transferMoney', roomId, myId, transferTo, transferAmount);
+      setTransferTo('');
+      setTransferAmount(0);
+      setBankModalOpen(false);
+    }
+  };
 
   return (
     <Box sx={{ 
@@ -758,13 +961,14 @@ const GameBoard = ({ roomId, onExit }) => {
           opacity: isMyTurn ? 1 : 0.7
         }}
         onClick={() => {
-          if (isMyTurn) {
-            console.log('🎯 [GameBoard] Next player button clicked, ending turn');
-            socket.emit('endTurn', roomId, myId);
-            setTurnTimer(120); // Сбрасываем таймер
-          } else {
-            console.log('🎯 [GameBoard] Next player button clicked, but not my turn');
-          }
+          if (isMyTurn && canEndTurn) {
+             console.log('🎯 [GameBoard] Next player button clicked, ending turn');
+             socket.emit('endTurn', roomId);
+             setTurnTimer(120); // Сбрасываем таймер
+             setCanEndTurn(false);
+           } else {
+             console.log('🎯 [GameBoard] Next player button clicked, but not my turn');
+           }
         }}
       >
         {/* Стрелочка сверху */}
@@ -839,7 +1043,7 @@ const GameBoard = ({ roomId, onExit }) => {
         }} />
         
         <Box sx={{ fontSize: '12px', lineHeight: 1.2 }}>
-          {isMyTurn ? 'СЛЕДУЮЩИЙ ИГРОК' : 'ОЖИДАНИЕ'}
+          {isMyTurn ? (canEndTurn ? 'СЛЕДУЮЩИЙ ИГРОК' : 'ИДЕТ ХОД...') : 'ОЖИДАНИЕ'}
         </Box>
         
         {isMyTurn && (
@@ -867,8 +1071,23 @@ const GameBoard = ({ roomId, onExit }) => {
         <Box key={`outer-${index}`} sx={{ position: 'absolute', transform: `rotate(${index * (360 / outerCells.length)}deg) translate(260px) rotate(-${index * (360 / outerCells.length)}deg)`, background: `linear-gradient(180deg, ${cell.color}, ${cell.color}CC)`, borderRadius: '10px', width: 44, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 12px rgba(0,0,0,0.35)', border: '2px solid rgba(255,255,255,0.18)' }}>
           <Box sx={{ color: '#FFFDE7', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '10px' }}>
             <Box sx={{ fontSize: '8px', color: '#FFF', fontWeight: 'bold', mb: '2px' }}>{index}</Box>
-            {cell.icon}
+          {cell.icon}
           </Box>
+          
+          {/* Heart icon for purchased dream cells */}
+          {cell.details?.type === 'dream' && dreamCells[index] && (
+            <Box sx={{ 
+              position: 'absolute', 
+              top: -8, 
+              right: -8, 
+              color: '#FF4081',
+              fontSize: '16px',
+              filter: 'drop-shadow(0 0 4px rgba(255,64,129,0.8))',
+              zIndex: 6
+            }}>
+              ❤️
+            </Box>
+          )}
         </Box>
       ))}
 
@@ -881,6 +1100,87 @@ const GameBoard = ({ roomId, onExit }) => {
           </Box>
         </Box>
       ))}
+
+      {/* Dream markers (triangle) for players who selected dream cell on fast track */}
+      {players.filter(p => p?.dream && typeof p.dream.cellIndex === 'number').map((pl, i) => {
+        const idx = ((pl.dream.cellIndex % OUTER_COUNT) + OUTER_COUNT) % OUTER_COUNT;
+        const angle = idx * (360 / OUTER_COUNT);
+        const r = 275; // just outside outer ring cells (outer cells at ~260)
+        const color = pl.color || '#FFD54F';
+        return (
+          <Box key={`dream-marker-${pl.id}-${idx}`} sx={{ position: 'absolute', transform: `rotate(${angle}deg) translate(${r}px) rotate(${-angle}deg)`, zIndex: 5, pointerEvents: 'none' }}>
+            <Box sx={{ width: 0, height: 0, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderBottom: `14px solid ${color}`, filter: 'drop-shadow(0 0 6px rgba(0,0,0,0.5))' }} />
+          </Box>
+        );
+      })}
+
+      {/* Neutral dream markers rendered always for all dream cells on outer ring */}
+      {dreamIndices.map((idx) => {
+        const angle = idx * (360 / OUTER_COUNT);
+        const r = 270; // slightly inside player marker
+        const color = '#90CAF9'; // neutral blue marker for dream cells
+        return (
+          <Box key={`dream-default-${idx}`} sx={{ position: 'absolute', transform: `rotate(${angle}deg) translate(${r}px) rotate(${-angle}deg)`, zIndex: 3, pointerEvents: 'none' }}>
+            <Box sx={{ width: 0, height: 0, borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderBottom: `12px solid ${color}`, opacity: 0.9 }} />
+          </Box>
+        );
+      })}
+
+      {/* Cell tooltips for outer ring */}
+      {outerCells.map((cell, index) => {
+        if (!cell.details) return null;
+        
+        const angle = index * (360 / OUTER_COUNT);
+        const r = 320; // outside the cells for tooltip
+        const isDreamCell = cell.details.type === 'dream';
+        const isPurchased = dreamCells[index];
+        
+        return (
+          <Box 
+            key={`tooltip-${index}`}
+            sx={{ 
+              position: 'absolute', 
+              transform: `rotate(${angle}deg) translate(${r}px) rotate(${-angle}deg)`, 
+              zIndex: 7, 
+              pointerEvents: 'none',
+              opacity: 0.9,
+              transition: 'opacity 0.3s ease'
+            }}
+          >
+            <Box sx={{ 
+              bgcolor: 'rgba(0,0,0,0.8)', 
+              color: 'white', 
+              px: 2, 
+              py: 1, 
+              borderRadius: 2, 
+              fontSize: '12px',
+              maxWidth: '200px',
+              textAlign: 'center',
+              border: `2px solid ${cell.color}`,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+            }}>
+              <Box sx={{ fontWeight: 'bold', mb: 1, color: cell.color }}>
+                {cell.details.name}
+              </Box>
+              {cell.details.cost && (
+                <Box sx={{ fontSize: '11px', mb: 0.5 }}>
+                  💰 {cell.details.cost}
+                </Box>
+              )}
+              {cell.details.income && (
+                <Box sx={{ fontSize: '11px', color: '#4CAF50' }}>
+                  📈 +${cell.details.income}/мес
+                </Box>
+              )}
+              {isDreamCell && isPurchased && (
+                <Box sx={{ fontSize: '11px', color: '#FF4081', mt: 0.5 }}>
+                  ❤️ Куплено игроком {isPurchased.owner}
+                </Box>
+              )}
+            </Box>
+          </Box>
+        );
+      })}
 
       <Typography variant="h3" sx={{ color: '#FFD54F', fontWeight: '900', zIndex: 1, letterSpacing: 2, textShadow: '0 3px 0 #A06B00, 0 14px 22px rgba(0,0,0,0.45)' }}>ПОТОК ДЕНЕГ</Typography>
       
@@ -971,19 +1271,24 @@ const GameBoard = ({ roomId, onExit }) => {
       {/* Players tokens on inner ring (Rat Race - show all; stack neatly when same cell) */}
       {Object.entries(
         players.filter(p => !p.isFastTrack).reduce((acc, pl) => {
-          const key = ((pl.position % INNER_COUNT) + INNER_COUNT) % INNER_COUNT;
+          const pos = (displayPositions[pl.id] ?? pl.position ?? 0);
+          const key = ((pos % INNER_COUNT) + INNER_COUNT) % INNER_COUNT;
           (acc[key] ||= []).push(pl);
           return acc;
         }, {})
       ).flatMap(([cellIndex, group]) => {
-        const baseAngle = Number(cellIndex) * (360 / INNER_COUNT);  // Positive for clockwise (down from top)
+        const baseAngle = Number(cellIndex) * (360 / INNER_COUNT);
         const centerR = 215;
-        const spacing = 18;
+        const angleStep = 8; // degrees between tokens
+        const radialStep = 8; // px between tokens
+        const half = (group.length - 1) / 2;
         return group.map((pl, idx) => {
-          const offset = (idx - (group.length - 1) / 2) * spacing;
-          const r = centerR + offset;
+          const angleOffset = (idx - half) * angleStep;
+          const radialOffset = (idx - half) * radialStep;
+          const r = centerR + radialOffset;
+          const angle = baseAngle + angleOffset;
           return (
-            <Box key={pl.id} sx={{ position: 'absolute', transform: `rotate(${baseAngle}deg) translate(${r}px) rotate(${-baseAngle}deg)`, transition: 'transform 0.5s ease-in-out' }}>
+            <Box key={pl.id} sx={{ position: 'absolute', transform: `rotate(${angle}deg) translate(${r}px) rotate(${-angle}deg)`, transition: 'transform 0.3s ease-in-out' }}>
               <Avatar sx={{ bgcolor: pl.color || '#FF7043', width: 34, height: 34, boxShadow: '0 4px 10px rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.7)' }}>{pl.username?.[0] || '?'}</Avatar>
             </Box>
           );
@@ -993,24 +1298,44 @@ const GameBoard = ({ roomId, onExit }) => {
       {/* Players tokens on outer ring (Fast Track - show all; stack neatly when same cell) */}
       {Object.entries(
         players.filter(p => p.isFastTrack).reduce((acc, pl) => {
-          const key = ((pl.position % OUTER_COUNT) + OUTER_COUNT) % OUTER_COUNT;
+          const pos = (displayPositions[pl.id] ?? pl.position ?? 0);
+          const key = ((pos % OUTER_COUNT) + OUTER_COUNT) % OUTER_COUNT;
           (acc[key] ||= []).push(pl);
           return acc;
         }, {})
       ).flatMap(([cellIndex, group]) => {
-        const baseAngle = Number(cellIndex) * (360 / OUTER_COUNT);  // Positive for counter-clockwise (against clock)
+        const baseAngle = Number(cellIndex) * (360 / OUTER_COUNT);
         const centerR = 280;
-        const spacing = 18;
+        const angleStep = 8;
+        const radialStep = 8;
+        const half = (group.length - 1) / 2;
         return group.map((pl, idx) => {
-          const offset = (idx - (group.length - 1) / 2) * spacing;
-          const r = centerR + offset;
+          const angleOffset = (idx - half) * angleStep;
+          const radialOffset = (idx - half) * radialStep;
+          const r = centerR + radialOffset;
+          const angle = baseAngle + angleOffset;
           return (
-            <Box key={pl.id} sx={{ position: 'absolute', transform: `rotate(${baseAngle}deg) translate(${r}px) rotate(${-baseAngle}deg)`, transition: 'transform 0.5s ease-in-out' }}>
+            <Box key={pl.id} sx={{ position: 'absolute', transform: `rotate(${angle}deg) translate(${r}px) rotate(${-angle}deg)`, transition: 'transform 0.3s ease-in-out' }}>
               <Avatar sx={{ bgcolor: pl.color || '#FF9800', width: 36, height: 36, boxShadow: '0 4px 10px rgba(0,0,0,0.5)', border: '3px solid rgba(255,255,255,0.8)' }}>{pl.username?.[0] || '?'}</Avatar>
             </Box>
           );
         });
       })}
+
+      {/* Start area: players without position yet — place at top of center logo with offsets */}
+      {players
+        .filter(p => !p.isFastTrack && (p.position === null || typeof p.position !== 'number'))
+        .map((pl, idx, arr) => {
+          const spread = 24; // px between tokens
+          const totalWidth = (arr.length - 1) * spread;
+          const leftOffset = -totalWidth / 2 + idx * spread;
+          return (
+            <Box key={`start-${pl.id}`} sx={{ position: 'absolute', top: '46%', left: `calc(50% + ${leftOffset}px)`, transform: 'translate(-50%, -50%)' }}>
+              <Avatar sx={{ bgcolor: pl.color || '#607D8B', width: 34, height: 34, boxShadow: '0 4px 10px rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.7)' }}>{pl.username?.[0] || '?'}</Avatar>
+            </Box>
+          );
+        })}
+
       {/* Transparent central roll area */}
       <Box
         role="button"
@@ -1117,6 +1442,7 @@ const GameBoard = ({ roomId, onExit }) => {
             alignItems: 'center',
             gap: 2
           }}>
+            <Typography variant="h6" sx={{ color: '#FFD54F' }}>Выпало:</Typography>
             <motion.div
               initial={{ scale: 0, rotate: 180 }}
               animate={{ scale: 1, rotate: 0 }}
@@ -1142,22 +1468,8 @@ const GameBoard = ({ roomId, onExit }) => {
                     repeat: Infinity,
                     ease: 'easeInOut'
                   }}
-                  style={{
-                    background: 'linear-gradient(45deg, #FFD54F, #FFC107)',
-                    borderRadius: '8px',
-                    padding: '16px 20px',
-                    boxShadow: '0 8px 20px rgba(255, 213, 79, 0.4)',
-                    border: '2px solid rgba(255,255,255,0.3)'
-                  }}
                 >
-                  <Typography variant="h3" sx={{ 
-                    color: '#2E1B40', 
-                    fontWeight: 'bold',
-                    textShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                    lineHeight: 1
-                  }}>
-                    {displayD1}
-                  </Typography>
+                  <Dice value={displayD1} size={80} />
                 </motion.div>
                 
                 {displayD2 > 0 && (
@@ -1172,22 +1484,8 @@ const GameBoard = ({ roomId, onExit }) => {
                       ease: 'easeInOut',
                       delay: 0.5
                     }}
-                    style={{
-                      background: 'linear-gradient(45deg, #FFD54F, #FFC107)',
-                      borderRadius: '8px',
-                      padding: '16px 20px',
-                      boxShadow: '0 8px 20px rgba(255, 213, 79, 0.4)',
-                      border: '2px solid rgba(255,255,255,0.3)'
-                    }}
                   >
-                    <Typography variant="h3" sx={{ 
-                      color: '#2E1B40', 
-                      fontWeight: 'bold',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                      lineHeight: 1
-                    }}>
-                      {displayD2}
-                    </Typography>
+                    <Dice value={displayD2} size={80} />
                   </motion.div>
                 )}
               </Box>
@@ -1274,26 +1572,68 @@ const GameBoard = ({ roomId, onExit }) => {
           <Select value={transferTo} onChange={e => setTransferTo(e.target.value)} fullWidth sx={{ mb: 2 }}>
             <MenuItem value="">Выберите игрока</MenuItem>
             {players
-              .filter(p => p.id !== myId && p.roomId === roomId) // Фильтруем только игроков из текущей комнаты
+              .filter(p => p.id !== myId)
               .map(p => (
                 <MenuItem key={p.id} value={p.id}>
-                  {p.username || p.id.slice(-4)} {p.roomId === roomId ? '(в комнате)' : ''}
+                  {p.username || p.id.slice(-4)}
                 </MenuItem>
               ))}
           </Select>
-          <TextField label="Сумма" type="number" value={transferAmount} onChange={e => setTransferAmount(Number(e.target.value))} fullWidth sx={{ mb: 2 }} />
-          <Button variant="contained" onClick={() => {
-            if (transferTo && transferAmount > 0) {
-              socket.emit('transferMoney', roomId, myId, transferTo, transferAmount);
-              setTransferTo('');
-              setTransferAmount(0);
-              setBankModalOpen(false);
-            }
-          }}>Передать</Button>
+          <TextField 
+            label="Сумма" 
+            type="number" 
+            value={transferAmount} 
+            onChange={e => setTransferAmount(Number(e.target.value))} 
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitTransfer(); } }}
+            fullWidth 
+            sx={{ mb: 2 }} 
+          />
+          <Button variant="contained" onClick={submitTransfer}>Передать</Button>
         </DialogContent>
       </Dialog>
 
-
+      {/* Deal Transfer Modal */}
+      <Dialog open={dealTransferModalOpen} onClose={() => setDealTransferModalOpen(false)}>
+        <DialogTitle>Передача сделки</DialogTitle>
+        <DialogContent>
+          {selectedDeal && (
+            <>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Сделка: {selectedDeal.name}
+              </Typography>
+              <Typography sx={{ mb: 2 }}>
+                Стоимость: ${selectedDeal.cost}<br/>
+                Доход: ${selectedDeal.cashflow || 0}/мес
+              </Typography>
+            </>
+          )}
+          <Select 
+            value={dealTransferTo} 
+            onChange={e => setDealTransferTo(e.target.value)} 
+            fullWidth 
+            sx={{ mb: 2 }}
+          >
+            <MenuItem value="">Выберите игрока</MenuItem>
+            {players
+              .filter(p => p.id !== myId)
+              .map(p => (
+                <MenuItem key={p.id} value={p.username}>
+                  {p.username}
+                </MenuItem>
+              ))}
+          </Select>
+          <TextField 
+            label="Цена продажи" 
+            type="number" 
+            value={dealTransferPrice} 
+            onChange={e => setDealTransferPrice(Number(e.target.value))} 
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleDealTransfer(); } }}
+            fullWidth 
+            sx={{ mb: 2 }} 
+          />
+          <Button variant="contained" onClick={handleDealTransfer}>Передать сделку</Button>
+        </DialogContent>
+      </Dialog>
 
       {/* Freedom Modal */}
       <Dialog open={freedomModalOpen} onClose={() => setFreedomModalOpen(false)}>
@@ -1481,6 +1821,28 @@ const GameBoard = ({ roomId, onExit }) => {
                   ❌ Недостаточно средств и кредит слишком большой
                 </Typography>
               )}
+
+              {/* Кнопка передачи сделки */}
+              <Button 
+                variant="outlined" 
+                onClick={() => {
+                  setSelectedDeal(modal.details.card);
+                  setDealTransferModalOpen(true);
+                  setModal(null);
+                }}
+                sx={{ 
+                  mt: 2, 
+                  borderColor: '#9C27B0', 
+                  color: '#9C27B0',
+                  '&:hover': { 
+                    borderColor: '#7B1FA2',
+                    bgcolor: 'rgba(156, 39, 176, 0.1)'
+                  } 
+                }}
+                fullWidth
+              >
+                💼 Передать сделку другому игроку
+              </Button>
             </>
           )}
         </DialogContent>
@@ -1516,268 +1878,17 @@ const GameBoard = ({ roomId, onExit }) => {
         </DialogContent>
       </Dialog>
 
-      {/* Payday Event Modal */}
-      <Dialog open={modal?.type === 'payday'} onClose={() => setModal(null)}>
-        <DialogTitle>💰 День зарплаты</DialogTitle>
-        <DialogContent>
-          <Typography variant="h6" sx={{ mb: 2 }}>Поздравляем!</Typography>
-          <Typography>Вы получили: {modal?.details?.amount} $</Typography>
-        </DialogContent>
-      </Dialog>
-
-      {/* Child Event Modal */}
-      <Dialog open={modal?.type === 'child'} onClose={() => setModal(null)}>
-        <DialogTitle>👶 У вас родился ребенок!</DialogTitle>
-        <DialogContent>
-          <Typography variant="h6" sx={{ mb: 2 }}>Поздравляем!</Typography>
-          <Typography>У вас появился еще один ребенок.</Typography>
-          <Typography>Ваши ежемесячные расходы увеличились.</Typography>
-        </DialogContent>
-      </Dialog>
-
-      {/* Doodad Event Modal */}
-      <Dialog open={modal?.type === 'doodad'} onClose={() => {}} disableEscapeKeyDown maxWidth="sm" fullWidth>
-        <DialogTitle>🛍️ Всякая всячина</DialogTitle>
-        <DialogContent>
-          {modal?.details?.card ? (
-            <>
-              <Typography variant="h6" sx={{ mb: 1 }}>{modal.details.card.name}</Typography>
-              <Typography sx={{ mb: 2 }}>Стоимость: {modal.details.card.cost} $</Typography>
-              <Typography sx={{ mb: 2 }}>{modal.details.card.description}</Typography>
-              <Typography sx={{ mb: 2, color: 'red', fontWeight: 'bold' }}>
-                ⚠️ Это обязательная трата! Отказаться нельзя!
-              </Typography>
-              
-              {(() => {
-                const me = players.find(p => p.id === myId);
-                const cardCost = modal.details.card.cost;
-                const myBalance = me?.balance || 0;
-                const maxLoan = (me?.monthlyCashflow || 0) * 10;
-                const canAfford = myBalance >= cardCost;
-                const needsLoan = !canAfford && (cardCost <= myBalance + maxLoan);
-                const cantAfford = !canAfford && !needsLoan;
-                
-                return (
-                  <>
-                    <Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
-                      <Typography variant="subtitle2" sx={{ mb: 1 }}>Ваши финансы:</Typography>
-                      <Typography>Баланс: {myBalance} $</Typography>
-                      <Typography>Денежный поток: {me?.monthlyCashflow || 0} $</Typography>
-                      <Typography>Максимальный кредит: {maxLoan} $</Typography>
-                    </Box>
-
-                    {canAfford ? (
-                      <Button 
-                        variant="contained" 
-                        onClick={() => {
-                          socket.emit('payDoodad', roomId, modal.details.card, false, 0);
-                          setModal(null);
-                        }}
-                        sx={{ mt: 2, bgcolor: '#4CAF50', '&:hover': { bgcolor: '#45a049' } }}
-                        fullWidth
-                      >
-                        💰 Оплатить {cardCost} $
-                      </Button>
-                    ) : needsLoan ? (
-                      <Box sx={{ mt: 2 }}>
-                        <Typography sx={{ mb: 1, color: 'orange', fontWeight: 'bold' }}>
-                          Недостаточно средств. Нужен кредит:
-                        </Typography>
-                        <Typography sx={{ mb: 1, fontSize: '0.9rem', color: 'gray' }}>
-                          ⚠️ Кредит можно брать только кратно 1000$
-                        </Typography>
-                        {(() => {
-                          const minNeeded = cardCost - myBalance;
-                          const minLoanStep = Math.ceil(minNeeded / 1000) * 1000; // Округляем вверх до кратного 1000
-                          const maxLoanSteps = Math.floor(maxLoan / 1000);
-                          const loanOptions = [];
-                          
-                          for (let i = Math.ceil(minLoanStep / 1000); i <= maxLoanSteps; i++) {
-                            loanOptions.push(i * 1000);
-                          }
-                          
-                          return (
-                            <>
-                              <Box sx={{ mb: 2 }}>
-                                <Typography sx={{ mb: 1, fontSize: '0.9rem' }}>
-                                  Минимум нужно: {minNeeded} $ → {minLoanStep} $ (кратно 1000)
-                                </Typography>
-                                <Typography sx={{ mb: 1, fontSize: '0.9rem' }}>
-                                  Доступные варианты кредита:
-                                </Typography>
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                  {loanOptions.map(amount => (
-                                    <Button
-                                      key={amount}
-                                      variant={loanAmount === amount ? "contained" : "outlined"}
-                                      size="small"
-                                      onClick={() => setLoanAmount(amount)}
-                                      sx={{ 
-                                        minWidth: '80px',
-                                        bgcolor: loanAmount === amount ? '#FF9800' : 'transparent',
-                                        borderColor: '#FF9800',
-                                        color: loanAmount === amount ? 'white' : '#FF9800',
-                                        '&:hover': { 
-                                          bgcolor: loanAmount === amount ? '#F57C00' : 'rgba(255, 152, 0, 0.1)' 
-                                        }
-                                      }}
-                                    >
-                                      {amount}$
-                                    </Button>
-                                  ))}
-                                </Box>
-                              </Box>
-                              <Button 
-                                variant="contained" 
-                                onClick={() => {
-                                  const finalLoanAmount = loanAmount || minLoanStep;
-                                  if (finalLoanAmount > 0 && finalLoanAmount <= maxLoan && finalLoanAmount >= minLoanStep && finalLoanAmount % 1000 === 0) {
-                                    socket.emit('payDoodad', roomId, modal.details.card, true, finalLoanAmount);
-                                    setLoanAmount(0);
-                                    setModal(null);
-                                  }
-                                }}
-                                sx={{ bgcolor: '#FF9800', '&:hover': { bgcolor: '#F57C00' } }}
-                                fullWidth
-                                disabled={!loanAmount || loanAmount % 1000 !== 0}
-                              >
-                                💳 Взять кредит {loanAmount || minLoanStep}$ и оплатить
-                              </Button>
-                            </>
-                          );
-                        })()}
-                      </Box>
-                    ) : (
-                      <Box sx={{ mt: 2 }}>
-                        <Typography sx={{ mb: 2, color: 'red', fontWeight: 'bold' }}>
-                          💸 Недостаточно средств даже с максимальным кредитом!
-                        </Typography>
-                        <Typography sx={{ mb: 1, color: 'red' }}>
-                          Нужно: {cardCost} $
-                        </Typography>
-                        <Typography sx={{ mb: 1, color: 'red' }}>
-                          Доступно: {myBalance + maxLoan} $ (баланс + макс. кредит)
-                        </Typography>
-                        <Typography sx={{ mb: 2, color: 'red' }}>
-                          Не хватает: {cardCost - (myBalance + maxLoan)} $
-                        </Typography>
-                        <Button 
-                          variant="contained" 
-                          onClick={() => {
-                            socket.emit('declareBankruptcy', roomId);
-                            setModal(null);
-                          }}
-                          sx={{ bgcolor: '#D32F2F', '&:hover': { bgcolor: '#B71C1C' } }}
-                          fullWidth
-                        >
-                          💥 Объявить банкротство
-                        </Button>
-                      </Box>
-                    )}
-                  </>
-                );
-              })()}
-            </>
-          ) : (
-            <Typography>Нет доступных карт Doodad.</Typography>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Charity Offer Modal */}
-      <Dialog open={modal?.type === 'charity'} onClose={() => setModal(null)}>
-        <DialogTitle>❤️ Благотворительность</DialogTitle>
-        <DialogContent>
-          <Typography sx={{ mb: 2 }}>
-            Хотите пожертвовать {modal?.details?.cost} $ (10% от вашего дохода) на благотворительность?
-          </Typography>
-          <Typography sx={{ mb: 2 }}>
-            За это вы получите возможность бросать два кубика на следующем ходу.
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-            <Button 
-              variant="contained" 
-              onClick={() => {
-                socket.emit('charityDonate', roomId);
-                setModal(null);
-              }}
-              sx={{ bgcolor: '#4CAF50', '&:hover': { bgcolor: '#45a049' } }}
-            >
-              💝 Пожертвовать {modal?.details?.cost} $
-            </Button>
-            <Button 
-              variant="outlined" 
-              onClick={() => setModal(null)}
-            >
-              Отказаться
-            </Button>
-          </Box>
-        </DialogContent>
-      </Dialog>
-
-      {/* Downsized Event Modal */}
-      <Dialog open={modal?.type === 'downsized'} onClose={() => setModal(null)}>
-        <DialogTitle>😞 Увольнение</DialogTitle>
-        <DialogContent>
-          <Typography variant="h6" sx={{ mb: 2 }}>Вас уволили!</Typography>
-          <Typography sx={{ mb: 2 }}>У вас есть два варианта:</Typography>
-          <Typography sx={{ mb: 1 }}>1️⃣ Оплатить один раз расходы и пропустить 2 хода</Typography>
-          <Typography sx={{ mb: 2 }}>2️⃣ Оплатить 3 раза расходы без пропуска хода</Typography>
-          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-            <Button 
-              variant="contained" 
-              onClick={() => {
-                socket.emit('downsizedChoice', roomId, 'skip');
-                setModal(null);
-              }}
-              sx={{ bgcolor: '#FF9800', '&:hover': { bgcolor: '#F57C00' } }}
-            >
-              💰 Оплатить 1x и пропустить 2 хода
-            </Button>
-            <Button 
-              variant="contained" 
-              onClick={() => {
-                socket.emit('downsizedChoice', roomId, 'pay');
-                setModal(null);
-              }}
-              sx={{ bgcolor: '#4CAF50', '&:hover': { bgcolor: '#45a049' } }}
-            >
-              💰 Оплатить 3x без пропуска
-            </Button>
-          </Box>
-        </DialogContent>
-      </Dialog>
-
-      {/* Generic Cell Event Modals */}
-      <Dialog open={modal?.type === 'opportunity' && !modal?.details?.card} onClose={() => setModal(null)}>
-        <DialogTitle>🎯 Возможность</DialogTitle>
-        <DialogContent>
-          <Typography sx={{ mb: 2 }}>Вы попали на клетку "Возможность"</Typography>
-          <Typography sx={{ mb: 2 }}>Выберите тип сделки:</Typography>
-          <Box sx={{ display: 'flex', gap: 2, flexDirection: 'column' }}>
-            <Button 
-              variant="contained" 
-              onClick={() => {
-                socket.emit('selectDealType', roomId, 'smallDeal');
-                setModal(null);
-              }}
-              sx={{ bgcolor: '#4CAF50', '&:hover': { bgcolor: '#45a049' } }}
-            >
-              🏠 Малые сделки
-            </Button>
-            <Button 
-              variant="contained" 
-              onClick={() => {
-                socket.emit('selectDealType', roomId, 'bigDeal');
-                setModal(null);
-              }}
-              sx={{ bgcolor: '#2196F3', '&:hover': { bgcolor: '#1976D2' } }}
-            >
-              🏢 Большие сделки
-            </Button>
-          </Box>
-        </DialogContent>
-      </Dialog>
+      {/* Toast notifications */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={3000}
+        onClose={() => setToast(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setToast(prev => ({ ...prev, open: false }))} severity={toast.severity} variant="filled" sx={{ width: '100%' }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
 
       {/* Exit Game Modal */}
       <ExitConfirmModal
@@ -1785,6 +1896,52 @@ const GameBoard = ({ roomId, onExit }) => {
         onClose={() => setExitModalOpen(false)}
         onConfirm={handleExitGame}
       />
+
+      {/* Dream Event Modal */}
+      <Dialog open={modal?.type === 'dream'} onClose={() => setModal(null)}>
+        <DialogTitle>💝 Мечта: {modal?.details?.name}</DialogTitle>
+        <DialogContent>
+          <Typography variant="h6" sx={{ mb: 2, color: '#9C27B0' }}>
+            {modal?.details?.name}
+          </Typography>
+          <Typography sx={{ mb: 2 }}>
+            Стоимость: <strong>{modal?.details?.cost} $</strong>
+          </Typography>
+          {modal?.details?.description && (
+            <Typography sx={{ mb: 2, color: '#666', fontStyle: 'italic' }}>
+              {modal?.details?.description}
+            </Typography>
+          )}
+          
+          <Box sx={{ mt: 3 }}>
+            <Button 
+              variant="contained" 
+              onClick={() => {
+                const me = players.find(p => p.id === myId);
+                if (me && me.balance >= modal?.details?.cost) {
+                  const cellIndex = ((me.position || 0) % OUTER_COUNT + OUTER_COUNT) % OUTER_COUNT;
+                  handleBuyDream(cellIndex, modal?.details?.cost);
+                  setModal(null);
+                } else {
+                  setToast({
+                    open: true,
+                    message: 'Недостаточно средств для покупки клетки мечты',
+                    severity: 'error'
+                  });
+                }
+              }}
+              sx={{ 
+                bgcolor: '#E91E63', 
+                '&:hover': { bgcolor: '#C2185B' },
+                mr: 2
+              }}
+              fullWidth
+            >
+              💝 Купить клетку мечты за {modal?.details?.cost} $
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

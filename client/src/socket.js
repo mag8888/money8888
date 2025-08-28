@@ -12,7 +12,7 @@ const baseUrl = process.env.NODE_ENV === 'production'
 console.log('🔌 [Socket] Connecting to:', baseUrl);
 
 const socket = io(baseUrl, {
-  transports: ['websocket', 'polling'],
+  transports: ['websocket'],
   reconnection: true,
   reconnectionAttempts: Infinity,
   reconnectionDelay: 1000,

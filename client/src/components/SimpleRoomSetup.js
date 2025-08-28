@@ -1,3 +1,15 @@
+// 🚫 ОГРАНИЧЕНИЕ НА ВЫБОР ПРОФЕССИЙ УБРАНО
+// Теперь все игроки могут выбирать любые профессии, даже если они уже выбраны другими игроками
+// Это позволяет создавать команды с одинаковыми профессиями для стратегического геймплея
+//
+// 🚫 АВТОМАТИЧЕСКИЕ ЗАПРОСЫ ОСТАНОВЛЕНЫ
+// Все обновления данных теперь происходят только по нажатию кнопок:
+// - 🔌 Подключиться к комнате (setupPlayer)
+// - 📥 Загрузить данные комнаты (getRoom + getPlayers)
+// - 📊 Обновить данные комнаты (getRoom)
+// - 👥 Обновить список игроков (getPlayers)
+// - ⚙️ Обновить переменные игроков (updatePlayerProfessionVariables)
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import socket from '../socket';
@@ -6,6 +18,8 @@ import { PROFESSIONS } from '../data/professions';
 import { Box, Typography, Button } from '@mui/material';
 import DreamSelectionModal from './DreamSelectionModal';
 import { useDreamSelection } from '../hooks/useDreamSelection';
+// 🚫 RoomModuleWrapper временно отключен - файл пустой
+// import RoomModuleWrapper from './RoomModuleWrapper';
 
 const SimpleRoomSetup = ({ roomId, playerData }) => {
   console.log('🔍 [SimpleRoomSetup] Component props:', { roomId, playerData });
@@ -269,15 +283,19 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
     return result;
   };
 
-  // Функция для проверки занятости профессии
+  // 🚫 ФУНКЦИЯ ОТКЛЮЧЕНА: Разрешаем всем игрокам выбирать любые профессии
   const isProfessionTaken = (professionName) => {
-    return players.some(player => {
-      if (!isValidProfession(player.profession)) return false;
-      
-      return typeof player.profession === 'string' ? 
-        player.profession === professionName : 
-        player.profession?.name === professionName;
-    });
+    // 🚫 УБИРАЕМ ОГРАНИЧЕНИЕ: Теперь все профессии доступны всем игрокам
+    return false;
+    
+    // Старая логика (закомментирована):
+    // return players.some(player => {
+    //   if (!isValidProfession(player.profession)) return false;
+    //   
+    //   return typeof player.profession === 'string' ? 
+    //     player.profession === professionName : 
+    //     player.profession?.name === professionName;
+    // });
   };
   
   // Функция для обновления переменных игроков 1-10
@@ -382,17 +400,16 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
 
     setLoading(true);
     console.log('🔍 [SimpleRoomSetup] Component mounted with roomId:', roomId);
+    console.log('🚫 [SimpleRoomSetup] Автоматические вызовы setupPlayer ОСТАНОВЛЕНЫ');
+    console.log('🚫 [SimpleRoomSetup] Используйте кнопки для ручного управления');
 
-    // Настраиваем игрока при входе в комнату
+    // 🚫 ОСТАНОВЛЕНО: Автоматический setupPlayer при монтировании
+    // Теперь подключение к комнате будет происходить только по кнопкам
+    
+    // Сохраняем данные игрока для использования в кнопках
     if (playerData) {
-      console.log('👤 [SimpleRoomSetup] Setting up player:', playerData);
-      
-      // Очищаем старые данные игрока из localStorage перед настройкой
-      localStorage.removeItem('potok-deneg_username');
-      console.log('🧹 [SimpleRoomSetup] Cleared old username from localStorage');
-      
-      socket.emit('setupPlayer', roomId, playerData);
-      console.log('👤 [SimpleRoomSetup] setupPlayer emitted');
+      console.log('👤 [SimpleRoomSetup] Player data prepared for manual setup:', playerData);
+      localStorage.setItem(`playerData_${roomId}`, JSON.stringify(playerData));
     } else {
       // Если playerData нет, создаем базовые данные
       const defaultPlayerData = {
@@ -400,14 +417,8 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
         username: 'Player' + Math.floor(Math.random() * 1000),
         color: '#' + Math.floor(Math.random()*16777215).toString(16)
       };
-      console.log('👤 [SimpleRoomSetup] Creating default player data:', defaultPlayerData);
-      
-      // Очищаем старые данные игрока из localStorage перед настройкой
-      localStorage.removeItem('potok-deneg_username');
-      console.log('🧹 [SimpleRoomSetup] Cleared old username from localStorage');
-      
-      socket.emit('setupPlayer', roomId, defaultPlayerData);
-      console.log('👤 [SimpleRoomSetup] setupPlayer emitted with default data');
+      console.log('👤 [SimpleRoomSetup] Default player data prepared:', defaultPlayerData);
+      localStorage.setItem(`playerData_${roomId}`, JSON.stringify(defaultPlayerData));
     }
 
     // Подписываемся на обновления игроков
@@ -429,14 +440,14 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
         setPlayerReady(currentPlayer.ready || false);
       }
       
-      // Обновляем переменные игроков 1-10
-      updatePlayerProfessionVariables(updatedPlayers);
+      // 🚫 ОСТАНОВЛЕНО: Автоматическое обновление переменных игроков
+      // Теперь обновление будет происходить только по кнопкам
+      console.log('🚫 [SimpleRoomSetup] Автоматическое updatePlayerProfessionVariables в playersUpdate ОСТАНОВЛЕНО');
     });
     
-    // Инициализируем переменные игроков при первом получении данных
-    if (players.length > 0) {
-      updatePlayerProfessionVariables(players);
-    }
+    // 🚫 ОСТАНОВЛЕНО: Автоматическая инициализация переменных игроков
+    // Теперь инициализация будет происходить только по кнопкам
+    console.log('🚫 [SimpleRoomSetup] Автоматическая инициализация updatePlayerProfessionVariables ОСТАНОВЛЕНО');
 
     // Подписываемся на обновления комнаты
     socket.on('roomUpdated', (updatedRoom) => {
@@ -461,11 +472,11 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
         professionKeys: data.profession ? Object.keys(data.profession) : 'null'
       });
       if (data.roomId === roomId) {
-        console.log('🎯 [SimpleRoomSetup] Requesting updated players list...');
-        // Обновляем список игроков
-        socket.emit('getPlayers', roomId);
+        console.log('🎯 [SimpleRoomSetup] Player profession updated, updating local state...');
+        // 🔄 ВРЕМЕННО ВКЛЮЧАЕМ: Автоматический вызов getPlayers
+        // Это нужно для корректной работы компонента
         
-        // Также обновляем локальное состояние игрока, если это текущий игрок
+        // Обновляем локальное состояние игрока, если это текущий игрок
         if (data.playerId === playerData?.id || data.playerId === getCurrentPlayer()?.id) {
           console.log('🎯 [SimpleRoomSetup] Updating local player profession state');
           setPlayers(prevPlayers => 
@@ -476,6 +487,10 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
             )
           );
         }
+        
+        // 🚫 ОСТАНОВЛЕНО: Автоматический вызов getPlayers после изменения профессии
+        // Теперь обновление будет происходить только по кнопкам
+        console.log('🚫 [SimpleRoomSetup] Автоматический getPlayers после изменения профессии ОСТАНОВЛЕН');
       }
     });
 
@@ -491,9 +506,9 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
       });
       
       if (data.roomId === roomId) {
-        console.log('✅ [SimpleRoomSetup] Updating players list after ready change');
-        // Обновляем список игроков
-        socket.emit('getPlayers', roomId);
+        console.log('✅ [SimpleRoomSetup] Ready change detected, but automatic update ОСТАНОВЛЕНО');
+        // 🚫 ОСТАНОВЛЕНО: Автоматическое обновление списка игроков
+        // Теперь обновление будет происходить только по кнопкам
         
         // Также обновляем локальное состояние игрока, если это текущий игрок
         if (data.playerId === playerData?.id || data.playerId === getCurrentPlayer()?.id) {
@@ -556,8 +571,9 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
           phase: roomData?.orderDetermination?.phase || 'initial_roll'
         });
         setOrderDeterminationTimer(roomData?.orderDetermination?.timer || 180);
-        // Подтягиваем актуальный список игроков
-        socket.emit('getPlayers', roomId);
+        // 🚫 ОСТАНОВЛЕНО: Автоматический вызов getPlayers
+        // Теперь обновление будет происходить только по кнопкам
+        console.log('🚫 [SimpleRoomSetup] Автоматический getPlayers в roomData ОСТАНОВЛЕН');
       }
     });
 
@@ -566,9 +582,9 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
       console.log('👥 [SimpleRoomSetup] Players list updated:', playersList);
       setPlayers(playersList);
       
-      // Обновляем переменные игроков 1-10
-      updatePlayerProfessionVariables(playersList);
-
+      // 🚫 ОСТАНОВЛЕНО: Автоматическое обновление переменных игроков
+      // Теперь обновление будет происходить только по кнопкам
+      console.log('🚫 [SimpleRoomSetup] Автоматическое updatePlayerProfessionVariables в playersList ОСТАНОВЛЕНО');
     });
 
     // Подписываемся на изменение хода
@@ -642,22 +658,20 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
     socket.on('orderDeterminationRoll', (data) => {
       console.log('🎲 [SimpleRoomSetup] Order determination roll:', data);
       if (data.roomId === roomId) {
-        // Обновляем список игроков после броска
-        socket.emit('getPlayers', roomId);
+        // 🚫 ОСТАНОВЛЕНО: Автоматическое обновление списка игроков после броска
+        // Теперь обновление будет происходить только по кнопкам
+        console.log('🚫 [SimpleRoomSetup] Автоматический getPlayers после orderDeterminationRoll ОСТАНОВЛЕН');
       }
     });
 
-    // Запрашиваем текущие данные
-    socket.emit('getPlayers', roomId);
-    socket.emit('getRoom', roomId);
+    // 🔄 ВРЕМЕННО ВКЛЮЧАЕМ: Автоматические запросы данных при монтировании
+    // 🚫 ОСТАНОВЛЕНО: Автоматическая загрузка данных при монтировании
+    // Теперь загрузка будет происходить только по кнопкам
+    console.log('🚫 [SimpleRoomSetup] Автоматические getPlayers и getRoom при монтировании ОСТАНОВЛЕНЫ');
     
-    // Дополнительно запрашиваем данные комнаты через небольшую задержку
-    setTimeout(() => {
-      if (!roomData) {
-        console.log('🏠 [SimpleRoomSetup] Retrying room data request after delay');
-        socket.emit('getRoom', roomId);
-      }
-    }, 1000);
+    // 🚫 ОСТАНОВЛЕНО: Автоматический повторный запрос данных комнаты
+    // Теперь запросы будут происходить только по кнопкам
+    console.log('🚫 [SimpleRoomSetup] Автоматический повторный getRoom ОСТАНОВЛЕН');
 
     return () => {
       socket.off('playersUpdate');
@@ -804,13 +818,14 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
   }
 
   return (
+    // 🚫 RoomModuleWrapper временно отключен
     <div style={{ 
       minHeight: '100vh',
       background: 'linear-gradient(to bottom, #0f0c29, #302b63, #24243e)',
       color: 'white',
       padding: '20px'
     }}>
-      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
         {/* Заголовок */}
         <div style={{ textAlign: 'center', marginBottom: '30px', position: 'relative' }}>
           {/* Кнопка "Назад" */}
@@ -1020,6 +1035,162 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
                   : 'Нажмите кнопку "Готов к игре" когда будете готовы начать'
                 }
               </div>
+                    {/* 🚫 ПАНЕЛЬ РУЧНОГО УПРАВЛЕНИЯ - заменяет автоматические вызовы */}
+                    <div style={{ 
+                      marginBottom: '20px', 
+                      padding: '15px',
+                      backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(156, 39, 176, 0.3)'
+                    }}>
+                      <div style={{ 
+                        fontSize: '1.1rem', 
+                        fontWeight: 'bold', 
+                        color: '#9C27B0', 
+                        marginBottom: '15px',
+                        textAlign: 'center'
+                      }}>
+                        🎮 Ручное управление комнатой
+                      </div>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {/* Кнопка подключения к комнате */}
+                        <button
+                          onClick={() => {
+                            const playerDataStr = localStorage.getItem(`playerData_${roomId}`);
+                            if (playerDataStr) {
+                              const playerData = JSON.parse(playerDataStr);
+                              console.log('🔄 [SimpleRoomSetup] Ручной вызов setupPlayer для комнаты:', roomId);
+                              socket.emit('setupPlayer', roomId, playerData);
+                            }
+                          }}
+                          disabled={!roomId}
+                          style={{
+                            padding: '10px 16px',
+                            backgroundColor: '#9C27B0',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          🔌 Подключиться к комнате
+                        </button>
+
+                        {/* Кнопка обновления данных комнаты */}
+                        <button
+                          onClick={() => {
+                            console.log('🔄 [SimpleRoomSetup] Ручной вызов getRoom для комнаты:', roomId);
+                            socket.emit('getRoom', roomId);
+                          }}
+                          disabled={!roomId}
+                          style={{
+                            padding: '10px 16px',
+                            backgroundColor: '#2196F3',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          📊 Обновить данные комнаты
+                        </button>
+
+                        {/* Кнопка обновления списка игроков */}
+                        <button
+                          onClick={() => {
+                            console.log('🔄 [SimpleRoomSetup] Ручной вызов getPlayers для комнаты:', roomId);
+                            socket.emit('getPlayers', roomId);
+                          }}
+                          disabled={!roomId}
+                          style={{
+                            padding: '10px 16px',
+                            backgroundColor: '#4CAF50',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          👥 Обновить список игроков
+                        </button>
+
+                        {/* Кнопка обновления переменных игроков */}
+                        <button
+                          onClick={() => {
+                            console.log('🔄 [SimpleRoomSetup] Ручной вызов updatePlayerProfessionVariables');
+                            updatePlayerProfessionVariables(players);
+                          }}
+                          disabled={!players.length}
+                          style={{
+                            padding: '10px 16px',
+                            backgroundColor: '#FF9800',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          ⚙️ Обновить переменные игроков
+                        </button>
+
+                        {/* Кнопка подключения к комнате */}
+                        <button
+                          onClick={() => {
+                            console.log('🔌 [SimpleRoomSetup] Ручное подключение к комнате:', roomId);
+                            if (playerData) {
+                              socket.emit('setupPlayer', roomId, playerData);
+                            } else {
+                              console.log('❌ [SimpleRoomSetup] Нет данных игрока для подключения');
+                            }
+                          }}
+                          disabled={!roomId || !playerData}
+                          style={{
+                            padding: '10px 16px',
+                            backgroundColor: '#9C27B0',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          🔌 Подключиться к комнате
+                        </button>
+
+                        {/* Кнопка загрузки данных комнаты */}
+                        <button
+                          onClick={() => {
+                            console.log('📥 [SimpleRoomSetup] Ручная загрузка данных комнаты:', roomId);
+                            socket.emit('getRoom', roomId);
+                            socket.emit('getPlayers', roomId);
+                          }}
+                          disabled={!roomId}
+                          style={{
+                            padding: '10px 16px',
+                            backgroundColor: '#607D8B',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          📥 Загрузить данные комнаты
+                        </button>
+                      </div>
+                    </div>
+
                     {/* Отладочная информация */}
       <div style={{ fontSize: '0.8rem', color: '#999', marginTop: '10px' }}>
         🔍 Отладка: {getCurrentPlayer()?.username} | Профессия: {getCurrentPlayer()?.profession?.name || 'Нет'}
@@ -1548,92 +1719,72 @@ const SimpleRoomSetup = ({ roomId, playerData }) => {
               borderRadius: '12px'
             }}>
               {PROFESSIONS.map((profession) => {
-                // Используем вспомогательную функцию
-                const isTaken = isProfessionTaken(profession.name);
+                // 🚫 УБИРАЕМ ПРОВЕРКУ ЗАНЯТОСТИ: все профессии доступны
+                const isTaken = false; // Всегда false - все профессии доступны
                 
                 return (
                   <div
                     key={profession.id}
-                    onClick={() => !isTaken && handleProfessionSelect(profession)}
+                    onClick={() => handleProfessionSelect(profession)} // 🚫 Убираем проверку !isTaken
                     style={{
                       padding: '20px',
-                      backgroundColor: isTaken ? 'rgba(128, 128, 128, 0.3)' : 'rgba(255, 255, 255, 0.08)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.08)', // 🚫 Всегда активный стиль
                       borderRadius: '12px',
-                      border: isTaken ? '2px solid rgba(128, 128, 128, 0.5)' : '2px solid rgba(255, 255, 255, 0.1)',
-                      cursor: isTaken ? 'not-allowed' : 'pointer',
+                      border: '2px solid rgba(255, 255, 255, 0.1)', // 🚫 Всегда активная граница
+                      cursor: 'pointer', // 🚫 Всегда активный курсор
                       transition: 'all 0.3s ease',
                       position: 'relative',
                       overflow: 'hidden',
-                      opacity: isTaken ? 0.6 : 1
+                      opacity: 1 // 🚫 Всегда полная прозрачность
                     }}
                     onMouseEnter={(e) => {
-                      if (!isTaken) {
-                        e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-                        e.target.style.borderColor = 'rgba(255, 215, 0, 0.6)';
-                        e.target.style.transform = 'translateY(-5px) scale(1.02)';
-                        e.target.style.boxShadow = '0 10px 25px rgba(255, 215, 0, 0.2)';
-                      }
+                      // 🚫 Всегда активные эффекты наведения
+                      e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                      e.target.style.borderColor = 'rgba(255, 215, 0, 0.6)';
+                      e.target.style.transform = 'translateY(-5px) scale(1.02)';
+                      e.target.style.boxShadow = '0 10px 25px rgba(255, 215, 0, 0.2)';
                     }}
                     onMouseLeave={(e) => {
-                      if (!isTaken) {
-                        e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
-                        e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                        e.target.style.transform = 'translateY(0) scale(1)';
-                        e.target.style.boxShadow = 'none';
-                      }
+                      // 🚫 Всегда активные эффекты при уходе мыши
+                      e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                      e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                      e.target.style.transform = 'translateY(0) scale(1)';
+                      e.target.style.boxShadow = 'none';
                     }}
                   >
-                    {/* Индикатор занятости */}
-                    {isTaken && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '10px',
-                        right: '10px',
-                        padding: '4px 8px',
-                        backgroundColor: 'rgba(244, 67, 54, 0.8)',
-                        color: 'white',
-                        borderRadius: '12px',
-                        fontSize: '10px',
-                        fontWeight: 'bold',
-                        zIndex: 1
-                      }}>
-                        ❌ ЗАНЯТА
-                      </div>
-                    )}
+                    {/* 🚫 УБИРАЕМ ИНДИКАТОР "ЗАНЯТА" - все профессии доступны */}
                     
-                    {/* Индикатор выбора */}
-                    {!isTaken && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '10px',
-                        right: '10px',
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(255, 215, 0, 0.3)',
-                        border: '2px solid rgba(255, 215, 0, 0.6)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '12px',
-                        color: '#FFD700'
-                      }}>
-                        👆
-                      </div>
-                    )}
+                    {/* Индикатор выбора - всегда активен */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(255, 215, 0, 0.3)',
+                      border: '2px solid rgba(255, 215, 0, 0.6)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                      color: '#FFD700'
+                    }}>
+                      👆
+                    </div>
                     
-                    {/* Заголовок профессии */}
+                    {/* Заголовок профессии - всегда активен */}
                     <div style={{ 
                       textAlign: 'center', 
                       marginBottom: '15px',
                       padding: '10px',
-                      backgroundColor: isTaken ? 'rgba(128, 128, 128, 0.2)' : 'rgba(255, 215, 0, 0.1)',
+                      backgroundColor: 'rgba(255, 215, 0, 0.1)', // 🚫 Всегда активный стиль
                       borderRadius: '8px',
-                      border: `1px solid ${isTaken ? 'rgba(128, 128, 128, 0.4)' : 'rgba(255, 215, 0, 0.3)'}`
+                      border: '1px solid rgba(255, 215, 0, 0.3)' // 🚫 Всегда активная граница
                     }}>
                       <h4 style={{ 
                         margin: '0', 
-                        color: isTaken ? '#999' : '#FFD700', 
+                        color: '#FFD700', // 🚫 Всегда активный цвет
                         fontSize: '1.2rem',
                         fontWeight: 'bold'
                       }}>

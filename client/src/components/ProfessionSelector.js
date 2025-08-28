@@ -1,171 +1,382 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Button, 
-  Card, 
-  CardContent, 
-  Chip,
+import React, { useState } from 'react';
+import {
+  Box,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+  Button,
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Chip,
+  Avatar,
+  Divider
 } from '@mui/material';
-import { Work as WorkIcon, AttachMoney as MoneyIcon, TrendingDown as ExpensesIcon } from '@mui/icons-material';
-import { getRandomProfession, PROFESSIONS } from '../data/professions';
+import {
+  Work as WorkIcon,
+  AttachMoney as MoneyIcon,
+  TrendingUp as TrendingUpIcon,
+  Info as InfoIcon
+} from '@mui/icons-material';
 
-const ProfessionSelector = ({ onProfessionSelect, isOpen, onClose }) => {
-  const [selectedProfession, setSelectedProfession] = useState(null);
-  const [showProfession, setShowProfession] = useState(false);
+// Список профессий
+const PROFESSIONS = [
+  {
+    id: 1,
+    name: 'Дворник',
+    salary: 2000,
+    expenses: 200,
+    balance: 2000,
+    passiveIncome: 0,
+    description: 'Уборка улиц и дворов',
+    detailedDescription: 'Работа дворника включает в себя уборку улиц, дворов, парков и других общественных мест. Это стабильная работа с фиксированным графиком, но низким доходом.',
+    pros: ['Стабильный график', 'Не требует образования', 'Физическая активность'],
+    cons: ['Низкая зарплата', 'Тяжелая физическая работа', 'Работа на улице в любую погоду'],
+    requirements: 'Минимальные требования, физическая выносливость',
+    growth: 'Возможность стать бригадиром или перейти в ЖКХ'
+  },
+  {
+    id: 2,
+    name: 'Курьер',
+    salary: 2500,
+    expenses: 300,
+    balance: 2500,
+    passiveIncome: 0,
+    description: 'Доставка товаров и документов',
+    detailedDescription: 'Курьер доставляет товары, документы и посылки клиентам. Работа связана с постоянным движением и общением с людьми.',
+    pros: ['Гибкий график', 'Общение с людьми', 'Возможность дополнительного заработка'],
+    cons: ['Нерегулярный доход', 'Зависимость от погоды', 'Физическая нагрузка'],
+    requirements: 'Хорошее знание города, коммуникабельность',
+    growth: 'Возможность стать менеджером по логистике или открыть свое дело'
+  },
+  {
+    id: 3,
+    name: 'Водитель',
+    salary: 3000,
+    expenses: 400,
+    balance: 3000,
+    passiveIncome: 0,
+    description: 'Перевозка пассажиров или грузов',
+    detailedDescription: 'Водитель перевозит пассажиров на такси или грузы на грузовике. Требует водительских прав и хорошего знания ПДД.',
+    pros: ['Достойная зарплата', 'Гибкий график', 'Возможность работать на себя'],
+    cons: ['Ответственность за безопасность', 'Монотонная работа', 'Зависимость от состояния транспорта'],
+    requirements: 'Водительские права, опыт вождения',
+    growth: 'Возможность стать инструктором по вождению или открыть автосервис'
+  },
+  {
+    id: 4,
+    name: 'Продавец',
+    salary: 2800,
+    expenses: 350,
+    balance: 2800,
+    passiveIncome: 0,
+    description: 'Продажа товаров в магазине',
+    detailedDescription: 'Продавец консультирует покупателей, выкладывает товар, работает с кассой. Требует коммуникабельности и знания товара.',
+    pros: ['Стабильный график', 'Развитие коммуникативных навыков', 'Возможность карьерного роста'],
+    cons: ['Работа на ногах', 'Общение с разными людьми', 'Монотонность'],
+    requirements: 'Коммуникабельность, знание товара, опыт работы с людьми',
+    growth: 'Возможность стать менеджером по продажам или открыть свой магазин'
+  },
+  {
+    id: 5,
+    name: 'Официант',
+    salary: 2200,
+    expenses: 250,
+    balance: 2200,
+    passiveIncome: 0,
+    description: 'Обслуживание посетителей в ресторане',
+    detailedDescription: 'Официант принимает заказы, подает блюда, обеспечивает комфорт посетителей. Работа связана с общением и физической активностью.',
+    pros: ['Чаевые', 'Развитие коммуникативных навыков', 'Гибкий график'],
+    cons: ['Работа в выходные', 'Физическая нагрузка', 'Зависимость от сезона'],
+    requirements: 'Коммуникабельность, физическая выносливость, знание меню',
+    growth: 'Возможность стать менеджером ресторана или открыть свое заведение'
+  },
+  {
+    id: 6,
+    name: 'Учитель',
+    salary: 3500,
+    expenses: 500,
+    balance: 3500,
+    passiveIncome: 0,
+    description: 'Преподавание в школе или университете',
+    detailedDescription: 'Учитель передает знания ученикам, готовит уроки, проверяет работы. Требует педагогического образования и любви к детям.',
+    pros: ['Высокая зарплата', 'Социальная значимость', 'Длинные каникулы'],
+    cons: ['Высокая ответственность', 'Эмоциональная нагрузка', 'Много бумажной работы'],
+    requirements: 'Педагогическое образование, любовь к детям, терпение',
+    growth: 'Возможность стать завучем, директором или открыть частную школу'
+  }
+];
 
-  // Автоматически выбираем случайную профессию при открытии
-  useEffect(() => {
-    if (isOpen && !selectedProfession) {
-      const randomProfession = getRandomProfession();
-      setSelectedProfession(randomProfession);
+const ProfessionSelector = ({ onProfessionSelect, selectedProfession, isObligatory = false }) => {
+  const [selectedProfessionDetail, setSelectedProfessionDetail] = useState(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+
+  const handleProfessionSelect = (profession) => {
+    if (isObligatory) {
+      // Если профессия обязательная для всех, показываем детали
+      setSelectedProfessionDetail(profession);
+      setDetailDialogOpen(true);
+    } else {
+      // Если каждый выбирает свою, сразу выбираем
+      onProfessionSelect(profession);
     }
-  }, [isOpen, selectedProfession]);
+  };
 
   const handleConfirmProfession = () => {
-    if (selectedProfession) {
-      onProfessionSelect(selectedProfession);
-      setShowProfession(false);
-      onClose();
+    if (selectedProfessionDetail) {
+      onProfessionSelect(selectedProfessionDetail);
+      setDetailDialogOpen(false);
+      setSelectedProfessionDetail(null);
     }
   };
 
-  const handleNewProfession = () => {
-    const newProfession = getRandomProfession();
-    setSelectedProfession(newProfession);
+  const formatMoney = (amount) => {
+    return `$${amount.toLocaleString()}`;
   };
 
-  if (!isOpen) return null;
-
   return (
-    <Dialog 
-      open={isOpen} 
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          backgroundColor: '#2F1B40',
-          borderRadius: 3,
-          border: '3px solid #6E4D92'
-        }
-      }}
-    >
-      <DialogTitle sx={{ 
-        backgroundColor: '#6E4D92', 
-        color: 'white', 
-        textAlign: 'center',
-        fontSize: '1.5rem',
-        fontWeight: 'bold'
-      }}>
-        🎯 ВЫБОР ПРОФЕССИИ
-      </DialogTitle>
+    <Box>
+      <Typography variant="h5" gutterBottom align="center" sx={{ mb: 3 }}>
+        {isObligatory ? '🏢 Выберите профессию для всех игроков' : '👤 Выберите свою профессию'}
+      </Typography>
       
-      <DialogContent sx={{ backgroundColor: '#2F1B40', color: 'white', py: 3 }}>
-        {selectedProfession && (
-          <Box sx={{ textAlign: 'center' }}>
-            {/* Название профессии */}
-            <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', color: '#FFD700' }}>
-              {selectedProfession.name}
-            </Typography>
-            
-            {/* Описание */}
-            <Typography variant="body1" sx={{ mb: 4, color: '#E0E0E0', fontSize: '1.1rem' }}>
-              {selectedProfession.description}
-            </Typography>
-            
-            {/* Финансовая информация */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-around', mb: 4 }}>
-              <Card sx={{ backgroundColor: '#4CAF50', color: 'white', minWidth: 120 }}>
-                <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                  <MoneyIcon sx={{ fontSize: 40, mb: 1 }} />
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    ${(selectedProfession.salary || 0).toLocaleString()}
+      {isObligatory && (
+        <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 3 }}>
+          Эта профессия будет назначена всем игрокам в комнате
+        </Typography>
+      )}
+
+      <Grid container spacing={3}>
+        {PROFESSIONS.map((profession) => (
+          <Grid item xs={12} sm={6} md={4} key={profession.id}>
+            <Card 
+              sx={{ 
+                height: '100%',
+                cursor: 'pointer',
+                '&:hover': { boxShadow: 4 },
+                border: selectedProfession?.id === profession.id ? '2px solid #1976d2' : '1px solid #e0e0e0'
+              }}
+              onClick={() => handleProfessionSelect(profession)}
+            >
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
+                    <WorkIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+                      {profession.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {profession.description}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Зарплата:
                   </Typography>
-                  <Typography variant="body2">Зарплата</Typography>
-                </CardContent>
-              </Card>
-              
-              <Card sx={{ backgroundColor: '#FF9800', color: 'white', minWidth: 120 }}>
-                <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                  <ExpensesIcon sx={{ fontSize: 40, mb: 1 }} />
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    ${(selectedProfession.expenses || 0).toLocaleString()}
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                    {formatMoney(profession.salary)}/мес
                   </Typography>
-                  <Typography variant="body2">Расходы</Typography>
-                </CardContent>
-              </Card>
-              
-              <Card sx={{ backgroundColor: '#2196F3', color: 'white', minWidth: 120 }}>
-                <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                  <WorkIcon sx={{ fontSize: 40, mb: 1 }} />
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    ${(selectedProfession.balance || 0).toLocaleString()}
+                </Box>
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Расходы:
                   </Typography>
-                  <Typography variant="body2">Баланс</Typography>
-                </CardContent>
-              </Card>
-            </Box>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'error.main' }}>
+                    {formatMoney(profession.expenses)}/мес
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Начальный баланс:
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                    {formatMoney(profession.balance)}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Chip 
+                    label={`+${formatMoney(profession.salary - profession.expenses)}/мес`}
+                    color="success"
+                    size="small"
+                    icon={<TrendingUpIcon />}
+                  />
+                  {profession.passiveIncome > 0 && (
+                    <Chip 
+                      label={`Пассивный доход: ${formatMoney(profession.passiveIncome)}`}
+                      color="info"
+                      size="small"
+                      icon={<MoneyIcon />}
+                    />
+                  )}
+                </Box>
+              </CardContent>
+
+              <CardActions>
+                <Button
+                  size="small"
+                  startIcon={<InfoIcon />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedProfessionDetail(profession);
+                    setDetailDialogOpen(true);
+                  }}
+                >
+                  Подробнее
+                </Button>
+              </CardActions>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* Диалог с подробной информацией о профессии */}
+      <Dialog 
+        open={detailDialogOpen} 
+        onClose={() => setDetailDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        {selectedProfessionDetail && (
+          <>
+            <DialogTitle>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
+                  <WorkIcon />
+                </Avatar>
+                <Typography variant="h6">
+                  {selectedProfessionDetail.name}
+                </Typography>
+              </Box>
+            </DialogTitle>
             
-            {/* Кнопки действий */}
-            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={handleNewProfession}
-                sx={{
-                  backgroundColor: '#FF9800',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  px: 4,
-                  py: 1.5,
-                  '&:hover': { backgroundColor: '#F57C00' }
-                }}
-              >
-                🔄 НОВАЯ ПРОФЕССИЯ
+            <DialogContent>
+              <Typography variant="body1" paragraph>
+                {selectedProfessionDetail.detailedDescription}
+              </Typography>
+
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6" gutterBottom color="success.main">
+                    ✅ Преимущества
+                  </Typography>
+                  <Box component="ul" sx={{ pl: 2 }}>
+                    {selectedProfessionDetail.pros.map((pro, index) => (
+                      <Typography component="li" key={index} variant="body2" sx={{ mb: 1 }}>
+                        {pro}
+                      </Typography>
+                    ))}
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6" gutterBottom color="error.main">
+                    ❌ Недостатки
+                  </Typography>
+                  <Box component="ul" sx={{ pl: 2 }}>
+                    {selectedProfessionDetail.cons.map((con, index) => (
+                      <Typography component="li" key={index} variant="body2" sx={{ mb: 1 }}>
+                        {con}
+                      </Typography>
+                    ))}
+                  </Box>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 3 }} />
+
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6" gutterBottom>
+                    📋 Требования
+                  </Typography>
+                  <Typography variant="body2" paragraph>
+                    {selectedProfessionDetail.requirements}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6" gutterBottom>
+                    🚀 Возможности роста
+                  </Typography>
+                  <Typography variant="body2" paragraph>
+                    {selectedProfessionDetail.growth}
+                  </Typography>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 3 }} />
+
+              <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1 }}>
+                <Typography variant="h6" gutterBottom>
+                  💰 Финансовые показатели
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      Зарплата
+                    </Typography>
+                    <Typography variant="h6" color="success.main">
+                      {formatMoney(selectedProfessionDetail.salary)}/мес
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      Расходы
+                    </Typography>
+                    <Typography variant="h6" color="error.main">
+                      {formatMoney(selectedProfessionDetail.expenses)}/мес
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      Начальный баланс
+                    </Typography>
+                    <Typography variant="h6">
+                      {formatMoney(selectedProfessionDetail.balance)}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      Чистый доход
+                    </Typography>
+                    <Typography variant="h6" color="success.main">
+                      {formatMoney(selectedProfessionDetail.salary - selectedProfessionDetail.expenses)}/мес
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Box>
+            </DialogContent>
+
+            <DialogActions>
+              <Button onClick={() => setDetailDialogOpen(false)}>
+                Закрыть
               </Button>
-              
-              <Button
-                variant="contained"
-                size="large"
-                onClick={handleConfirmProfession}
-                sx={{
-                  backgroundColor: '#4CAF50',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  px: 4,
-                  py: 1.5,
-                  '&:hover': { backgroundColor: '#388E3C' }
-                }}
-              >
-                ✅ ПОДТВЕРДИТЬ
-              </Button>
-            </Box>
-          </Box>
+              {isObligatory && (
+                <Button 
+                  onClick={handleConfirmProfession}
+                  variant="contained"
+                  startIcon={<WorkIcon />}
+                >
+                  Выбрать эту профессию для всех
+                </Button>
+              )}
+            </DialogActions>
+          </>
         )}
-      </DialogContent>
-      
-      <DialogActions sx={{ backgroundColor: '#2F1B40', justifyContent: 'center', pb: 3 }}>
-        <Button 
-          onClick={onClose}
-          variant="outlined"
-          sx={{ 
-            color: '#6E4D92',
-            borderColor: '#6E4D92',
-            '&:hover': { 
-              borderColor: '#8E6DB2',
-              backgroundColor: 'rgba(110,77,146,0.1)'
-            }
-          }}
-        >
-          ЗАКРЫТЬ
-        </Button>
-      </DialogActions>
-    </Dialog>
+      </Dialog>
+    </Box>
   );
 };
 

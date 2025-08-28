@@ -51,6 +51,7 @@ const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
   const [readySound] = useState(new Audio('/ready-sound.mp3'));
   const [allReady, setAllReady] = useState(false);
   const [exitModalOpen, setExitModalOpen] = useState(false);
+  const [isSettingUp, setIsSettingUp] = useState(false);
   const navigate = useNavigate();
 
   // Используем централизованный хук для выхода
@@ -61,6 +62,12 @@ const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
     console.log('🔄 [RoomSetup] Exit room confirmed');
     setExitModalOpen(false);
     
+    // Очищаем данные игрока для этой комнаты
+    if (roomId) {
+      localStorage.removeItem(`playerData_${roomId}`);
+      console.log('✅ [RoomSetup] Данные игрока очищены при выходе из комнаты');
+    }
+    
     // Используем централизованный хук
     if (onExitGame) {
       onExitGame();
@@ -70,15 +77,14 @@ const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
   };
 
   useEffect(() => {
-    // Проверяем подключение к комнате при монтировании
+    // 🚫 ОСТАНОВЛЕНО: Автоматические запросы данных комнаты
+    // Теперь данные будут запрашиваться только по кнопкам
     if (roomId && socket.connected) {
-      console.log('🎮 [RoomSetup] Component mounted, checking room connection');
+      console.log('🎮 [RoomSetup] Component mounted, room connection ready');
       console.log('🎮 [RoomSetup] roomId:', roomId);
       console.log('🎮 [RoomSetup] socket.id:', socket.id);
-      
-      // Запрашиваем данные комнаты
-      socket.emit('getRoom', roomId);
-      socket.emit('getPlayers', roomId);
+      console.log('🚫 [RoomSetup] Автоматические запросы getRoom и getPlayers ОСТАНОВЛЕНЫ');
+      console.log('🚫 [RoomSetup] Используйте кнопки для обновления данных');
     }
     
     // Получаем данные игроков
@@ -91,6 +97,15 @@ const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
       if (currentPlayer) {
         console.log('🔄 [RoomSetup] Current player found:', currentPlayer);
         setMyReady(currentPlayer.ready || false);
+        
+        // Сбрасываем флаг настройки после успешного подключения
+        setIsSettingUp(false);
+        
+        // Очищаем данные игрока из localStorage после успешного подключения
+        if (roomId) {
+          localStorage.removeItem(`playerData_${roomId}`);
+          console.log('✅ [RoomSetup] Данные игрока очищены после успешного подключения');
+        }
       }
     });
     
@@ -103,6 +118,18 @@ const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
       if (currentPlayer) {
         console.log('🔄 [RoomSetup] Current player found in playersList:', currentPlayer);
         setMyReady(currentPlayer.ready || false);
+      }
+    });
+    
+    // Обработчик ошибок
+    socket.on('error', (error) => {
+      console.error('❌ [RoomSetup] Server error:', error);
+      setIsSettingUp(false); // Сбрасываем флаг при ошибке
+      
+      // Очищаем данные игрока из localStorage при ошибке
+      if (roomId) {
+        localStorage.removeItem(`playerData_${roomId}`);
+        console.log('✅ [RoomSetup] Данные игрока очищены при ошибке');
       }
     });
     
@@ -158,21 +185,21 @@ const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
     };
   }, [roomId, onRoomSetup]);
 
-    // Регистрируем текущего пользователя в комнате при монтировании
+  // 🚫 ОСТАНОВЛЕНО: Автоматический setupPlayer при монтировании
+  // Теперь подключение к комнате будет происходить только по кнопке
   useEffect(() => {
-    if (!roomId) return; // Не регистрируемся, если нет ID комнаты
+    if (!roomId) return;
     
-    console.log('🔄 [RoomSetup] Connecting to room:', roomId);
+    console.log('🚫 [RoomSetup] Автоматический setupPlayer ОСТАНОВЛЕН');
+    console.log('🚫 [RoomSetup] Используйте кнопку "Подключиться к комнате" для входа');
     
-    // Используем простой уникальный ID для каждого браузера
-          let playerId = localStorage.getItem('potok-deneg_playerId');
+    // Создаем объект игрока для использования в кнопке
+    let playerId = localStorage.getItem('potok-deneg_playerId');
     if (!playerId) {
-      // Генерируем простой ID на основе времени
       playerId = `P${Date.now().toString().slice(-6)}`;
-              localStorage.setItem('potok-deneg_playerId', playerId);
+      localStorage.setItem('potok-deneg_playerId', playerId);
     }
     
-    // Создаем объект игрока с простым ID
     const playerData = {
       id: playerId,
       username: `Игрок ${playerId.slice(-4)}`,
@@ -186,23 +213,8 @@ const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
     
     setUsername(playerData.username);
     
-    // Подключаемся к комнате
-    socket.emit('setupPlayer', roomId, playerData);
-    socket.emit('getPlayers', roomId);
-    socket.emit('getRoom', roomId);
-    
-    // Воспроизводим звук входа в комнату
-    setTimeout(() => {
-      try {
-        readySound.currentTime = 0;
-        readySound.volume = 0.3;
-        readySound.play().catch(err => {
-          console.log('Не удалось воспроизвести звук входа:', err);
-        });
-      } catch (err) {
-        console.log('Ошибка воспроизведения звука входа:', err);
-      }
-    }, 500);
+    // Сохраняем данные игрока для использования в кнопке
+    localStorage.setItem(`playerData_${roomId}`, JSON.stringify(playerData));
   }, [roomId]);
 
   // Обновляем статус готовности и воспроизводим звук
@@ -226,10 +238,12 @@ const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
     }
   }, [players, allReady]);
 
-  // Синхронизируем выбранное количество игроков с сервером
+  // 🚫 ОСТАНОВЛЕНО: Автоматическая синхронизация maxPlayers с сервером
+  // Теперь изменения будут отправляться только по кнопке
   useEffect(() => {
     if (roomId && maxPlayers) {
-      socket.emit('setMaxPlayers', roomId, maxPlayers);
+      console.log('🚫 [RoomSetup] Автоматический setMaxPlayers ОСТАНОВЛЕН');
+      console.log('🚫 [RoomSetup] Используйте кнопку "Применить настройки" для сохранения');
     }
   }, [roomId, maxPlayers]);
 
@@ -301,7 +315,23 @@ const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
   const handleUsernameChange = (e) => {
     const newUsername = e.target.value;
     setUsername(newUsername);
-    socket.emit('updateUsername', roomId, newUsername);
+    // 🚫 ОСТАНОВЛЕНО: Автоматическая отправка updateUsername при каждом изменении
+    // Теперь имя будет отправляться только при завершении ввода
+  };
+
+  // Новая функция для отправки имени при завершении ввода
+  const handleUsernameSubmit = () => {
+    if (username.trim() && roomId) {
+      console.log('🔄 [RoomSetup] Отправка имени пользователя:', username);
+      socket.emit('updateUsername', roomId, username);
+    }
+  };
+
+  // Обработчик нажатия Enter в поле имени
+  const handleUsernameKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleUsernameSubmit();
+    }
   };
 
   // Функция воспроизведения звука готовности
@@ -454,6 +484,9 @@ const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
                           fullWidth
                           value={username}
                           onChange={handleUsernameChange}
+                          onKeyPress={handleUsernameKeyPress}
+                          onBlur={handleUsernameSubmit}
+                          placeholder="Введите имя и нажмите Enter"
                           variant="standard"
                           sx={{
                             '& .MuiInput-underline:before': { borderBottom: 'none' },
@@ -469,6 +502,28 @@ const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
                             }
                           }}
                         />
+                        {/* Кнопка сохранения имени */}
+                        <Button
+                          fullWidth
+                          variant="outlined"
+                          onClick={handleUsernameSubmit}
+                          disabled={!username.trim() || !roomId}
+                          sx={{
+                            mt: 1,
+                            borderColor: '#4CAF50',
+                            color: '#4CAF50',
+                            '&:hover': {
+                              borderColor: '#388E3C',
+                              bgcolor: 'rgba(76, 175, 80, 0.1)'
+                            },
+                            '&:disabled': {
+                              borderColor: '#ccc',
+                              color: '#ccc'
+                            }
+                          }}
+                        >
+                          💾 Сохранить имя
+                        </Button>
                       </Box>
                     </Box>
 
@@ -525,11 +580,134 @@ const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
                               }}>
                                 {num} {num === 1 ? 'игрок' : num < 5 ? 'игрока' : 'игроков'}
                               </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
+            ))}
+          </Select>
+        </FormControl>
                       </Box>
                     </Box>
+
+        {/* 🚫 КНОПКИ РУЧНОГО УПРАВЛЕНИЯ - заменяют автоматические запросы */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={{ 
+            color: '#9C27B0', 
+            fontWeight: 'bold',
+            mb: 2,
+            textAlign: 'center'
+          }}>
+            🎮 Управление комнатой
+          </Typography>
+          
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* Кнопка подключения к комнате */}
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={() => {
+                const playerDataStr = localStorage.getItem(`playerData_${roomId}`);
+                if (playerDataStr) {
+                  const playerData = JSON.parse(playerDataStr);
+                  console.log('🔄 [RoomSetup] Ручной вызов setupPlayer для комнаты:', roomId);
+                  socket.emit('setupPlayer', roomId, playerData);
+                  
+                  // Воспроизводим звук входа в комнату
+                  setTimeout(() => {
+                    try {
+                      readySound.currentTime = 0;
+                      readySound.volume = 0.3;
+                      readySound.play().catch(err => {
+                        console.log('Не удалось воспроизвести звук входа:', err);
+                      });
+                    } catch (err) {
+                      console.log('Ошибка воспроизведения звука входа:', err);
+                    }
+                  }, 500);
+                }
+              }}
+              disabled={!roomId}
+              sx={{
+                bgcolor: '#9C27B0',
+                '&:hover': { bgcolor: '#7B1FA2' },
+                '&:disabled': { bgcolor: '#ccc' }
+              }}
+            >
+              🔌 Подключиться к комнате
+            </Button>
+
+            {/* Кнопка обновления данных комнаты */}
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={() => {
+                console.log('🔄 [RoomSetup] Ручной вызов getRoom для комнаты:', roomId);
+                socket.emit('getRoom', roomId);
+              }}
+              disabled={!roomId}
+              sx={{
+                bgcolor: '#2196F3',
+                '&:hover': { bgcolor: '#1976D2' },
+                '&:disabled': { bgcolor: '#ccc' }
+              }}
+            >
+              📊 Обновить данные комнаты
+            </Button>
+
+            {/* Кнопка обновления списка игроков */}
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={() => {
+                console.log('🔄 [RoomSetup] Ручной вызов getPlayers для комнаты:', roomId);
+                socket.emit('getPlayers', roomId);
+              }}
+              disabled={!roomId}
+              sx={{
+                bgcolor: '#4CAF50',
+                '&:hover': { bgcolor: '#388E3C' },
+                '&:disabled': { bgcolor: '#ccc' }
+              }}
+            >
+              👥 Обновить список игроков
+            </Button>
+
+            {/* Кнопка применения настроек */}
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={() => {
+                console.log('🔄 [RoomSetup] Ручной вызов setMaxPlayers для комнаты:', roomId);
+                socket.emit('setMaxPlayers', roomId, maxPlayers);
+              }}
+              disabled={!roomId}
+              sx={{
+                bgcolor: '#FF9800',
+                '&:hover': { bgcolor: '#F57C00' },
+                '&:disabled': { bgcolor: '#ccc' }
+              }}
+            >
+              ⚙️ Применить настройки
+            </Button>
+
+            {/* Кнопка обновления имени пользователя */}
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={() => {
+                if (username.trim() && roomId) {
+                  console.log('🔄 [RoomSetup] Ручной вызов updateUsername для комнаты:', roomId);
+                  socket.emit('updateUsername', roomId, username);
+                }
+              }}
+              disabled={!roomId || !username.trim()}
+              sx={{
+                bgcolor: '#E91E63',
+                '&:hover': { bgcolor: '#C2185B' },
+                '&:disabled': { bgcolor: '#ccc' }
+              }}
+            >
+              👤 Обновить имя пользователя
+            </Button>
+          </Box>
+        </Box>
 
         {/* Слоты игроков */}
         <Box sx={{
@@ -762,7 +940,7 @@ const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
             onClick={() => onRoomSetup({ roomId: roomId })}
           >
             ← Назад
-          </Button>
+        </Button>
         </Box>
       </Paper>
 
@@ -840,7 +1018,7 @@ const RoomSetup = ({ playerData, onRoomSetup, onExitGame }) => {
         onClose={() => setExitModalOpen(false)}
         onConfirm={handleExitRoom}
       />
-      </Box>
+    </Box>
     </>
   );
 };
