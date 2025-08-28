@@ -1,105 +1,122 @@
-import React, { useState, useEffect } from 'react';
-import './styles/App.css';
-import GameHeader from './components/GameHeader';
-import GameBoard from './components/GameBoard';
-import GameControls from './components/GameControls';
-import GameStats from './components/GameStats';
+import React, { useMemo, useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
+import Registration from './components/Registration';
+import RoomSelection from './components/RoomSelection';
+import RoomSetup from './components/RoomSetup';
+import GameBoardRefactored from './components/GameBoardRefactored';
+import ErrorBoundary from './components/ErrorBoundary';
+import socket from './socket';
 
-function App() {
-  const [gameState, setGameState] = useState({
-    money: 1000,
-    energy: 100,
-    level: 1,
-    score: 0,
-    isPlaying: false
-  });
+function AppRouter() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
 
-  const [gameData, setGameData] = useState({
-    transactions: [],
-    categories: ['Доход', 'Расход', 'Инвестиции', 'Сбережения']
-  });
-
+  // Загружаем сохраненного пользователя (если есть)
   useEffect(() => {
-    // Загрузка данных с сервера при запуске
-    fetchGameData();
+    const savedUser = localStorage.getItem('energy_of_money_user');
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        setUser(parsed);
+      } catch {}
+    }
   }, []);
 
-  const fetchGameData = async () => {
-    try {
-      const response = await fetch('http://localhost:3001/api/transactions');
-      if (response.ok) {
-        const data = await response.json();
-        setGameData(prev => ({ ...prev, transactions: data }));
-      }
-    } catch (error) {
-      console.log('Сервер не запущен, используем локальные данные');
+  const playerData = useMemo(() => {
+    if (!user) {
+      return null; // Возвращаем null если пользователь не зарегистрирован
     }
+    return { id: user.id, username: user.username, email: user.email };
+  }, [user]);
+
+  const handleRoomSelect = ({ roomId }) => {
+    if (!roomId) return;
+    navigate(`/room/${roomId}/setup`);
   };
 
-  const startGame = () => {
-    setGameState(prev => ({ ...prev, isPlaying: true }));
+  const handleRegister = (playerData) => {
+    setUser(playerData);
+    navigate('/'); // Переходим на страницу выбора комнат
   };
 
-  const pauseGame = () => {
-    setGameState(prev => ({ ...prev, isPlaying: false }));
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('energy_of_money_user');
+    localStorage.removeItem('energy_of_money_player_name');
+    navigate('/register'); // Переходим на страницу регистрации
   };
 
-  const resetGame = () => {
-    setGameState({
-      money: 1000,
-      energy: 100,
-      level: 1,
-      score: 0,
-      isPlaying: false
-    });
+  const handleSetupComplete = ({ roomId }) => {
+    if (!roomId) return;
+    navigate(`/room/${roomId}/game`);
   };
 
-  const updateMoney = (amount) => {
-    setGameState(prev => ({
-      ...prev,
-      money: Math.max(0, prev.money + amount),
-      score: prev.score + Math.abs(amount)
-    }));
-  };
-
-  const updateEnergy = (amount) => {
-    setGameState(prev => ({
-      ...prev,
-      energy: Math.max(0, Math.min(100, prev.energy + amount))
-    }));
+  const GamePage = () => {
+    const { roomId } = useParams();
+    return (
+      <GameBoardRefactored 
+        roomId={roomId}
+        playerData={playerData}
+        onExit={() => navigate('/')}
+      />
+    );
   };
 
   return (
-    <div className="App">
-      <GameHeader 
-        level={gameState.level}
-        score={gameState.score}
+    <Routes>
+      <Route 
+        path="/register" 
+        element={<Registration onRegister={handleRegister} />} 
       />
-      
-      <main className="game-main">
-        <GameBoard 
-          gameState={gameState}
-          gameData={gameData}
-          onMoneyUpdate={updateMoney}
-          onEnergyUpdate={updateEnergy}
-        />
-        
-        <div className="game-sidebar">
-          <GameStats 
-            money={gameState.money}
-            energy={gameState.energy}
-            level={gameState.level}
-          />
-          
-          <GameControls 
-            isPlaying={gameState.isPlaying}
-            onStart={startGame}
-            onPause={pauseGame}
-            onReset={resetGame}
-          />
-        </div>
-      </main>
-    </div>
+      <Route 
+        path="/" 
+        element={
+          playerData ? (
+            <RoomSelection playerData={playerData} onRoomSelect={handleRoomSelect} onLogout={handleLogout} />
+          ) : (
+            <Registration onRegister={handleRegister} />
+          )
+        } 
+      />
+      <Route 
+        path="/room/:roomId/setup" 
+        element={
+          playerData ? (
+            <RoomSetup playerData={playerData} onRoomSetup={handleSetupComplete} />
+          ) : (
+            <Registration onRegister={handleRegister} />
+          )
+        } 
+      />
+      <Route 
+        path="/room/:roomId/game" 
+        element={
+          playerData ? (
+            <GamePage />
+          ) : (
+            <Registration onRegister={handleRegister} />
+          )
+        } 
+      />
+    </Routes>
+  );
+}
+
+function App() {
+  // Инициализация сокета (для наглядности логируем подключение)
+  useEffect(() => {
+    if (!socket) return;
+    const onConnect = () => console.log('🔌 [EoM] Socket connected:', socket.id);
+    socket.on('connect', onConnect);
+    return () => { socket.off('connect', onConnect); };
+  }, []);
+
+  return (
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppRouter />
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

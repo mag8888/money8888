@@ -15,6 +15,103 @@ const pool = new Pool({ /* config */ });
 
 const Rating = require('./models/Rating');
 
+// Глобальное хранилище пользователей (в памяти)
+const users = new Map(); // userId -> userData
+const usernameToUserId = new Map(); // username -> userId
+
+// Функция для генерации уникального User ID
+const generateUserId = () => {
+  const timestamp = Date.now().toString(36);
+  const randomStr = Math.random().toString(36).substring(2, 8);
+  return `user_${timestamp}_${randomStr}`;
+};
+
+// Функция для проверки уникальности username
+const isUsernameUnique = (username) => {
+  return !usernameToUserId.has(username.toLowerCase());
+};
+
+// Функция для регистрации пользователя
+const registerUser = (username, email, password, socketId) => {
+  const userId = generateUserId();
+  const userData = {
+    id: userId,
+    username: username,
+    email: email,
+    password: password, // В реальном приложении пароль нужно хешировать
+    socketId: socketId,
+    createdAt: Date.now(),
+    lastSeen: Date.now()
+  };
+  
+  users.set(userId, userData);
+  usernameToUserId.set(username.toLowerCase(), userId);
+  
+  console.log(`👤 [SERVER] User registered: ${username} (${email}) (ID: ${userId})`);
+  return userData;
+};
+
+// Функция для поиска пользователя по email
+const getUserByEmail = (email) => {
+  console.log(`🔍 [SERVER] Searching for user with email: ${email}`);
+  console.log(`🔍 [SERVER] Current users in database:`, Array.from(users.entries()).map(([id, user]) => ({ id, username: user.username, email: user.email })));
+  
+  for (const [userId, userData] of users.entries()) {
+    if (userData.email.toLowerCase() === email.toLowerCase()) {
+      console.log(`✅ [SERVER] User found:`, { id: userData.id, username: userData.username, email: userData.email });
+      return userData;
+    }
+  }
+  console.log(`❌ [SERVER] User not found with email: ${email}`);
+  return null;
+};
+
+// Функция для проверки пароля пользователя
+const checkUserPassword = (userData, password) => {
+  return userData.password === password; // В реальном приложении сравнивать хеши
+};
+
+// Функция для получения пользователя по ID
+const getUserById = (userId) => {
+  return users.get(userId);
+};
+
+// Функция для получения пользователя по username
+const getUserByUsername = (username) => {
+  const userId = usernameToUserId.get(username.toLowerCase());
+  return userId ? users.get(userId) : null;
+};
+
+// Функция для получения username по socketId
+const getUsernameBySocketId = (socketId) => {
+  console.log(`🔍 [SERVER] getUsernameBySocketId called for socketId: ${socketId}`);
+  console.log(`🔍 [SERVER] Current users:`, Array.from(users.entries()).map(([id, data]) => ({ id, username: data.username, socketId: data.socketId })));
+  
+  for (const [userId, userData] of users.entries()) {
+    if (userData.socketId === socketId) {
+      console.log(`✅ [SERVER] Found username: ${userData.username} for socketId: ${socketId}`);
+      return userData.username;
+    }
+  }
+  
+  console.log(`❌ [SERVER] No username found for socketId: ${socketId}`);
+  return null;
+};
+
+// Функция для обновления socketId пользователя
+const updateUserSocketId = (userId, socketId) => {
+  console.log(`🔄 [SERVER] updateUserSocketId called: userId=${userId}, socketId=${socketId}`);
+  const user = users.get(userId);
+  if (user) {
+    user.socketId = socketId;
+    user.lastSeen = Date.now();
+    users.set(userId, user);
+    console.log(`✅ [SERVER] Updated socketId for user ${user.username}: ${socketId}`);
+  } else {
+    console.log(`❌ [SERVER] User not found for userId: ${userId}`);
+  }
+};
+
 // Функция для исправления hostId в существующих комнатах
 const fixHostIdInRooms = () => {
   console.log('🔧 [SERVER] Fixing hostId in existing rooms...');
@@ -29,10 +126,12 @@ const fixHostIdInRooms = () => {
       
       if (activePlayer) {
         room.hostId = activePlayer.socketId;
+        room.hostUsername = activePlayer.username;
         console.log(`👑 [SERVER] Fixed hostId for room ${roomId}: ${activePlayer.username}`);
       } else if (room.currentPlayers.length > 0) {
         // Если нет активных игроков, берем первого
         room.hostId = room.currentPlayers[0].socketId;
+        room.hostUsername = room.currentPlayers[0].username;
         console.log(`👑 [SERVER] Fixed hostId for room ${roomId} (no active players): ${room.currentPlayers[0].username}`);
       }
       
@@ -45,6 +144,17 @@ const fixHostIdInRooms = () => {
         timer: room.timer, 
         currentTurn: room.currentTurn 
       });
+    }
+    
+    // Если у комнаты есть hostId, но нет hostUsername, пытаемся его восстановить
+    if (room.hostId && !room.hostUsername) {
+      const username = getUsernameBySocketId(room.hostId);
+      if (username) {
+        room.hostUsername = username;
+        console.log(`🔧 [SERVER] Restored hostUsername for room ${roomId}: ${username}`);
+      } else {
+        console.log(`⚠️ [SERVER] Could not restore hostUsername for room ${roomId}, hostId: ${room.hostId}`);
+      }
     }
   });
   
@@ -162,8 +272,12 @@ const authRoutes = require('./routes/auth');
 let lastRoomId = 0;
 const generateSequentialRoomId = () => {
   lastRoomId++;
-  return `room${lastRoomId}`;
+  const roomId = `room${lastRoomId}`;
+  console.log(`🔢 [SERVER] Generated room ID: ${roomId} (lastRoomId: ${lastRoomId})`);
+  return roomId;
 };
+
+
 
 const app = express();
 const server = http.createServer(app);
@@ -178,7 +292,12 @@ const io = socketIo(server, {
   transports: ['websocket', 'polling'],
   allowEIO3: true,
   pingTimeout: 60000,
-  pingInterval: 25000
+  pingInterval: 25000,
+  connectTimeout: 45000,
+  maxHttpBufferSize: 1e8,
+  allowRequest: (req, callback) => {
+    callback(null, true);
+  }
 });
 
 // Подключаем auth routes
@@ -291,7 +410,7 @@ app.post('/api/admin/cleanup-duplicates', async (req, res) => {
   }
 });
 
-
+// Serve static files from client build (moved to end after API routes)
 
 // Connect to MongoDB (optional)
 mongoose.connect('mongodb://localhost:27017/potok-deneg')
@@ -304,6 +423,14 @@ mongoose.connect('mongodb://localhost:27017/potok-deneg')
 // Load configurations
 const configPath = path.join(__dirname, '../shared/seed_v1.json');
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+// Добавляем логирование загрузки конфигурации
+console.log('📋 [SERVER] Config loaded:', {
+  rules: config.rules,
+  defaultTimer: config.rules.defaultTimer,
+  professionsCount: config.professions?.length || 0,
+  boardCellsCount: config.board?.cells?.length || 0
+});
 
 // Simple persistence for rooms (to avoid rooms disappearing on restart)
 const ROOMS_FILE = path.join(__dirname, '../shared/rooms.json');
@@ -401,7 +528,7 @@ const rooms = {}; // { roomId: { maxPlayers, currentPlayers: [...], status, pass
 
 // Функция для получения отсортированного списка комнат
 function getSortedRoomsList() {
-  return Object.keys(rooms).map(roomId => ({
+  const roomsList = Object.keys(rooms).map(roomId => ({
     id: roomId,
     roomId,
     displayName: rooms[roomId].displayName,
@@ -409,14 +536,25 @@ function getSortedRoomsList() {
     maxPlayers: rooms[roomId].maxPlayers,
     currentPlayers: rooms[roomId].currentPlayers,
     status: rooms[roomId].status,
+    hostId: rooms[roomId].hostId,
+    hostUsername: rooms[roomId].hostUsername,
+    password: rooms[roomId].password
 
   })).sort((a, b) => {
-    // Сначала комнаты с игроками, затем пустые
-    if (a.currentPlayers.length > 0 && b.currentPlayers.length === 0) return -1;
-    if (a.currentPlayers.length === 0 && b.currentPlayers.length > 0) return 1;
-    // Затем по времени создания (новые сначала)
+    // Сначала новые комнаты (по времени создания), затем старые
     return rooms[b.roomId].createdAt - rooms[a.roomId].createdAt;
   });
+  
+  console.log(`📊 [SERVER] getSortedRoomsList: ${roomsList.length} rooms`, roomsList.map(r => ({ 
+    id: r.id, 
+    name: r.displayName, 
+    players: r.currentPlayers.length,
+    createdAt: rooms[r.roomId].createdAt,
+    hostUsername: r.hostUsername,
+    hostId: r.hostId
+  })));
+  
+  return roomsList;
 }
 
 // Timer management for rooms
@@ -602,6 +740,14 @@ io.on('connection', (socket) => {
   console.log('New client connected', socket.id);
   ensureDefaultRoom();
   
+  // Добавляем логирование для проверки событий
+  console.log(`🔍 [SERVER] Socket ${socket.id} connected, waiting for events...`);
+  
+  // Логируем все события для отладки
+  socket.onAny((eventName, ...args) => {
+    console.log(`📡 [SERVER] Event received: ${eventName} from socket ${socket.id}`, args);
+  });
+  
   // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ПРИ ПОДКЛЮЧЕНИИ НОВОГО КЛИЕНТА
   Object.values(rooms).forEach(room => {
     if (room && room.currentPlayers) {
@@ -625,32 +771,54 @@ io.on('connection', (socket) => {
     socket.join(roomId);
     console.log(`✅ [SERVER] Socket ${socket.id} joined room: ${roomId}`);
     
+    // Нормализуем playerData - поддерживаем как строку, так и объект
+    let normalizedPlayerData;
+    if (typeof playerData === 'string') {
+      // Если передана строка, создаем объект
+      normalizedPlayerData = {
+        username: playerData.trim(),
+        id: playerData.trim(),
+        email: '',
+        displayId: playerData.trim()
+      };
+    } else if (playerData && typeof playerData === 'object') {
+      // Если передан объект, используем его
+      normalizedPlayerData = {
+        username: playerData.username || playerData.id || '',
+        id: playerData.id || playerData.username || '',
+        email: playerData.email || '',
+        displayId: playerData.displayId || playerData.username || playerData.id || ''
+      };
+    } else {
+      normalizedPlayerData = null;
+    }
+    
     // ПОЛНОСТЬЮ ОТКЛЮЧАЕМ СОЗДАНИЕ ГОСТЕВЫХ ИГРОКОВ
     // Проверяем, есть ли данные игрока для присоединения
-    if (!playerData || !playerData.username || playerData.username.trim() === '') {
+    if (!normalizedPlayerData || !normalizedPlayerData.username || normalizedPlayerData.username.trim() === '') {
       console.log(`❌ [SERVER] Player data missing or invalid for socket ${socket.id}`);
       socket.emit('error', { message: 'Необходимо указать корректное имя игрока для присоединения к комнате' });
       return;
     }
     
     // Дополнительная проверка - запрещаем гостевые и тестовые имена
-    if (playerData.username.startsWith('Гость') || 
-        playerData.username.startsWith('Guest') || 
-        playerData.username.startsWith('test') ||
-        playerData.username.startsWith('Test') ||
-        playerData.username.length < 2 ||
-        playerData.username === 'test' ||
-        playerData.username === 'test1' ||
-        playerData.username === 'test2' ||
-        playerData.username.includes('TestPlayer') ||
-        playerData.username.includes('testplayer')) {
-      console.log(`❌ [SERVER] Guest/test usernames are not allowed: ${playerData.username}`);
+    if (normalizedPlayerData.username.startsWith('Гость') || 
+        normalizedPlayerData.username.startsWith('Guest') || 
+        normalizedPlayerData.username.startsWith('test') ||
+        normalizedPlayerData.username.startsWith('Test') ||
+        normalizedPlayerData.username.length < 2 ||
+        normalizedPlayerData.username === 'test' ||
+        normalizedPlayerData.username === 'test1' ||
+        normalizedPlayerData.username === 'test2' ||
+        normalizedPlayerData.username.includes('TestPlayer') ||
+        normalizedPlayerData.username.includes('testplayer')) {
+      console.log(`❌ [SERVER] Guest/test usernames are not allowed: ${normalizedPlayerData.username}`);
       socket.emit('error', { message: 'Гостевые и тестовые имена не разрешены. Укажите реальное имя игрока.' });
       return;
     }
     
     // Определяем фиксированный ID игрока (только из переданных данных)
-    const fixedPlayerId = playerData.id || playerData.username;
+    const fixedPlayerId = normalizedPlayerData.id || normalizedPlayerData.username;
     
     // Проверяем, есть ли уже игрок с таким фиксированным ID
     const existingPlayerIndex = rooms[roomId].currentPlayers.findIndex(p => 
@@ -668,9 +836,9 @@ io.on('connection', (socket) => {
       // Создаем нового игрока только с переданными данными
       const player = {
         id: fixedPlayerId,
-        username: playerData.username,
-        email: playerData.email || '',
-        displayId: playerData.displayId || '',
+        username: normalizedPlayerData.username,
+        email: normalizedPlayerData.email || '',
+        displayId: normalizedPlayerData.displayId || '',
         ready: false,
         socketId: socket.id,
         joinedAt: Date.now()
@@ -678,6 +846,13 @@ io.on('connection', (socket) => {
       
       rooms[roomId].currentPlayers.push(player);
       console.log(`👤 [SERVER] New player ${player.username} (ID: ${player.id}) added to room ${roomId}`);
+      
+      // Если у комнаты нет hostUsername, назначаем первого игрока создателем
+      if (!rooms[roomId].hostUsername && rooms[roomId].currentPlayers.length === 1) {
+        rooms[roomId].hostUsername = player.username;
+        rooms[roomId].hostId = player.socketId;
+        console.log(`👑 [SERVER] Appointed ${player.username} as host for room ${roomId}`);
+      }
     } else {
       // Переподключаем существующего игрока - обновляем только socketId
       const existingPlayer = rooms[roomId].currentPlayers[existingPlayerIndex];
@@ -686,6 +861,13 @@ io.on('connection', (socket) => {
       existingPlayer.joinedAt = Date.now();
       
       console.log(`🔄 [SERVER] Player ${existingPlayer.username} (ID: ${existingPlayer.id}) reconnected with new socket: ${socket.id}`);
+      
+      // Если у комнаты нет hostUsername, но этот игрок был первым, назначаем его создателем
+      if (!rooms[roomId].hostUsername && existingPlayerIndex === 0) {
+        rooms[roomId].hostUsername = existingPlayer.username;
+        rooms[roomId].hostId = existingPlayer.socketId;
+        console.log(`👑 [SERVER] Appointed reconnected player ${existingPlayer.username} as host for room ${roomId}`);
+      }
     }
     
     // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ ИГРОКОВ
@@ -707,12 +889,24 @@ io.on('connection', (socket) => {
     console.log(`✅ [SERVER] Room ${roomId} now has ${rooms[roomId].currentPlayers.length} players`);
   });
 
-  socket.on('createRoom', (roomId, maxPlayers, password, timerHours = config.rules.defaultTimer, roomName) => {
-    // Генерируем уникальный порядковый ID для комнаты
-    const sequentialId = generateSequentialRoomId();
+  socket.on('createRoom', (roomId, maxPlayers, password, timerHours = config.rules.defaultTimer, roomName, professionType = 'individual', hostDream = null) => {
+    console.log(`🏠 [SERVER] createRoom event received:`, {
+      roomId,
+      maxPlayers,
+      password,
+      timerHours,
+      roomName,
+      socketId: socket.id,
+      configRules: config.rules,
+      defaultTimer: config.rules.defaultTimer
+    });
     
-    // Создаем комнату с автоматически сгенерированным ID
-    const actualRoomId = sequentialId;
+    try {
+      // Генерируем уникальный порядковый ID для комнаты
+      const sequentialId = generateSequentialRoomId();
+      
+      // Создаем комнату с автоматически сгенерированным ID
+      const actualRoomId = sequentialId;
     
     if (!rooms[actualRoomId]) {
       console.log(`Creating room ${actualRoomId} (requested: ${roomId}) by ${socket.id} with name: ${roomName || 'Unnamed'}`);
@@ -725,10 +919,18 @@ io.on('connection', (socket) => {
         status: 'waiting',
         password,
         hostId: socket.id,
+        hostUsername: getUsernameBySocketId(socket.id), // Добавляем username создателя
         timer: { hours: timerHours, remaining: timerHours * 3600 },
         currentTurn: null, // Now playerId
         board: config.board,
-        createdAt: Date.now() // Add creation timestamp
+        createdAt: Date.now(), // Add creation timestamp
+        // Новая логика
+        professionType: professionType, // 'individual' или 'shared'
+        sharedProfession: null, // Профессия для всех (если professionType === 'shared')
+        hostProfession: null, // Профессия хоста
+        hostDream: hostDream, // Мечта хоста
+        playersReady: [], // Массив готовых игроков
+        gameStarted: false
       };
       
       // Start timers for the room
@@ -755,10 +957,18 @@ io.on('connection', (socket) => {
         status: 'waiting',
         password,
         hostId: socket.id,
+        hostUsername: getUsernameBySocketId(socket.id), // Добавляем username создателя
         timer: { hours: timerHours, remaining: timerHours * 3600 },
         currentTurn: null,
         board: config.board,
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        // Новая логика
+        professionType: professionType, // 'individual' или 'shared'
+        sharedProfession: null, // Профессия для всех (если professionType === 'shared')
+        hostProfession: null, // Профессия хоста
+        hostDream: hostDream, // Мечта хоста
+        playersReady: [], // Массив готовых игроков
+        gameStarted: false
       };
       
       startRoomTimers(newId);
@@ -769,9 +979,92 @@ io.on('connection', (socket) => {
       socket.emit('roomCreated', rooms[newId]);
       console.log(`✅ Room ${newId} created with name: ${rooms[newId].displayName}`);
     }
+    
+    console.log(`🏠 [SERVER] createRoom completed successfully`);
+    
+  } catch (error) {
+    console.error(`❌ [SERVER] Error in createRoom:`, error);
+    socket.emit('roomCreationError', { 
+      message: 'Ошибка создания комнаты', 
+      details: error.message 
+    });
+  }
   });
 
+  // Новые обработчики для логики игры
+  socket.on('setProfessionType', (roomId, professionType) => {
+    if (rooms[roomId] && rooms[roomId].hostId === socket.id) {
+      rooms[roomId].professionType = professionType;
+      console.log(`🎯 [SERVER] Room ${roomId}: profession type set to ${professionType}`);
+      io.to(roomId).emit('professionTypeUpdated', professionType);
+      persistRooms();
+    }
+  });
 
+  socket.on('setHostProfession', (roomId, profession) => {
+    if (rooms[roomId] && rooms[roomId].hostId === socket.id) {
+      rooms[roomId].hostProfession = profession;
+      if (rooms[roomId].professionType === 'shared') {
+        rooms[roomId].sharedProfession = profession;
+      }
+      console.log(`🎯 [SERVER] Room ${roomId}: host profession set to ${profession.name}`);
+      io.to(roomId).emit('hostProfessionUpdated', profession);
+      persistRooms();
+    }
+  });
+
+  socket.on('setHostDream', (roomId, dream) => {
+    if (rooms[roomId] && rooms[roomId].hostId === socket.id) {
+      rooms[roomId].hostDream = dream;
+      console.log(`⭐ [SERVER] Room ${roomId}: host dream set to ${dream.name}`);
+      io.to(roomId).emit('hostDreamUpdated', dream);
+      persistRooms();
+    }
+  });
+
+  socket.on('playerReady', (roomId, playerId) => {
+    if (rooms[roomId]) {
+      const room = rooms[roomId];
+      if (!room.playersReady.includes(playerId)) {
+        room.playersReady.push(playerId);
+        console.log(`✅ [SERVER] Room ${roomId}: player ${playerId} is ready`);
+        io.to(roomId).emit('playerReady', playerId);
+        
+        // Проверяем, можно ли начать игру
+        if (room.playersReady.length >= 2 && room.playersReady.length === room.currentPlayers.length) {
+          console.log(`🚀 [SERVER] Room ${roomId}: all players ready, can start game`);
+          io.to(room.playersReady).emit('canStartGame', true);
+        }
+        
+        persistRooms();
+      }
+    }
+  });
+
+  socket.on('startGame', (roomId) => {
+    if (rooms[roomId] && rooms[roomId].hostId === socket.id) {
+      const room = rooms[roomId];
+      if (room.playersReady.length >= 2) {
+        room.status = 'playing';
+        room.gameStarted = true;
+        
+        // Рандомно расставляем игроков
+        const shuffledPlayers = [...room.currentPlayers].sort(() => Math.random() - 0.5);
+        room.playerOrder = shuffledPlayers.map((player, index) => ({
+          ...player,
+          position: index + 1
+        }));
+        
+        console.log(`🎮 [SERVER] Room ${roomId}: game started with ${shuffledPlayers.length} players`);
+        io.to(roomId).emit('gameStarted', {
+          status: 'playing',
+          playerOrder: room.playerOrder
+        });
+        
+        persistRooms();
+      }
+    }
+  });
 
   // Allow host to change max players from RoomSetup
   socket.on('setMaxPlayers', (roomId, maxPlayers) => {
@@ -837,14 +1130,20 @@ io.on('connection', (socket) => {
   socket.on('getRoomsList', () => {
     console.log('🏠 [SERVER] getRoomsList requested by socket:', socket.id);
     
-    // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ВО ВСЕХ КОМНАТАХ
-    Object.values(rooms).forEach(room => {
-      cleanupGuestPlayers(room);
-    });
-    
-    const roomsList = getSortedRoomsList();
-    socket.emit('roomsList', roomsList);
-    console.log('🏠 [SERVER] Sent rooms list:', roomsList.length, 'rooms');
+    try {
+      // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ВО ВСЕХ КОМНАТАХ
+      Object.values(rooms).forEach(room => {
+        cleanupGuestPlayers(room);
+      });
+      
+      const roomsList = getSortedRoomsList();
+      socket.emit('roomsList', roomsList);
+      console.log('🏠 [SERVER] Sent rooms list:', roomsList.length, 'rooms');
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error in getRoomsList:', error);
+      socket.emit('error', { message: 'Ошибка получения списка комнат' });
+    }
   });
 
   // On join, assign profession and initial finances (in a new 'setupPlayer' event or here)
@@ -2246,6 +2545,111 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Новые события для управления пользователями
+  
+  // Аутентификация пользователя (вход или регистрация)
+  socket.on('authenticateUser', (username, email, password, callback) => {
+    console.log(`🔐 [SERVER] authenticateUser event received!`);
+    try {
+      console.log(`🔐 [SERVER] authenticateUser event received from socket ${socket.id}!`);
+      console.log(`🔐 [SERVER] Authentication attempt received:`, {
+        username,
+        email,
+        password: password ? '***' : 'undefined',
+        socketId: socket.id
+      });
+      
+      if (!username || username.trim().length < 2) {
+        callback({ success: false, error: 'Имя должно содержать минимум 2 символа' });
+        return;
+      }
+      
+      if (!email || !email.trim()) {
+        callback({ success: false, error: 'Email обязателен' });
+        return;
+      }
+      
+      if (!password || password.trim().length < 6) {
+        callback({ success: false, error: 'Пароль должен содержать минимум 6 символов' });
+        return;
+      }
+      
+      const trimmedUsername = username.trim();
+      const trimmedEmail = email.trim();
+      const trimmedPassword = password.trim();
+      
+      // Ищем пользователя по email
+      const existingUser = getUserByEmail(trimmedEmail);
+      
+      if (existingUser) {
+        // Пользователь найден - проверяем пароль для входа
+        if (checkUserPassword(existingUser, trimmedPassword)) {
+          // Пароль верный - обновляем socketId
+          console.log(`🔄 [SERVER] Updating socketId for existing user: ${existingUser.username} (${existingUser.id}) -> ${socket.id}`);
+          updateUserSocketId(existingUser.id, socket.id);
+          
+          callback({ 
+            success: true, 
+            isLogin: true,
+            userData: {
+              id: existingUser.id,
+              username: existingUser.username,
+              email: existingUser.email
+            }
+          });
+          
+          console.log(`✅ [SERVER] User logged in: ${existingUser.username} (${existingUser.email}) (ID: ${existingUser.id})`);
+        } else {
+          // Пароль неверный
+          callback({ success: false, error: 'Неверный пароль' });
+        }
+      } else {
+        // Пользователь не найден - регистрируем нового
+        
+        // Проверяем уникальность username
+        if (!isUsernameUnique(trimmedUsername)) {
+          callback({ success: false, error: 'Пользователь с таким именем уже существует' });
+          return;
+        }
+        
+        // Регистрируем пользователя
+        console.log(`🔄 [SERVER] Registering new user: ${trimmedUsername} (${trimmedEmail}) with socketId: ${socket.id}`);
+        const userData = registerUser(trimmedUsername, trimmedEmail, trimmedPassword, socket.id);
+        
+        callback({ 
+          success: true, 
+          isLogin: false,
+          userData: {
+            id: userData.id,
+            username: userData.username,
+            email: userData.email
+          }
+        });
+        
+        console.log(`✅ [SERVER] User registered successfully: ${trimmedUsername} (${trimmedEmail}) (ID: ${userData.id})`);
+      }
+    } catch (error) {
+      console.error(`❌ [SERVER] Error in authenticateUser:`, error);
+      callback({ success: false, error: 'Внутренняя ошибка сервера' });
+    }
+  });
+  
+  // Получение данных пользователя по ID
+  socket.on('getUserData', (userId, callback) => {
+    const userData = getUserById(userId);
+    if (userData) {
+      callback({ success: true, userData });
+    } else {
+      callback({ success: false, error: 'Пользователь не найден' });
+    }
+  });
+  
+  // Обновление socketId для существующего пользователя
+  socket.on('updateUserSocketId', (userId) => {
+    updateUserSocketId(userId, socket.id);
+    console.log(`🔄 [SERVER] Updated socketId for user ${userId}: ${socket.id}`);
+  });
+
   // Обработчик отключения клиента
   socket.on('disconnect', () => {
     console.log(`❌ Client disconnected: ${socket.id}`);
@@ -2639,6 +3043,14 @@ function nextTurn(roomId) {
   // Сохраняем состояние
   persistRooms();
 }
+
+// Serve static files from client build
+app.use(express.static(path.join(__dirname, '../client/build')));
+
+// Handle React routing, return all requests to React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/build/index.html'));
+});
 
 // Запускаем сервер
 server.listen(PORT, () => {
