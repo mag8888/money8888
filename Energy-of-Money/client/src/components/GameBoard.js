@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Avatar, Button } from '@mui/material';
+import socket from '../socket';
 import CasinoIcon from '@mui/icons-material/Casino';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import HomeIcon from '@mui/icons-material/Home';
@@ -168,7 +169,7 @@ const BOARD_CONFIG = {
   ]
 };
 
-const GameBoard = ({ roomId, socket, user, onExit }) => {
+const GameBoard = ({ roomId, playerData, onExit }) => {
   const [players, setPlayers] = useState([]);
   const [currentTurn, setCurrentTurn] = useState(null);
   const [timer, setTimer] = useState(0);
@@ -182,6 +183,7 @@ const GameBoard = ({ roomId, socket, user, onExit }) => {
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
   const [canEndTurn, setCanEndTurn] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  const [gamePhase, setGamePhase] = useState('waiting'); // 'waiting', 'determining_order', 'playing'
 
   useEffect(() => {
     if (socket) {
@@ -200,7 +202,7 @@ const GameBoard = ({ roomId, socket, user, onExit }) => {
       socket.on('turn_started', ({ playerId, duration }) => {
         setCurrentTurn(playerId);
         setTimer(duration || 120);
-        if (playerId === user?.id) {
+        if (playerId === playerData?.id) {
           setTurnBanner({ text: '🎯 Ваш ход!', color: 'success' });
         } else {
           const player = players.find(p => p.id === playerId);
@@ -209,12 +211,12 @@ const GameBoard = ({ roomId, socket, user, onExit }) => {
       });
 
       socket.on('dice_rolled', ({ playerId, dice1, dice2, total }) => {
-        if (playerId === user?.id) {
+        if (playerId === playerData?.id) {
           setDisplayD1(dice1);
           setDisplayD2(dice2);
           setDisplayDice(total);
           setIsRolling(false);
-          movePlayer(user.id, total);
+          movePlayer(playerData.id, total);
         }
       });
 
@@ -226,9 +228,30 @@ const GameBoard = ({ roomId, socket, user, onExit }) => {
       });
 
       socket.on('turn_ended', ({ playerId }) => {
-        if (playerId === user?.id) {
+        if (playerId === playerData?.id) {
           setCanEndTurn(false);
         }
+      });
+
+      // Обработка запуска игры
+      socket.on('gameStarted', (data) => {
+        console.log('🎮 [GameBoard] Игра запущена:', data);
+        setGameStarted(true);
+        setGamePhase('determining_order');
+        showToast('🎮 Игра запущена!', 'success');
+      });
+
+      // Обработка определения очередности
+      socket.on('orderDeterminationStarted', (data) => {
+        console.log('🎲 [GameBoard] Началось определение очередности:', data);
+        setGameStarted(true);
+        setGamePhase('determining_order');
+        showToast('🎲 Определение очередности! Бросайте кубики...', 'info');
+      });
+
+      socket.on('playersList', (playersList) => {
+        console.log('👥 [GameBoard] Получен список игроков:', playersList);
+        setPlayers(playersList);
       });
     }
 
@@ -240,9 +263,13 @@ const GameBoard = ({ roomId, socket, user, onExit }) => {
         socket.off('dice_rolled');
         socket.off('cell_event');
         socket.off('turn_ended');
+        socket.off('gameStarted');
+        socket.off('orderDeterminationStarted');
+        socket.off('playersList');
       }
     };
-  }, [socket, user, players]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerData, players]);
 
   const showToast = (message, severity = 'success') => {
     setToast({ open: true, message, severity });
@@ -252,11 +279,11 @@ const GameBoard = ({ roomId, socket, user, onExit }) => {
     if (!isMyTurn() || isRolling) return;
     
     setIsRolling(true);
-    socket.emit('roll_dice', { roomId, playerId: user.id });
+    socket.emit('roll_dice', { roomId, playerId: playerData.id });
   };
 
   const isMyTurn = () => {
-    return currentTurn === user?.id;
+    return currentTurn === playerData?.id;
   };
 
   const movePlayer = (playerId, steps) => {
@@ -282,35 +309,35 @@ const GameBoard = ({ roomId, socket, user, onExit }) => {
   const handleEndTurn = () => {
     if (!canEndTurn) return;
     
-    socket.emit('end_turn', { roomId, playerId: user.id });
+    socket.emit('end_turn', { roomId, playerId: playerData.id });
     setCanEndTurn(false);
   };
 
   const handleCellAction = (cell) => {
     switch (cell.action) {
       case 'business':
-        if (cell.cost && cell.cost > (user?.balance || 0)) {
+        if (cell.cost && cell.cost > (playerData?.balance || 0)) {
           showToast(`Недостаточно средств для покупки: $${cell.cost}`, 'error');
         } else {
           // Покупка бизнеса
-          socket.emit('buy_business', { roomId, playerId: user.id, cellId: cell.id });
+          socket.emit('buy_business', { roomId, playerId: playerData.id, cellId: cell.id });
         }
         break;
       case 'dream':
-        if (cell.cost && cell.cost > (user?.balance || 0)) {
+        if (cell.cost && cell.cost > (playerData?.balance || 0)) {
           showToast(`Недостаточно средств для мечты: $${cell.cost}`, 'error');
         } else {
           // Покупка мечты
-          socket.emit('buy_dream', { roomId, playerId: user.id, cellId: cell.id });
+          socket.emit('buy_dream', { roomId, playerId: playerData.id, cellId: cell.id });
         }
         break;
       case 'penalty':
         // Применение штрафа
-        socket.emit('apply_penalty', { roomId, playerId: user.id, cellId: cell.id, penalty: cell.penalty });
+        socket.emit('apply_penalty', { roomId, playerId: playerData.id, cellId: cell.id, penalty: cell.penalty });
         break;
       case 'charity':
         // Благотворительность
-        socket.emit('charity_action', { roomId, playerId: user.id, cellId: cell.id });
+        socket.emit('charity_action', { roomId, playerId: playerData.id, cellId: cell.id });
         break;
       default:
         break;
@@ -486,6 +513,52 @@ const GameBoard = ({ roomId, socket, user, onExit }) => {
         <Typography variant="body1" color="text.secondary">
           Хост должен запустить игру
         </Typography>
+      </Box>
+    );
+  }
+
+  // Проверяем, находимся ли мы в фазе определения очередности
+  if (gamePhase === 'determining_order') {
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Typography variant="h4" gutterBottom>
+          🎲 Определение очередности
+        </Typography>
+        <Typography variant="h6" color="primary" gutterBottom>
+          Бросайте кубики для определения порядка ходов!
+        </Typography>
+        
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="h5" gutterBottom>
+            👥 Игроки в комнате:
+          </Typography>
+          {players.map((player) => (
+            <Box key={player.id} sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: 2 }}>
+              <Typography variant="h6">
+                {player.username}
+              </Typography>
+              {player.profession && (
+                <Typography variant="body1" color="primary">
+                  💼 {player.profession.name}
+                </Typography>
+              )}
+              {player.dream && (
+                <Typography variant="body1" color="secondary">
+                  💭 {player.dream.name}
+                </Typography>
+              )}
+              {player.diceRoll ? (
+                <Typography variant="h5" color="success">
+                  🎲 Результат: {player.diceRoll}
+                </Typography>
+              ) : (
+                <Typography variant="body1" color="text.secondary">
+                  ⏳ Ожидание броска...
+                </Typography>
+              )}
+            </Box>
+          ))}
+        </Box>
       </Box>
     );
   }

@@ -56,5 +56,197 @@
     },
     "createdAt": 1756470200605,
     "orderDetermination": null
+  },
+  "room3": {
+    "roomId": "room3",
+    "displayName": "444",
+    "originalRequestedId": "room_mewtnuif_ar832b",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "mag",
+        "username": "Mag",
+        "socketId": "PRtLGJFi5BfSdKwGAAAB",
+        "ready": true,
+        "profession": {
+          "id": 1,
+          "name": "Дворник",
+          "salary": 2000,
+          "expenses": 200,
+          "balance": 2000,
+          "description": "Уборка улиц и дворов",
+          "icon": "🧹"
+        }
+      }
+    ],
+    "status": "waiting",
+    "password": "",
+    "hostId": "mag",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "cells": [
+        {
+          "id": 1,
+          "type": "income",
+          "title": "Зарплата",
+          "description": "Получите зарплату"
+        },
+        {
+          "id": 2,
+          "type": "expense",
+          "title": "Налоги",
+          "description": "Заплатите налоги"
+        }
+      ]
+    },
+    "createdAt": 1756471301950,
+    "orderDetermination": null
+  },
+  "room4": {
+    "roomId": "room4",
+    "displayName": "111",
+    "originalRequestedId": "room_mewvf8xj_s49vhe",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "romeo",
+        "username": "romeo",
+        "socketId": null,
+        "offline": true,
+        "ready": true,
+        "profession": {
+          "id": 2,
+          "name": "Курьер",
+          "salary": 2500,
+          "expenses": 300,
+          "description": "Доставка товаров и документов"
+        }
+      },
+      {
+        "id": "mag",
+        "username": "Mag",
+        "socketId": "j6uim8z-IWVqkachAAAP",
+        "offline": false,
+        "ready": true,
+        "profession": {
+          "id": 1,
+          "name": "Дворник",
+          "salary": 2000,
+          "expenses": 200,
+          "balance": 2000,
+          "description": "Уборка улиц и дворов",
+          "icon": "🧹"
+        }
+      }
+    ],
+    "status": "started",
+    "password": "",
+    "hostId": "mag",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": "romeo",
+    "board": {
+      "cells": [
+        {
+          "id": 1,
+          "type": "income",
+          "title": "Зарплата",
+          "description": "Получите зарплату"
+        },
+        {
+          "id": 2,
+          "type": "expense",
+          "title": "Налоги",
+          "description": "Заплатите налоги"
+        }
+      ]
+    },
+    "createdAt": 1756474259970,
+    "orderDetermination": null
+  },
+  "room2": {
+    "roomId": "room2",
+    "displayName": "7788",
+    "originalRequestedId": "room_mewv6c2x_prfp5g",
+    "maxPlayers": 2,
+    "currentPlayers": [
+      {
+        "id": "mag",
+        "username": "Mag",
+        "socketId": "LggWRcO_BmKzZ816AAAL",
+        "offline": false,
+        "ready": true,
+        "profession": {
+          "id": 1,
+          "name": "Дворник",
+          "salary": 2000,
+          "expenses": 200,
+          "balance": 2000,
+          "description": "Уборка улиц и дворов",
+          "icon": "🧹"
+        }
+      },
+      {
+        "id": "romeo",
+        "username": "romeo",
+        "socketId": null,
+        "offline": true,
+        "ready": true,
+        "profession": {
+          "id": 2,
+          "name": "Курьер",
+          "salary": 2500,
+          "expenses": 300,
+          "description": "Доставка товаров и документов"
+        }
+      }
+    ],
+    "status": "determining_order",
+    "password": "",
+    "hostId": "mag",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "cells": [
+        {
+          "id": 1,
+          "type": "income",
+          "title": "Зарплата",
+          "description": "Получите зарплату"
+        },
+        {
+          "id": 2,
+          "type": "expense",
+          "title": "Налоги",
+          "description": "Заплатите налоги"
+        }
+      ]
+    },
+    "createdAt": 1756473844151,
+    "orderDetermination": {
+      "phase": "initial_roll",
+      "players": [
+        {
+          "id": "mag",
+          "username": "Mag",
+          "diceRoll": null
+        },
+        {
+          "id": "romeo",
+          "username": "romeo",
+          "diceRoll": null
+        }
+      ],
+      "timer": 150
+    }
   }
 }

@@ -7,30 +7,25 @@ const SERVER_HOST = process.env.NODE_ENV === 'production' ? window.location.host
 // Базовый URL для сервера
 const baseUrl = process.env.NODE_ENV === 'production' 
   ? `${window.location.protocol}//${window.location.hostname}:${SERVER_PORT}`
-  : `http://${SERVER_HOST}:${SERVER_PORT}?v=${Date.now()}&cache=${Math.random()}&force=${Math.random()}&version=${window.CACHE_VERSION || Date.now()}&reload=${Date.now()}`;
+  : `http://${SERVER_HOST}:${SERVER_PORT}`;
 
 console.log('🔌 [Socket] Connecting to:', baseUrl);
 
+// Добавляем небольшую задержку перед подключением
 const socket = io(baseUrl, {
-  transports: ['websocket', 'polling'], // Добавляем fallback на polling
+  transports: ['websocket', 'polling'],
   reconnection: true,
-  reconnectionAttempts: 10,
-  reconnectionDelay: 2000,
-  reconnectionDelayMax: 10000,
-  timeout: 30000,
-  forceNew: false,
-  upgrade: true,
-  // Дополнительные настройки для стабильности
-  autoConnect: true,
-  query: {
-    client: 'potok-deneg-game',
-    version: '1.0.1',
-    timestamp: Date.now()
-  },
-  // Улучшенные настройки для стабильности
-  pingTimeout: 60000,
-  pingInterval: 25000
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
+  timeout: 10000,
+  autoConnect: false // Не подключаемся автоматически
 });
+
+// Подключаемся с небольшой задержкой
+setTimeout(() => {
+  socket.connect();
+  console.log('🔌 [Socket] Attempting connection after delay...');
+}, 1000);
 
 // Диагностика подключения
 socket.on('connect', () => {
@@ -38,6 +33,17 @@ socket.on('connect', () => {
     id: socket.id,
     server: baseUrl,
     transport: socket.io.engine.transport.name
+  });
+});
+
+// Добавляем обработчик для отладки
+socket.on('connect_error', (error) => {
+  console.error('❌ [Socket] Connection error details:', {
+    message: error.message,
+    description: error.description,
+    context: error.context,
+    server: baseUrl,
+    error: error
   });
 });
 

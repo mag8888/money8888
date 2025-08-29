@@ -21,11 +21,12 @@ import {
   Avatar
 } from '@mui/material';
 import { motion } from 'framer-motion';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import socket from '../socket';
 
 const RoomSetup = () => {
   const { roomId } = useParams();
+  const navigate = useNavigate();
   
   // Основные настройки комнаты
   const [roomName, setRoomName] = useState('');
@@ -92,6 +93,15 @@ const RoomSetup = () => {
         setSelectedProfession(data.hostProfession);
         console.log('💼 [RoomSetup] Установлена профессия хоста из roomData:', data.hostProfession);
       }
+
+      // Проверяем статус игры
+      if (data.status === 'determining_order') {
+        setSuccess('Игра запущена! Определение очередности...');
+        // Переходим к игровому полю
+        setTimeout(() => {
+          navigate(`/room/${roomId}/game`);
+        }, 2000);
+      }
     });
 
     // Обработка создания комнаты
@@ -145,14 +155,44 @@ const RoomSetup = () => {
       setError(`Ошибка: ${error.message || 'Неизвестная ошибка'}`);
     });
 
+    // Обработка запуска игры
+    socket.on('gameStarted', (data) => {
+      console.log('🎮 [RoomSetup] Игра запущена:', data);
+      setSuccess('Игра запущена! Переходим к игровому полю...');
+      // Переходим к игровому полю
+      setTimeout(() => {
+        navigate(`/room/${roomId}/game`);
+      }, 2000);
+    });
+
+    // Обработка начала определения очередности
+    socket.on('orderDeterminationStarted', (data) => {
+      console.log('🎲 [RoomSetup] Началось определение очередности:', data);
+      setSuccess('Определение очередности! Переходим к игровому полю...');
+      // Переходим к игровому полю
+      setTimeout(() => {
+        navigate(`/room/${roomId}/game`);
+      }, 2000);
+    });
+
+
+
+    // Запрашиваем данные комнаты при входе
+    if (roomId) {
+      socket.emit('getRoomData', roomId);
+      console.log('🏠 [RoomSetup] Запрошены данные комнаты:', roomId);
+    }
+
     return () => {
       socket.off('roomData');
       socket.off('roomCreated');
       socket.off('playersUpdate');
       socket.off('roomNotFound');
       socket.off('error');
+      socket.off('gameStarted');
+      socket.off('orderDeterminationStarted');
     };
-  }, [roomId, playerName, roomName]);
+  }, [roomId, playerName, roomName, navigate]);
 
   // Обработчики действий
   const handleRoomNameChange = () => {
@@ -275,12 +315,12 @@ const RoomSetup = () => {
               🎮 Настройка партии
             </Typography>
 
-            <Grid container spacing={4}>
+            <Grid container spacing={4} alignItems="flex-start">
               {/* Левая колонка - Настройки комнаты */}
               <Grid item xs={12} md={6}>
                 <Typography variant="h5" sx={{ mb: 3, color: '#333', fontWeight: 'bold' }}>
                   ⚙️ Настройки комнаты
-      </Typography>
+                </Typography>
 
                 {/* Имя комнаты */}
                 <Box sx={{ mb: 3 }}>
@@ -434,9 +474,9 @@ const RoomSetup = () => {
                       ✅ Выбрана: {selectedProfession.name}
                     </Typography>
                   )}
-                  <Grid container spacing={1}>
+                  <Grid container spacing={2}>
                     {professions.map((profession) => (
-                      <Grid item xs={12} sm={6} key={profession.id}>
+                      <Grid item xs={12} sm={6} key={profession.id} sx={{ display: 'flex', mb: 2 }}>
                         <Card
                           onClick={() => handleProfessionSelect(profession)}
                           sx={{
@@ -444,6 +484,10 @@ const RoomSetup = () => {
                             border: selectedProfession?.id === profession.id ? '2px solid #667eea' : '1px solid #ddd',
                             transition: 'all 0.3s ease',
                             position: 'relative',
+                            height: '180px', // Фиксированная высота для всех карточек
+                            width: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
                             '&:hover': {
                               transform: 'translateY(-2px)',
                               boxShadow: 3
@@ -474,14 +518,16 @@ const RoomSetup = () => {
                               </Typography>
                             </Box>
                           )}
-                          <CardContent sx={{ p: 2, textAlign: 'center' }}>
-                            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                              {profession.name}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
-                              {profession.description}
-                            </Typography>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                          <CardContent sx={{ p: 2, textAlign: 'center', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
+                            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, fontSize: '1.1rem' }}>
+                                {profession.name}
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: '#666', mb: 1, lineHeight: 1.4, flexGrow: 1 }}>
+                                {profession.description}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', mt: 'auto' }}>
                               <Chip label={`💰 ${profession.salary}`} size="small" color="success" />
                               <Chip label={`💸 ${profession.expenses}`} size="small" color="error" />
                             </Box>
@@ -504,9 +550,9 @@ const RoomSetup = () => {
                       ✅ Выбрана: {selectedDream.name}
                     </Typography>
                   )}
-                  <Grid container spacing={1}>
+                  <Grid container spacing={2}>
                     {dreams.map((dream) => (
-                      <Grid item xs={12} sm={6} key={dream.id}>
+                      <Grid item xs={12} sm={6} key={dream.id} sx={{ display: 'flex', mb: 2 }}>
                         <Card
                           onClick={() => handleDreamSelect(dream)}
                           sx={{
@@ -514,6 +560,10 @@ const RoomSetup = () => {
                             border: selectedDream?.id === dream.id ? '2px solid #667eea' : '1px solid #ddd',
                             transition: 'all 0.3s ease',
                             position: 'relative',
+                            height: '180px', // Фиксированная высота для всех карточек
+                            width: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
                             '&:hover': {
                               transform: 'translateY(-2px)',
                               boxShadow: 3
@@ -544,14 +594,16 @@ const RoomSetup = () => {
                               </Typography>
                             </Box>
                           )}
-                          <CardContent sx={{ p: 2, textAlign: 'center' }}>
-                            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                              {dream.name}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
-                              {dream.description}
-                      </Typography>
-                            <Chip label={`🎯 ${dream.cost.toLocaleString()}`} size="small" color="primary" />
+                          <CardContent sx={{ p: 2, textAlign: 'center', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
+                            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, fontSize: '1.1rem' }}>
+                                {dream.name}
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: '#666', mb: 1, lineHeight: 1.4, flexGrow: 1 }}>
+                                {dream.description}
+                              </Typography>
+                            </Box>
+                            <Chip label={`🎯 ${dream.cost.toLocaleString()}`} size="small" color="primary" sx={{ mt: 'auto' }} />
                           </CardContent>
                         </Card>
                       </Grid>

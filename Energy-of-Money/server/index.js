@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const User = require('./models/User');
 const fs = require('fs');
 const path = require('path');
+const GameDatabase = require('./database');
 
 // Определяем порт
 const PORT = process.env.PORT || 5000;
@@ -28,7 +29,12 @@ const generateUserId = () => {
 
 // Функция для проверки уникальности username
 const isUsernameUnique = (username) => {
-  return !usernameToUserId.has(username.toLowerCase());
+  // Проверяем в БД
+  const existingUser = db.getUserByUsername(username);
+  // Также проверяем в памяти для обратной совместимости
+  const inMemory = !usernameToUserId.has(username.toLowerCase());
+  
+  return !existingUser && inMemory;
 };
 
 // Функция для регистрации пользователя
@@ -45,24 +51,51 @@ const registerUser = (username, email, password, socketId) => {
     lastSeen: Date.now()
   };
   
-  users.set(userId, userData);
-  usernameToUserId.set(username.toLowerCase(), userId);
+  // Сохраняем в БД
+  const dbSuccess = db.createUser({
+    id: userId,
+    username: username,
+    email: email
+  });
   
-  console.log(`👤 [SERVER] User registered: ${username} (${email}) (ID: ${userId})`);
-  return userData;
+  if (dbSuccess) {
+    // Также сохраняем в памяти для обратной совместимости
+    users.set(userId, userData);
+    usernameToUserId.set(username.toLowerCase(), userId);
+    
+    console.log(`👤 [SERVER] User registered in DB: ${username} (${email}) (ID: ${userId})`);
+    return userData;
+  } else {
+    console.error(`❌ [SERVER] Failed to register user in DB: ${username}`);
+    return null;
+  }
 };
 
 // Функция для поиска пользователя по email
 const getUserByEmail = (email) => {
   console.log(`🔍 [SERVER] Searching for user with email: ${email}`);
-  console.log(`🔍 [SERVER] Current users in database:`, Array.from(users.entries()).map(([id, user]) => ({ id, username: user.username, email: user.email })));
+  
+  // Сначала ищем в БД
+  const dbUsers = db.getAllUsers();
+  const dbUser = dbUsers.find(user => user.email.toLowerCase() === email.toLowerCase());
+  
+  if (dbUser) {
+    console.log(`✅ [SERVER] User found in DB:`, { id: dbUser.id, username: dbUser.username, email: dbUser.email });
+    // Обновляем время последнего входа
+    db.updateUserLastLogin(dbUser.id);
+    return dbUser;
+  }
+  
+  // Также проверяем в памяти для обратной совместимости
+  console.log(`🔍 [SERVER] Checking in-memory users:`, Array.from(users.entries()).map(([id, user]) => ({ id, username: user.username, email: user.email })));
   
   for (const [userId, userData] of users.entries()) {
     if (userData.email.toLowerCase() === email.toLowerCase()) {
-      console.log(`✅ [SERVER] User found:`, { id: userData.id, username: userData.username, email: userData.email });
+      console.log(`✅ [SERVER] User found in memory:`, { id: userData.id, username: userData.username, email: userData.email });
       return userData;
     }
   }
+  
   console.log(`❌ [SERVER] User not found with email: ${email}`);
   return null;
 };
@@ -291,6 +324,9 @@ const generateSequentialRoomId = () => {
 const app = express();
 const server = http.createServer(app);
 
+// Инициализируем базу данных
+const db = new GameDatabase();
+
 // CORS middleware
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -318,6 +354,7 @@ const io = socketIo(server, {
   connectTimeout: 45000,
   maxHttpBufferSize: 1e8,
   allowRequest: (req, callback) => {
+    console.log('🔌 [SERVER] Socket.IO connection request from:', req.headers.origin || 'unknown');
     callback(null, true);
   }
 });
@@ -455,6 +492,38 @@ console.log('📋 [SERVER] Config loaded:', {
 
 // Simple persistence for rooms (to avoid rooms disappearing on restart)
 const ROOMS_FILE = path.join(__dirname, '../shared/rooms.json');
+
+// Функция для создания безопасной копии данных игроков без циклических ссылок
+function createSafePlayerData(player) {
+  return {
+    id: player.id,
+    username: player.username,
+    socketId: player.socketId,
+    offline: player.offline,
+    ready: player.ready,
+    profession: player.profession ? {
+      id: player.profession.id,
+      name: player.profession.name,
+      salary: player.profession.salary,
+      expenses: player.profession.expenses,
+      description: player.profession.description
+    } : null,
+    dream: player.dream ? {
+      id: player.dream.id,
+      name: player.dream.name,
+      cost: player.dream.cost,
+      description: player.dream.description
+    } : null,
+    balance: player.balance,
+    salary: player.salary,
+    expenses: player.expenses,
+    passiveIncome: player.passiveIncome,
+    totalExpenses: player.totalExpenses,
+    monthlyCashflow: player.monthlyCashflow,
+    assets: player.assets,
+    charity: player.charity
+  };
+}
 function persistRooms() {
   try {
     // Создаем копию комнат для сохранения, убирая циклические ссылки
@@ -606,6 +675,9 @@ function ensureDefaultRoom() {
   if (!Object.keys(rooms).length) {
     createDefaultRoom();
   }
+  
+  // Мигрируем существующие данные в БД
+  db.migrateExistingData(users, rooms);
   
   // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ВО ВСЕХ КОМНАТАХ
   Object.values(rooms).forEach(room => {
@@ -887,6 +959,11 @@ ensureDefaultRoom();
 
 io.on('connection', (socket) => {
   console.log('New client connected', socket.id);
+  console.log('🔌 [SERVER] Socket.IO connection details:', {
+    id: socket.id,
+    transport: socket.conn.transport.name,
+    headers: socket.handshake.headers
+  });
   ensureDefaultRoom();
   
   // Добавляем логирование для проверки событий
@@ -1251,30 +1328,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('startGame', (roomId) => {
-    if (rooms[roomId] && rooms[roomId].hostId === socket.id) {
-      const room = rooms[roomId];
-      if (room.playersReady.length >= 2) {
-        room.status = 'playing';
-        room.gameStarted = true;
-        
-        // Рандомно расставляем игроков
-        const shuffledPlayers = [...room.currentPlayers].sort(() => Math.random() - 0.5);
-        room.playerOrder = shuffledPlayers.map((player, index) => ({
-          ...player,
-          position: index + 1
-        }));
-        
-        console.log(`🎮 [SERVER] Room ${roomId}: game started with ${shuffledPlayers.length} players`);
-        io.to(roomId).emit('gameStarted', {
-          status: 'playing',
-          playerOrder: room.playerOrder
-        });
-        
-        persistRooms();
-      }
-    }
-  });
+  // Удален дублирующий обработчик startGame - используется основной в строке 1834
 
   // Allow host to change max players from RoomSetup
   socket.on('setMaxPlayers', (roomId, maxPlayers) => {
@@ -1353,6 +1407,115 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('❌ [SERVER] Error in getRoomsList:', error);
       socket.emit('error', { message: 'Ошибка получения списка комнат' });
+    }
+  });
+
+  // Обработка запроса данных конкретной комнаты
+  socket.on('getRoomData', (roomId) => {
+    console.log('🏠 [SERVER] getRoomData requested for room:', roomId, 'by socket:', socket.id);
+    
+    try {
+      const room = rooms[roomId];
+      if (!room) {
+        console.log('❌ [SERVER] getRoomData: Room not found:', roomId);
+        socket.emit('roomNotFound');
+        return;
+      }
+      
+      // Отправляем данные комнаты
+      const roomData = {
+        displayName: room.displayName,
+        isPublic: room.isPublic !== false,
+        password: room.password || '',
+        professionType: room.professionType || 'individual',
+        hostProfession: room.hostProfession || null,
+        hostDream: room.hostDream || null
+      };
+      
+      socket.emit('roomData', roomData);
+      console.log('🏠 [SERVER] Sent room data:', roomData);
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error in getRoomData:', error);
+      socket.emit('error', { message: 'Ошибка получения данных комнаты' });
+    }
+  });
+
+  // Обработка обновления профессии игрока
+  socket.on('updateProfession', (roomId, profession) => {
+    console.log('💼 [SERVER] updateProfession received:', { roomId, profession, socketId: socket.id });
+    
+    try {
+      const room = rooms[roomId];
+      if (!room) {
+        console.log('❌ [SERVER] updateProfession: Room not found:', roomId);
+        return;
+      }
+      
+      // Находим игрока по socketId
+      const player = room.currentPlayers.find(p => p.socketId === socket.id);
+      if (!player) {
+        console.log('❌ [SERVER] updateProfession: Player not found for socket:', socket.id);
+        return;
+      }
+      
+      // Обновляем профессию игрока
+      player.profession = profession;
+      console.log('✅ [SERVER] Player profession updated:', { 
+        username: player.username, 
+        profession: profession.name,
+        socketId: socket.id 
+      });
+      
+      // Отправляем обновленный список игроков всем в комнате
+      // Создаем безопасную копию без циклических ссылок
+      const safePlayers = room.currentPlayers.map(createSafePlayerData);
+      io.to(roomId).emit('playersUpdate', safePlayers);
+      
+      // Сохраняем состояние комнаты
+      persistRooms();
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error in updateProfession:', error);
+    }
+  });
+
+  // Обработка обновления мечты игрока
+  socket.on('updateDream', (roomId, dream) => {
+    console.log('⭐ [SERVER] updateDream received:', { roomId, dream, socketId: socket.id });
+    
+    try {
+      const room = rooms[roomId];
+      if (!room) {
+        console.log('❌ [SERVER] updateDream: Room not found:', roomId);
+        return;
+      }
+      
+      // Находим игрока по socketId
+      const player = room.currentPlayers.find(p => p.socketId === socket.id);
+      if (!player) {
+        console.log('❌ [SERVER] updateDream: Player not found for socket:', socket.id);
+        return;
+      }
+      
+      // Обновляем мечту игрока
+      player.dream = dream;
+      console.log('✅ [SERVER] Player dream updated:', { 
+        username: player.username, 
+        dream: dream.name,
+        socketId: socket.id 
+      });
+      
+      // Отправляем обновленный список игроков всем в комнате
+      // Создаем безопасную копию без циклических ссылок
+      const safePlayers = room.currentPlayers.map(createSafePlayerData);
+      io.to(roomId).emit('playersUpdate', safePlayers);
+      
+      // Сохраняем состояние комнаты
+      persistRooms();
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error in updateDream:', error);
     }
   });
 
@@ -1808,6 +1971,15 @@ io.on('connection', (socket) => {
       if (typeof ack === 'function') ack(false, 'NO_ROOM');
       return;
     }
+    
+    // Проверяем, что только хост может запустить игру
+    const hostPlayer = room.currentPlayers.find(p => p.id === room.hostId);
+    if (!hostPlayer || hostPlayer.socketId !== socket.id) {
+      console.log('startGame: only host can start game', roomId, 'hostId:', room.hostId, 'hostSocketId:', hostPlayer?.socketId, 'currentSocketId:', socket.id);
+      if (typeof ack === 'function') ack(false, 'NOT_HOST');
+      return;
+    }
+    
     console.log('startGame requested', roomId, 'by', socket.id, 'players', room.currentPlayers.length, 'status', room.status);
     
     // Проверяем, что все игроки выбрали профессию
@@ -3315,7 +3487,10 @@ app.get('*', (req, res) => {
 
 // Запускаем сервер
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`🌐 Client URL: http://localhost:3000`);
+  console.log(`🔌 Socket.IO server ready`);
+  console.log(`🗄️ Database initialized and ready`);
   
   // Запускаем периодическую очистку старых комнат каждый час
   setInterval(() => {
@@ -3324,4 +3499,17 @@ server.listen(PORT, () => {
   }, 60 * 60 * 1000); // Каждый час (60 минут * 60 секунд * 1000 миллисекунд)
   
   console.log('⏰ [SERVER] Scheduled cleanup of old rooms every hour');
+});
+
+// Обработка завершения работы сервера
+process.on('SIGINT', () => {
+  console.log('\n🛑 Shutting down server...');
+  db.close();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('\n🛑 Shutting down server...');
+  db.close();
+  process.exit(0);
 });
