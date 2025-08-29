@@ -7,7 +7,7 @@ const SERVER_HOST = process.env.NODE_ENV === 'production' ? window.location.host
 // Базовый URL для сервера
 const baseUrl = process.env.NODE_ENV === 'production' 
   ? `${window.location.protocol}//${window.location.hostname}:${SERVER_PORT}`
-  : `http://${SERVER_HOST}:${SERVER_PORT}`;
+  : `http://${SERVER_HOST}:${SERVER_PORT}?v=${Date.now()}&cache=${Math.random()}&force=${Math.random()}&version=${window.CACHE_VERSION || Date.now()}&reload=${Date.now()}`;
 
 console.log('🔌 [Socket] Connecting to:', baseUrl);
 
@@ -23,8 +23,9 @@ const socket = io(baseUrl, {
   // Дополнительные настройки для стабильности
   autoConnect: true,
   query: {
-    client: 'energy-of-money-game',
-    version: '1.0.0'
+    client: 'potok-deneg-game',
+    version: '1.0.1',
+    timestamp: Date.now()
   },
   // Улучшенные настройки для стабильности
   pingTimeout: 60000,

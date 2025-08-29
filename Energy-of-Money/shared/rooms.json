@@ -18,71 +18,21 @@
   },
   "room1": {
     "roomId": "room1",
-    "displayName": "123",
-    "originalRequestedId": "456",
-    "maxPlayers": 2,
-    "currentPlayers": [],
-    "status": "waiting",
-    "password": "",
-    "hostId": "YUqRIXbEMpsgJNAeAAAL",
-    "timer": {
-      "hours": 3,
-      "remaining": 10800
-    },
-    "currentTurn": null,
-    "createdAt": 1756377024721,
-    "orderDetermination": null
-  },
-  "room3": {
-    "roomId": "room3",
-    "displayName": "199",
-    "originalRequestedId": "room_mevljwqh_iw1taa",
-    "maxPlayers": 2,
-    "currentPlayers": [],
-    "status": "waiting",
-    "password": "",
-    "hostId": "zpXhkTxHukUwX41pAAAd",
-    "timer": {
-      "hours": 3,
-      "remaining": 10800
-    },
-    "currentTurn": null,
-    "board": {
-      "cells": [
-        {
-          "id": 1,
-          "type": "income",
-          "title": "Зарплата",
-          "description": "Получите зарплату"
-        },
-        {
-          "id": 2,
-          "type": "expense",
-          "title": "Налоги",
-          "description": "Заплатите налоги"
-        }
-      ]
-    },
-    "createdAt": 1756397215157,
-    "orderDetermination": null
-  },
-  "room2": {
-    "roomId": "room2",
-    "displayName": "9889",
-    "originalRequestedId": "room_mevu12jx_89bifx",
+    "displayName": "555",
+    "originalRequestedId": "room_mewt08pe_b0odv0",
     "maxPlayers": 2,
     "currentPlayers": [
       {
-        "id": "Mag",
+        "id": "mag",
         "username": "Mag",
-        "socketId": "SgapmXswFgiPWLUiAAAF",
+        "socketId": "wkzDOVzu7oxftCvQAAAF",
         "offline": false,
         "ready": true
       }
     ],
     "status": "waiting",
     "password": "",
-    "hostId": "v2e9Ds-wsiUy5jttAAAD",
+    "hostId": "mag",
     "timer": {
       "hours": 3,
       "remaining": 10800
@@ -104,40 +54,7 @@
         }
       ]
     },
-    "createdAt": 1756411452741,
-    "orderDetermination": null
-  },
-  "room4": {
-    "roomId": "room4",
-    "displayName": "888",
-    "originalRequestedId": "room_mevtacqp_saxb8g",
-    "maxPlayers": 2,
-    "currentPlayers": [],
-    "status": "waiting",
-    "password": "",
-    "hostId": "yu1vkZkvcy7Ze9rBAAAD",
-    "timer": {
-      "hours": 3,
-      "remaining": 10800
-    },
-    "currentTurn": null,
-    "board": {
-      "cells": [
-        {
-          "id": 1,
-          "type": "income",
-          "title": "Зарплата",
-          "description": "Получите зарплату"
-        },
-        {
-          "id": 2,
-          "type": "expense",
-          "title": "Налоги",
-          "description": "Заплатите налоги"
-        }
-      ]
-    },
-    "createdAt": 1756410206219,
+    "createdAt": 1756470200605,
     "orderDetermination": null
   }
 }

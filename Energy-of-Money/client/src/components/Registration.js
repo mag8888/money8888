@@ -19,7 +19,7 @@ const Registration = ({ onRegister }) => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLogin, setIsLogin] = useState(false);
+  const [isLogin] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = (e) => {
@@ -36,6 +36,19 @@ const Registration = ({ onRegister }) => {
       return;
     }
 
+    // Проверяем уникальность username
+    socket.emit('checkUsernameUnique', username.trim(), (response) => {
+      if (!response.unique) {
+        setError('Пользователь с таким именем уже существует. Выберите другое имя.');
+        return;
+      }
+      
+      // Продолжаем с регистрацией
+      continueRegistration();
+    });
+  };
+
+  const continueRegistration = () => {
     if (!email.trim()) {
       setError('Введите email');
       return;
@@ -82,7 +95,7 @@ const Registration = ({ onRegister }) => {
         localStorage.setItem('energy_of_money_player_email', response.userData.email);
         
         if (response.isLogin) {
-          console.log('✅ [Registration] User logged in successfully:', playerData);
+          console.log('✅ [Registration] User registered successfully:', playerData);
         } else {
           console.log('✅ [Registration] User registered successfully:', playerData);
         }

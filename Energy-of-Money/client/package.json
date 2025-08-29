@@ -1,6 +1,6 @@
 {
   "name": "energy-of-money-client",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Клиентская часть приложения Energy-of-Money",
   "private": true,
   "dependencies": {

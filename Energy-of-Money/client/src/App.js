@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-rout
 import Registration from './components/Registration';
 import RoomSelection from './components/RoomSelection';
 import RoomSetup from './components/RoomSetup';
-import GameBoardRefactored from './components/GameBoardRefactored';
+import GameBoard from './components/GameBoard';
 import ErrorBoundary from './components/ErrorBoundary';
 import socket from './socket';
 
@@ -54,7 +54,7 @@ function AppRouter() {
   const GamePage = () => {
     const { roomId } = useParams();
     return (
-      <GameBoardRefactored 
+      <GameBoard 
         roomId={roomId}
         playerData={playerData}
         onExit={() => navigate('/')}

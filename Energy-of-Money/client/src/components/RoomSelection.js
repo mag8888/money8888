@@ -15,7 +15,6 @@ import {
   CardContent,
   CardActions,
   Avatar,
-  IconButton,
   Fab,
   Divider
 } from '@mui/material';
@@ -31,7 +30,8 @@ import {
 } from '@mui/icons-material';
 import socket from '../socket';
 
-const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
+const RoomSelection = ({ playerData, onRoomSelect, 
+  onLogout }) => {
   const [roomName, setRoomName] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
   const [professionType, setProfessionType] = useState('individual'); // 'individual' или 'shared'
@@ -151,17 +151,13 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
       setError('Введите название комнаты!');
       return;
     }
-    if (!selectedDream) {
-      setError('Сначала выберите мечту!');
-      return;
-    }
     if (!selectedProfession) {
       setError('Сначала выберите профессию!');
       return;
     }
-    
+
     if (!isReady) {
-      // При нажатии "Готов" создаем комнату и добавляем в список
+      // При нажатии "Готов" создаем комнату и сразу переходим в неё
       const roomId = generateRoomId();
       
       console.log('🚀 [RoomSelection] Creating room:', {
@@ -169,11 +165,11 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
         name: roomName.trim(),
         password: roomPassword,
         professionType,
-        dream: selectedDream
+        profession: selectedProfession
       });
       
-      // Создаем комнату на сервере
-      socket.emit('createRoom', roomId, 2, roomPassword, 3, roomName.trim(), professionType, selectedDream);
+      // Создаем комнату на сервере (передаем выбранную профессию)
+      socket.emit('createRoom', roomId, 2, roomPassword, 3, roomName.trim(), professionType, null, playerData.username, selectedProfession);
       
       // Сохраняем данные для последующей отправки
       setCreatedRoomData({
@@ -185,6 +181,13 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
       setIsReady(true);
       setError('');
       console.log('✅ [RoomSelection] Room creation initiated, waiting for server confirmation...');
+      
+      // Сразу переходим в комнату после создания
+      setTimeout(() => {
+        if (createdRoomData) {
+          onRoomSelect({ roomId: createdRoomData.roomId });
+        }
+      }, 1000);
     } else {
       // При отмене готовности
       setIsReady(false);
@@ -344,7 +347,7 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
 
       {/* Основной контент */}
       <Box sx={{ position: 'relative', zIndex: 1 }}>
-        {/* Заголовок */}
+      {/* Заголовок */}
         <motion.div
           initial={{ y: -50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -382,17 +385,17 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
               Energy of Money
             </Typography>
             
-            <Typography variant="h4" sx={{ 
+      <Typography variant="h4" sx={{
               color: 'rgba(255,255,255,0.85)', 
               mb: 3,
               fontWeight: 400,
               fontSize: { xs: '1.25rem', md: '1.5rem' },
               letterSpacing: '0.02em'
-            }}>
-              🏠 Выбор комнаты
-            </Typography>
-            
-            <Typography variant="h6" sx={{ 
+      }}>
+        🏠 Выбор комнаты
+      </Typography>
+
+            <Typography variant="h6" sx={{
               color: 'rgba(255,255,255,0.7)', 
               fontWeight: 300,
               fontSize: { xs: '1rem', md: '1.125rem' },
@@ -413,9 +416,9 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
           transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
         >
           <Box sx={{ 
-            display: 'flex', 
+              display: 'flex',
             justifyContent: 'space-between', 
-            alignItems: 'center', 
+              alignItems: 'center',
             mb: 6,
             p: 4,
             borderRadius: 4,
@@ -453,9 +456,9 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                     fontWeight: 700,
                     mb: 1,
                     letterSpacing: '0.01em'
-                  }}>
-                    👤 {playerData?.username || 'Игрок'}
-                  </Typography>
+            }}>
+              👤 {playerData?.username || 'Игрок'}
+            </Typography>
                   <Typography variant="body1" sx={{ 
                     color: 'rgba(255,255,255,0.75)',
                     fontSize: '1rem',
@@ -463,7 +466,7 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                     letterSpacing: '0.01em'
                   }}>
                     Добро пожаловать в игру!
-                  </Typography>
+            </Typography>
                 </Box>
               </Box>
             
@@ -597,7 +600,7 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                   borderRadius: 4,
                   px: 8,
                   py: 2.5,
-                  fontSize: '1.2rem',
+              fontSize: '1.2rem',
                   fontWeight: 700,
                   textTransform: 'none',
                   boxShadow: '0 8px 32px rgba(0, 212, 255, 0.3)',
@@ -649,38 +652,38 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                   letterSpacing: '-0.01em'
                 }}>
                   ✨ Создание новой комнаты
-                </Typography>
-                
+          </Typography>
+
                 {/* Название и пароль в одном ряду */}
                 <Box sx={{ mb: 4 }}>
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={8}>
-                      <TextField
-                        fullWidth
-                        label="Название комнаты"
-                        value={roomName}
-                        onChange={(e) => setRoomName(e.target.value)}
+          <TextField
+            fullWidth
+            label="Название комнаты"
+            value={roomName}
+            onChange={(e) => setRoomName(e.target.value)}
                         placeholder="Например: Моя первая игра"
                         helperText="Введите описательное название для игроков"
                         type="text"
                         autoComplete="off"
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
+            sx={{
+              '& .MuiOutlinedInput-root': {
                             borderRadius: 3,
                             fontSize: '1.1rem',
-                            '&.Mui-focused': {
+                '&.Mui-focused': {
                               '& .MuiOutlinedInput-notchedOutline': {
                                 borderColor: '#667eea',
                                 borderWidth: 2
                               }
                             }
-                          }
-                        }}
-                      />
+              }
+            }}
+          />
                     </Grid>
                     <Grid item xs={12} md={4}>
-                      <TextField
-                        fullWidth
+          <TextField
+            fullWidth
                         label="Пароль (необязательно)"
                         value={roomPassword}
                         onChange={(e) => setRoomPassword(e.target.value)}
@@ -688,24 +691,24 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                         helperText="Для закрытой комнаты"
                         type="password"
                         autoComplete="new-password"
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
+            sx={{
+              '& .MuiOutlinedInput-root': {
                             borderRadius: 3,
                             fontSize: '1.1rem',
-                            '&:hover': {
+                '&:hover': {
                               '& .MuiOutlinedInput-notchedOutline': {
                                 borderColor: '#667eea'
                               }
                             },
-                            '&.Mui-focused': {
+                '&.Mui-focused': {
                               '& .MuiOutlinedInput-notchedOutline': {
                                 borderColor: '#667eea',
                                 borderWidth: 2
-                              }
-                            }
-                          }
-                        }}
-                      />
+                }
+              }
+              }
+            }}
+          />
                     </Grid>
                   </Grid>
                 </Box>
@@ -725,7 +728,7 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                     {/* Строка 1: Индивидуальные профессии */}
                     <Box
                       onClick={() => setProfessionType('individual')}
-                      sx={{
+            sx={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -734,7 +737,7 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                         background: professionType === 'individual' ? '#f8f9fa' : '#ffffff',
                         borderBottom: '1px solid #e9ecef',
                         transition: 'all 0.2s ease',
-                        '&:hover': {
+              '&:hover': {
                           background: professionType === 'individual' ? '#e9ecef' : '#f8f9fa'
                         }
                       }}
@@ -743,8 +746,8 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                         <Typography variant="h6" sx={{ color: '#212529', fontWeight: 500 }}>
                           🎯 У каждого своя профессия
                         </Typography>
-                      </Box>
-                      <Box sx={{ 
+        </Box>
+        <Box sx={{
                         width: 20, 
                         height: 20, 
                         borderRadius: '50%',
@@ -770,8 +773,8 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                     <Box
                       onClick={() => setProfessionType('shared')}
                       sx={{
-                        display: 'flex',
-                        alignItems: 'center',
+            display: 'flex',
+            alignItems: 'center',
                         justifyContent: 'space-between',
                         p: 3,
                         cursor: 'pointer',
@@ -785,7 +788,7 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Typography variant="h6" sx={{ color: '#212529', fontWeight: 500 }}>
                           🤝 Одна профессия на всех
-                        </Typography>
+          </Typography>
                       </Box>
                       <Box sx={{ 
                         width: 20, 
@@ -817,8 +820,8 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                          ? 'Каждый игрок выбирает свою профессию индивидуально' 
                          : 'Все игроки используют одну общую профессию'
                        }
-                     </Typography>
-                   </Box>
+              </Typography>
+            </Box>
                  </Box>
 
                  {/* Выбор профессии хоста */}
@@ -827,31 +830,31 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                      💼 {professionType === 'shared' ? 'Профессия для всех игроков' : 'Ваша профессия'}
                    </Typography>
                    
-                   <Grid container spacing={2}>
+            <Grid container spacing={2}>
                      {professions.map((profession) => (
                        <Grid item xs={12} sm={6} key={profession.id}>
                          <Card
                            onClick={() => setSelectedProfession(profession)}
                            sx={{
-                             cursor: 'pointer',
+                        cursor: 'pointer',
                              border: selectedProfession?.id === profession.id ? '3px solid #667eea' : '1px solid #ddd',
                              transition: 'all 0.3s ease',
-                             '&:hover': {
-                               transform: 'translateY(-2px)',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
                                boxShadow: 3
-                             }
-                           }}
-                         >
-                           <CardContent sx={{ p: 2, textAlign: 'center' }}>
+                        }
+                      }}
+                      >
+                        <CardContent sx={{ p: 2, textAlign: 'center' }}>
                              <Typography variant="h3" sx={{ mb: 1 }}>
                                {profession.icon}
-                             </Typography>
+                          </Typography>
                              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
                                {profession.name}
-                             </Typography>
+                            </Typography>
                              <Typography variant="body2" sx={{ color: '#666', mb: 2 }}>
                                {profession.description}
-                             </Typography>
+                              </Typography>
                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                <Chip 
                                  label={`💰 $${profession.salary.toLocaleString()}`} 
@@ -865,7 +868,7 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                                  color="error" 
                                  sx={{ fontWeight: 'bold' }}
                                />
-                             </Box>
+                          </Box>
                            </CardContent>
                          </Card>
                        </Grid>
@@ -876,69 +879,21 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                      <Box sx={{ mt: 2, p: 2, bgcolor: '#e3f2fd', borderRadius: 2, textAlign: 'center' }}>
                        <Typography variant="body1" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
                          ✅ Выбрана профессия: {selectedProfession.name}
-                       </Typography>
-                     </Box>
-                   )}
+                              </Typography>
+                            </Box>
+                          )}
                  </Box>
 
-                {/* Выбор мечты */}
-                <Box sx={{ mb: 4 }}>
-                  <Typography variant="h6" sx={{ mb: 2, color: '#333', fontWeight: 600 }}>
-                    ⭐ Выберите свою мечту
-                  </Typography>
-                  <Grid container spacing={2}>
-                    {dreams.map((dream) => (
-                      <Grid item xs={12} sm={6} key={dream.id}>
-                        <Card
-                          onClick={() => handleDreamSelect(dream)}
-                          sx={{
-                            cursor: 'pointer',
-                            border: selectedDream?.id === dream.id ? '3px solid #667eea' : '1px solid #ddd',
-                            transition: 'all 0.3s ease',
-                            '&:hover': {
-                              transform: 'translateY(-2px)',
-                              boxShadow: 3
-                            }
-                          }}
-                        >
-                          <CardContent sx={{ p: 2, textAlign: 'center' }}>
-                            <Typography variant="h3" sx={{ mb: 1 }}>
-                              {dream.icon}
-                            </Typography>
-                            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                              {dream.name}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#666', mb: 2 }}>
-                              {dream.description}
-                            </Typography>
-                            <Chip 
-                              label={`🎯 $${dream.cost.toLocaleString()}`} 
-                              size="small" 
-                              color="primary" 
-                              sx={{ fontWeight: 'bold' }}
-                            />
-                          </CardContent>
-                        </Card>
-                      </Grid>
-                    ))}
-                  </Grid>
-                  {selectedDream && (
-                    <Box sx={{ mt: 2, p: 2, bgcolor: '#e3f2fd', borderRadius: 2, textAlign: 'center' }}>
-                      <Typography variant="body1" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
-                        ✅ Выбрана мечта: {selectedDream.name}
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
+                
 
                 {/* Информация об автоматической генерации ID */}
-                <Box sx={{
+            <Box sx={{
                   p: 4,
                   mb: 4,
                   background: 'linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%)',
                   borderRadius: 4,
                   border: '2px solid #4caf50',
-                  textAlign: 'center',
+              textAlign: 'center',
                   position: 'relative',
                   overflow: 'hidden'
                 }}>
@@ -953,7 +908,7 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                   }} />
                   
 
-                </Box>
+            </Box>
 
                 {error && (
                   <Alert severity="error" sx={{ mb: 4, borderRadius: 3 }}>
@@ -965,22 +920,22 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                 <Box sx={{ mb: 4, textAlign: 'center' }}>
                   <Grid container spacing={2} justifyContent="center">
                     <Grid item>
-                      <Button
+          <Button
                         variant={isReady ? "contained" : "outlined"}
                         size="large"
                         onClick={handleToggleReady}
-                        disabled={!selectedDream}
+                        disabled={!selectedProfession}
                         startIcon={isReady ? "✅" : "⏳"}
-                        sx={{
+            sx={{
                           borderRadius: 3,
                           px: 4,
-                          py: 1.5,
+              py: 1.5,
                           fontSize: '1.1rem',
-                          fontWeight: 'bold',
+              fontWeight: 'bold',
                           ...(isReady ? {
                             background: 'linear-gradient(135deg, #4caf50 0%, #66bb6a 100%)',
                             color: 'white',
-                            '&:hover': {
+              '&:hover': {
                               background: 'linear-gradient(135deg, #45a049 0%, #4caf50 100%)'
                             }
                           } : {
@@ -994,24 +949,24 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                         }}
                       >
                         {isReady ? 'Готов! В комнате' : 'Готов'}
-                      </Button>
+          </Button>
                     </Grid>
                     <Grid item>
-                      <Button
+          <Button
                         variant="contained"
                         size="large"
                         onClick={handleCreateRoom}
                                                  disabled={!isReady}
                         startIcon="🚀"
-                        sx={{
+            sx={{
                           background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
                           color: 'white',
                           borderRadius: 3,
                           px: 4,
-                          py: 1.5,
+              py: 1.5,
                           fontSize: '1.1rem',
-                          fontWeight: 'bold',
-                          '&:hover': {
+              fontWeight: 'bold',
+              '&:hover': {
                             background: 'linear-gradient(135deg, #f57c00 0%, #ef6c00 100%)',
                             transform: 'translateY(-2px)',
                             boxShadow: '0 8px 25px rgba(255, 152, 0, 0.4)'
@@ -1024,13 +979,13 @@ const RoomSelection = ({ playerData, onRoomSelect, onLogout }) => {
                         }}
                       >
                         Старт
-                      </Button>
+          </Button>
                     </Grid>
                   </Grid>
-                </Box>
+        </Box>
 
 
-              </Paper>
+      </Paper>
             </motion.div>
           )}
         </AnimatePresence>

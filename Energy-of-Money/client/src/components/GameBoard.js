@@ -1,32 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Avatar, Button } from '@mui/material';
 import CasinoIcon from '@mui/icons-material/Casino';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import EuroIcon from '@mui/icons-material/Euro';
 import HomeIcon from '@mui/icons-material/Home';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import BalanceIcon from '@mui/icons-material/Balance';
-import ChildCareIcon from '@mui/icons-material/ChildCare';
-import StoreIcon from '@mui/icons-material/Store';
-import BusinessIcon from '@mui/icons-material/Business';
-import AutorenewIcon from '@mui/icons-material/Autorenew';
-import MoneyOffIcon from '@mui/icons-material/MoneyOff';
-import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
-import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import GavelIcon from '@mui/icons-material/Gavel';
-import BuildIcon from '@mui/icons-material/Build';
-import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
-import SchoolIcon from '@mui/icons-material/School';
-import LocalPoliceIcon from '@mui/icons-material/LocalPolice';
-import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
-import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
-import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import LocalCafeIcon from '@mui/icons-material/LocalCafe';
 import SpaIcon from '@mui/icons-material/Spa';
-import AcUnitIcon from '@mui/icons-material/AcUnit';
 import PhoneAndroidIcon from '@mui/icons-material/PhoneAndroid';
 import CampaignIcon from '@mui/icons-material/Campaign';
 import WarningIcon from '@mui/icons-material/Warning';
@@ -34,6 +13,8 @@ import HotelIcon from '@mui/icons-material/Hotel';
 import LandscapeIcon from '@mui/icons-material/Landscape';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import FlightIcon from '@mui/icons-material/Flight';
+import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
+import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 
@@ -197,8 +178,7 @@ const GameBoard = ({ roomId, socket, user, onExit }) => {
   const [displayDice, setDisplayDice] = useState(0);
   const [displayD1, setDisplayD1] = useState(0);
   const [displayD2, setDisplayD2] = useState(0);
-  const [isMoving, setIsMoving] = useState(false);
-  const [displayPositions, setDisplayPositions] = useState({});
+
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
   const [canEndTurn, setCanEndTurn] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
@@ -283,20 +263,14 @@ const GameBoard = ({ roomId, socket, user, onExit }) => {
     const player = players.find(p => p.id === playerId);
     if (!player) return;
 
-    setIsMoving(true);
     let currentPos = player.position || 0;
     
     const moveStep = () => {
       if (steps > 0) {
         currentPos = (currentPos + 1) % BOARD_CONFIG.cells.length;
-        setDisplayPositions(prev => ({
-          ...prev,
-          [playerId]: currentPos
-        }));
         steps--;
         setTimeout(moveStep, 500);
       } else {
-        setIsMoving(false);
         // Отправляем событие о достижении клетки
         socket.emit('player_moved', { roomId, playerId, cellId: currentPos + 1 });
       }
