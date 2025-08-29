@@ -198,3 +198,4 @@ node db-manager.js help
 // Включить детальное логирование SQL
 const db = new Database(dbPath, { verbose: console.log });
 ```
+

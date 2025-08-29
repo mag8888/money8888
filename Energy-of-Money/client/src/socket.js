@@ -11,21 +11,22 @@ const baseUrl = process.env.NODE_ENV === 'production'
 
 console.log('🔌 [Socket] Connecting to:', baseUrl);
 
-// Добавляем небольшую задержку перед подключением
+// Настройки для стабильного подключения
 const socket = io(baseUrl, {
   transports: ['websocket', 'polling'],
   reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
-  timeout: 10000,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 2000,
+  reconnectionDelayMax: 10000,
+  timeout: 20000,
   autoConnect: false // Не подключаемся автоматически
 });
 
-// Подключаемся с небольшой задержкой
+// Подключаемся с задержкой для стабильности
 setTimeout(() => {
   socket.connect();
   console.log('🔌 [Socket] Attempting connection after delay...');
-}, 1000);
+}, 2000);
 
 // Диагностика подключения
 socket.on('connect', () => {
@@ -36,17 +37,7 @@ socket.on('connect', () => {
   });
 });
 
-// Добавляем обработчик для отладки
-socket.on('connect_error', (error) => {
-  console.error('❌ [Socket] Connection error details:', {
-    message: error.message,
-    description: error.description,
-    context: error.context,
-    server: baseUrl,
-    error: error
-  });
-});
-
+// Обработчик ошибок подключения
 socket.on('connect_error', (error) => {
   console.error('❌ [Socket] Connection error:', {
     message: error.message,

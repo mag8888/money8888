@@ -102,18 +102,50 @@ const getUserByEmail = (email) => {
 
 // Функция для проверки пароля пользователя
 const checkUserPassword = (userData, password) => {
-  return userData.password === password; // В реальном приложении сравнивать хеши
+  // Убираем проверку пароля - всегда возвращаем true
+  return true;
 };
 
 // Функция для получения пользователя по ID
 const getUserById = (userId) => {
-  return users.get(userId);
+  // Сначала ищем в памяти
+  const user = users.get(userId);
+  if (user) {
+    return user;
+  }
+  
+  // Если не найден в памяти, ищем в базе данных
+  const dbUser = db.getUserById(userId);
+  if (dbUser) {
+    // Добавляем пользователя в память для быстрого доступа
+    users.set(dbUser.id, dbUser);
+    usernameToUserId.set(dbUser.username.toLowerCase(), dbUser.id);
+    console.log(`✅ [SERVER] User loaded from DB to memory by ID: ${userId}`);
+    return dbUser;
+  }
+  
+  return null;
 };
 
 // Функция для получения пользователя по username
 const getUserByUsername = (username) => {
+  // Сначала ищем в памяти
   const userId = usernameToUserId.get(username.toLowerCase());
-  return userId ? users.get(userId) : null;
+  if (userId && users.get(userId)) {
+    return users.get(userId);
+  }
+  
+  // Если не найден в памяти, ищем в базе данных
+  const dbUser = db.getUserByUsername(username);
+  if (dbUser) {
+    // Добавляем пользователя в память для быстрого доступа
+    users.set(dbUser.id, dbUser);
+    usernameToUserId.set(dbUser.username.toLowerCase(), dbUser.id);
+    console.log(`✅ [SERVER] User loaded from DB to memory: ${username}`);
+    return dbUser;
+  }
+  
+  return null;
 };
 
 // Функция для получения username по socketId
@@ -143,6 +175,30 @@ const updateUserSocketId = (userId, socketId) => {
     console.log(`✅ [SERVER] Updated socketId for user ${user.username}: ${socketId}`);
   } else {
     console.log(`❌ [SERVER] User not found for userId: ${userId}`);
+  }
+};
+
+// Функция для обновления пароля пользователя
+const updateUserPassword = (userId, newPassword) => {
+  console.log(`🔐 [SERVER] updateUserPassword called: userId=${userId}`);
+  
+  // Обновляем в БД
+  const dbSuccess = db.updateUserPassword(userId, newPassword);
+  
+  if (dbSuccess) {
+    // Также обновляем в памяти для обратной совместимости
+    const user = users.get(userId);
+    if (user) {
+      user.password = newPassword;
+      users.set(userId, user);
+      console.log(`✅ [SERVER] Updated password for user ${user.username} in memory`);
+    }
+    
+    console.log(`✅ [SERVER] Password updated successfully for user ID: ${userId}`);
+    return true;
+  } else {
+    console.log(`❌ [SERVER] Failed to update password in DB for user ID: ${userId}`);
+    return false;
   }
 };
 
@@ -353,8 +409,8 @@ const io = socketIo(server, {
   pingInterval: 25000,
   connectTimeout: 45000,
   maxHttpBufferSize: 1e8,
+  // Убираем логирование каждого подключения для стабильности
   allowRequest: (req, callback) => {
-    console.log('🔌 [SERVER] Socket.IO connection request from:', req.headers.origin || 'unknown');
     callback(null, true);
   }
 });
@@ -676,24 +732,18 @@ function ensureDefaultRoom() {
     createDefaultRoom();
   }
   
-  // Мигрируем существующие данные в БД
-  db.migrateExistingData(users, rooms);
+  // Убираем тяжелые операции - они не нужны при каждом вызове
+  // db.migrateExistingData(users, rooms);
+  // forceCleanupAllRooms();
+  // fixHostIdInRooms();
+  // cleanupOldRooms();
   
-  // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ВО ВСЕХ КОМНАТАХ
+  // Только базовая очистка гостевых игроков
   Object.values(rooms).forEach(room => {
     if (room && room.currentPlayers) {
       cleanupGuestPlayers(room);
     }
   });
-  
-  // Принудительно очищаем все комнаты с сгенерированными именами
-  forceCleanupAllRooms();
-  
-  // Исправляем hostId во всех комнатах
-  fixHostIdInRooms();
-  
-  // Очищаем старые комнаты (старше 4 часов)
-  cleanupOldRooms();
 }
 // Функция принудительной очистки всех старых комнат
 const forceCleanupAllRooms = () => {
@@ -955,23 +1005,34 @@ const cleanupGuestPlayers = (room) => {
 
 // Initial default room load or create
 loadRooms();
+
+// Выполняем тяжелые операции только один раз при запуске сервера
+console.log('🚀 [SERVER] Starting server initialization...');
+
+// Миграция данных
+db.migrateExistingData(users, rooms);
+
+// Создаем дефолтную комнату
 ensureDefaultRoom();
 
+// Тяжелые операции очистки
+forceCleanupAllRooms();
+fixHostIdInRooms();
+cleanupOldRooms();
+
+console.log('✅ [SERVER] Server initialization completed');
+
 io.on('connection', (socket) => {
-  console.log('New client connected', socket.id);
-  console.log('🔌 [SERVER] Socket.IO connection details:', {
-    id: socket.id,
-    transport: socket.conn.transport.name,
-    headers: socket.handshake.headers
-  });
-  ensureDefaultRoom();
+  console.log('✅ [SERVER] New client connected:', socket.id);
   
-  // Добавляем логирование для проверки событий
-  console.log(`🔍 [SERVER] Socket ${socket.id} connected, waiting for events...`);
+  // Убираем тяжелые операции при каждом подключении для стабильности
+  // ensureDefaultRoom();
   
-  // Логируем все события для отладки
+  // Логируем только важные события
   socket.onAny((eventName, ...args) => {
-    console.log(`📡 [SERVER] Event received: ${eventName} from socket ${socket.id}`, args);
+    if (eventName !== 'getRoomsList') { // Не логируем частые запросы списка комнат
+      console.log(`📡 [SERVER] Event: ${eventName} from socket ${socket.id}`);
+    }
   });
   
   // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ПРИ ПОДКЛЮЧЕНИИ НОВОГО КЛИЕНТА
@@ -2731,9 +2792,10 @@ io.on('connection', (socket) => {
   });
 
   socket.on('getRooms', () => {
-    ensureDefaultRoom();
+    // Убираем тяжелые операции - только базовая очистка
+    // ensureDefaultRoom();
     
-    // ПОЛНАЯ ОЧИСТКА ГОСТЕВЫХ И ТЕСТОВЫХ ИГРОКОВ ПЕРЕД ОТПРАВКОЙ СПИСКА
+    // Только очистка гостевых игроков
     Object.values(rooms).forEach(room => {
       if (room && room.currentPlayers) {
         cleanupGuestPlayers(room);
@@ -2980,7 +3042,8 @@ io.on('connection', (socket) => {
         socketId: socket.id
       });
       
-      if (!username || username.trim().length < 2) {
+      // Проверяем username только если он передан (для новых пользователей)
+      if (username && (!username.trim() || username.trim().length < 2)) {
         callback({ success: false, error: 'Имя должно содержать минимум 2 символа' });
         return;
       }
@@ -2990,12 +3053,12 @@ io.on('connection', (socket) => {
         return;
       }
       
-      if (!password || password.trim().length < 6) {
-        callback({ success: false, error: 'Пароль должен содержать минимум 6 символов' });
-        return;
-      }
+      // Убираем проверку пароля - пароль не обязателен
+      // if (!password || password.trim().length < 6) {
+      //   callback({ success: false, error: 'Пароль должен содержать минимум 6 символов' });
+      //   return;
+      // }
       
-      const trimmedUsername = username.trim();
       const trimmedEmail = email.trim();
       const trimmedPassword = password.trim();
       
@@ -3026,6 +3089,14 @@ io.on('connection', (socket) => {
         }
       } else {
         // Пользователь не найден - регистрируем нового
+        
+        // Проверяем, что username передан для новых пользователей
+        if (!username) {
+          callback({ success: false, error: 'Имя обязательно для регистрации' });
+          return;
+        }
+        
+        const trimmedUsername = username.trim();
         
         // Проверяем уникальность username
         if (!isUsernameUnique(trimmedUsername)) {
@@ -3067,6 +3138,74 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Проверка существования пользователя по email
+  socket.on('checkUserExists', (email, callback) => {
+    try {
+      console.log(`🔍 [SERVER] Checking if user exists with email: ${email}`);
+      const existingUser = getUserByEmail(email);
+      const exists = existingUser !== null;
+      console.log(`🔍 [SERVER] User exists: ${exists}`);
+      callback({ exists });
+    } catch (error) {
+      console.error(`❌ [SERVER] Error checking user existence:`, error);
+      callback({ exists: false, error: 'Ошибка проверки пользователя' });
+    }
+  });
+
+  // Восстановление пароля
+  socket.on('resetPassword', async (email, callback) => {
+    try {
+      console.log(`🔐 [SERVER] Password reset requested for email: ${email}`);
+      
+      // Проверяем, существует ли пользователь с таким email
+      const existingUser = getUserByEmail(email);
+      if (!existingUser) {
+        console.log(`❌ [SERVER] Password reset failed: user not found with email: ${email}`);
+        callback({ success: false, error: 'Пользователь с таким email не найден' });
+        return;
+      }
+      
+      // Генерируем новый пароль
+      const { generateRandomPassword } = require('./email-service');
+      const newPassword = generateRandomPassword(10);
+      
+      // Обновляем пароль в базе данных
+      const passwordUpdated = updateUserPassword(existingUser.id, newPassword);
+      if (!passwordUpdated) {
+        console.log(`❌ [SERVER] Password reset failed: could not update password in database`);
+        callback({ success: false, error: 'Ошибка обновления пароля в базе данных' });
+        return;
+      }
+      
+      // Отправляем email с новым паролем
+      const { sendPasswordResetEmail } = require('./email-service');
+      const emailResult = await sendPasswordResetEmail(
+        existingUser.email, 
+        existingUser.username, 
+        newPassword
+      );
+      
+      if (emailResult.success) {
+        console.log(`✅ [SERVER] Password reset successful for user: ${existingUser.username} (${existingUser.email})`);
+        callback({ 
+          success: true, 
+          message: 'Новый пароль отправлен на ваш email',
+          username: existingUser.username
+        });
+      } else {
+        console.log(`❌ [SERVER] Password reset failed: email sending failed`);
+        callback({ 
+          success: false, 
+          error: 'Пароль обновлен, но не удалось отправить email. Обратитесь к администратору.' 
+        });
+      }
+      
+    } catch (error) {
+      console.error(`❌ [SERVER] Error in password reset:`, error);
+      callback({ success: false, error: 'Внутренняя ошибка сервера при восстановлении пароля' });
+    }
+  });
+
   // Получение данных пользователя по ID
   socket.on('getUserData', (userId, callback) => {
     const userData = getUserById(userId);
@@ -3085,7 +3224,7 @@ io.on('connection', (socket) => {
 
   // Обработчик отключения клиента
   socket.on('disconnect', () => {
-    console.log(`❌ Client disconnected: ${socket.id}`);
+    console.log(`🔌 [SERVER] Client disconnected: ${socket.id}`);
     
     // Находим все комнаты, где был этот игрок
     Object.keys(rooms).forEach(roomId => {
