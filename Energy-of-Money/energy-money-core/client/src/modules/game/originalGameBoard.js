@@ -1,0 +1,185 @@
+// 🎯 GameBoard - Игровое поле CASHFLOW (ОРИГИНАЛ)
+// Загружено без изменений из репозитория: https://github.com/mag8888/energy/blob/initial-upload/modules/game/gameBoard.js
+
+export class GameBoard {
+  constructor(roomId) {
+    this.roomId = roomId;
+    this.cells = this.createBoard();
+    this.currentPlayer = null;
+    this.gameEngine = null;
+  }
+
+  // Создать игровое поле (ОРИГИНАЛ)
+  createBoard() {
+    const cells = [];
+    
+    // Создаем 40 клеток (как в оригинале)
+    for (let i = 0; i < 40; i++) {
+      cells.push({
+        id: i,
+        type: this.getCellType(i),
+        name: this.getCellName(i),
+        description: this.getCellDescription(i),
+        action: this.getCellAction(i),
+        color: this.getCellColor(i)
+      });
+    }
+    
+    return cells;
+  }
+
+  // Определить тип клетки (ОРИГИНАЛ)
+  getCellType(position) {
+    if (position === 0) return 'start';
+    if (position % 10 === 0) return 'payday';
+    if (position % 7 === 0) return 'deal';
+    if (position % 5 === 0) return 'market';
+    if (position % 3 === 0) return 'charity';
+    if (position % 2 === 0) return 'expense';
+    return 'opportunity';
+  }
+
+  // Получить название клетки (ОРИГИНАЛ)
+  getCellName(position) {
+    const names = {
+      0: 'Старт',
+      10: 'Зарплата',
+      20: 'Зарплата',
+      30: 'Зарплата',
+      7: 'Сделка',
+      14: 'Сделка',
+      21: 'Сделка',
+      28: 'Сделка',
+      35: 'Сделка',
+      5: 'Рынок',
+      15: 'Рынок',
+      25: 'Рынок',
+      3: 'Благотворительность',
+      6: 'Благотворительность',
+      9: 'Благотворительность',
+      12: 'Благотворительность',
+      18: 'Благотворительность',
+      24: 'Благотворительность',
+      27: 'Благотворительность',
+      33: 'Благотворительность',
+      36: 'Благотворительность',
+      39: 'Благотворительность'
+    };
+    
+    return names[position] || `Клетка ${position}`;
+  }
+
+  // Получить описание клетки (ОРИГИНАЛ)
+  getCellDescription(position) {
+    const descriptions = {
+      0: 'Начальная позиция. Получите $2000',
+      10: 'Получите зарплату $2000',
+      20: 'Получите зарплату $2000',
+      30: 'Получите зарплату $2000',
+      7: 'Возможность для сделки',
+      14: 'Возможность для сделки',
+      21: 'Возможность для сделки',
+      28: 'Возможность для сделки',
+      35: 'Возможность для сделки'
+    };
+    
+    return descriptions[position] || 'Стандартная клетка';
+  }
+
+  // Получить действие клетки (ОРИГИНАЛ)
+  getCellAction(position) {
+    const actions = {
+      0: 'start_game',
+      10: 'receive_salary',
+      20: 'receive_salary',
+      30: 'receive_salary',
+      7: 'deal_opportunity',
+      14: 'deal_opportunity',
+      21: 'deal_opportunity',
+      28: 'deal_opportunity',
+      35: 'deal_opportunity'
+    };
+    
+    return actions[position] || 'move';
+  }
+
+  // Получить цвет клетки (ОРИГИНАЛ)
+  getCellColor(position) {
+    const colors = {
+      0: '#4CAF50',    // Зеленый - старт
+      10: '#2196F3',   // Синий - зарплата
+      20: '#2196F3',
+      30: '#2196F3',
+      7: '#FF9800',    // Оранжевый - сделки
+      14: '#FF9800',
+      21: '#FF9800',
+      28: '#FF9800',
+      35: '#FF9800',
+      5: '#9C27B0',    // Фиолетовый - рынок
+      15: '#9C27B0',
+      25: '#9C27B0'
+    };
+    
+    return colors[position] || '#E0E0E0'; // Серый по умолчанию
+  }
+
+  // Получить информацию о клетке (ОРИГИНАЛ)
+  getCellInfo(position) {
+    if (position < 0 || position >= this.cells.length) {
+      return null;
+    }
+    return this.cells[position];
+  }
+
+  // Получить все клетки (ОРИГИНАЛ)
+  getAllCells() {
+    return this.cells;
+  }
+
+  // Переместить игрока (ОРИГИНАЛ)
+  movePlayer(playerId, steps) {
+    // Оригинальная логика без изменений
+    const newPosition = steps % 40; // 40 клеток на поле (оригинал)
+    
+    // Получаем информацию о новой клетке
+    const cellInfo = this.getCellInfo(newPosition);
+    
+    return {
+      playerId,
+      oldPosition: 0,
+      newPosition,
+      cellInfo,
+      action: cellInfo.action
+    };
+  }
+
+  // Получить соседние клетки (ОРИГИНАЛ)
+  getNeighborCells(position, range = 3) {
+    const neighbors = [];
+    
+    for (let i = -range; i <= range; i++) {
+      if (i === 0) continue; // Пропускаем текущую позицию
+      
+      const neighborPos = (position + i + 40) % 40; // 40 клеток на поле (оригинал)
+      neighbors.push({
+        position: neighborPos,
+        ...this.getCellInfo(neighborPos)
+      });
+    }
+    
+    return neighbors;
+  }
+
+  // Оригинальные методы без изменений
+  getTotalCells() {
+    return 40; // Оригинальное количество
+  }
+
+  getBoardSize() {
+    return {
+      width: 8,
+      height: 5,
+      total: 40
+    };
+  }
+}

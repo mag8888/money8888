@@ -114,7 +114,7 @@ const AnimatedCell = ({
       transition={{
         duration: 0.3,
         delay: index * 0.02,
-        ease: "easeOutBounce"
+        ease: "easeOut"
       }}
       whileHover={{ 
         scale: 1.1,
@@ -161,7 +161,7 @@ const AnimatedCell = ({
             rotate: isHovered ? 360 : 0,
             scale: isHovered ? 1.2 : 1
           }}
-          transition={{ duration: 0.5, ease: "easeOutBounce" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
           style={{ fontSize: sizeStyles.fontSize === '10px' ? '16px' : '20px', marginBottom: '4px' }}
         >
           {cell.icon}
@@ -189,7 +189,7 @@ const AnimatedCell = ({
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeOutBounce" }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
               style={{
                 position: 'absolute',
                 top: -8,

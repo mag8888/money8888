@@ -134,7 +134,7 @@ export const CASHFLOW_THEME = {
       easeOut: 'easeOut',
       easeIn: 'easeIn',
       easeInOut: 'easeInOut',
-      bounce: 'easeOutBounce'
+      bounce: 'easeOut'
     }
   },
   

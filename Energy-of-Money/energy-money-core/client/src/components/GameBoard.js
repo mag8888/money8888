@@ -23,6 +23,14 @@ import { CASHFLOW_THEME, COMPONENT_STYLES } from '../styles/cashflow-theme';
 import AnimatedCell from './AnimatedCell';
 import StylishControlPanel from './StylishControlPanel';
 
+// 🎮 Интеграция модулей CASHFLOW
+import { 
+  getGameBoard, 
+  processGameAction, 
+  getCellInfo,
+  getNeighborCells 
+} from '../modules/index.js';
+
 // Импортируем конфигурацию Cashflow
 import { CELL_CONFIG, PLAYER_COLORS } from '../data/gameCells';
 
@@ -35,7 +43,7 @@ const BOARD_CONFIG = {
   // Внутренний круг - 24 клетки (Крысиные Бега)
   innerCircle: CELL_CONFIG.innerCircle,
   
-  // Внешний квадрат - 56 клеток (Быстрый Путь)
+  // Внешний квадрат - 50 клеток (Быстрый Путь)
   outerSquare: CELL_CONFIG.outerSquare,
   
   // Объединяем все клетки для рендеринга
@@ -48,12 +56,24 @@ const BOARD_CONFIG = {
   
   // Получаем общее количество клеток
   getTotalCells: function() {
-    return this.innerCircle.length + this.outerSquare.length; // 24 + 52 = 76
+    return this.innerCircle.length + this.outerSquare.length; // 24 + 50 = 74
   }
 };
 
 const GameBoard = ({ roomId, playerData, onExit }) => {
   console.log('🎮 [GameBoard] Компонент загружен:', { roomId, playerData });
+  console.log('🎮 [GameBoard] Модули CASHFLOW импортированы:', { 
+    getGameBoard: typeof getGameBoard, 
+    processGameAction: typeof processGameAction,
+    getCellInfo: typeof getCellInfo,
+    getNeighborCells: typeof getNeighborCells 
+  });
+  
+  // Проверяем BOARD_CONFIG
+  console.log('🎮 [GameBoard] BOARD_CONFIG загружен:', BOARD_CONFIG);
+  console.log('🎮 [GameBoard] CELL_CONFIG загружен:', CELL_CONFIG);
+  console.log('🎮 [GameBoard] Внутренний круг клеток:', BOARD_CONFIG.innerCircle?.length);
+  console.log('🎮 [GameBoard] Внешний квадрат клеток:', BOARD_CONFIG.outerSquare?.length);
   
   const [players, setPlayers] = useState([]);
   const [currentTurn, setCurrentTurn] = useState(null);
@@ -75,6 +95,36 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
     console.log('🎮 [GameBoard] Состояние изменилось:', { gameStarted, gamePhase });
   }, [gameStarted, gamePhase]);
   
+  // 🎮 Инициализация игрового поля CASHFLOW
+  useEffect(() => {
+    console.log('🎮 [GameBoard] Инициализируем игровое поле CASHFLOW для комнаты:', roomId);
+    console.log('🎮 [GameBoard] Проверяем доступность модулей CASHFLOW...');
+    
+    try {
+      // Проверяем, что модули доступны
+      console.log('🎮 [GameBoard] getGameBoard доступен:', typeof getGameBoard);
+      console.log('🎮 [GameBoard] getCellInfo доступен:', typeof getCellInfo);
+      
+      // Получаем или создаем игровое поле для комнаты
+      const cashflowGameBoard = getGameBoard(roomId);
+      console.log('✅ [GameBoard] Игровое поле CASHFLOW готово:', cashflowGameBoard);
+      
+      // Получаем информацию о клетках
+      const cell0 = getCellInfo(roomId, 0);
+      const cell10 = getCellInfo(roomId, 10);
+      console.log('🎯 [GameBoard] Информация о клетках:', { cell0, cell10 });
+      
+      // Проверяем BOARD_CONFIG
+      console.log('🎮 [GameBoard] BOARD_CONFIG:', BOARD_CONFIG);
+      console.log('🎮 [GameBoard] Количество клеток:', BOARD_CONFIG.getTotalCells());
+      console.log('🎮 [GameBoard] Внутренний круг:', BOARD_CONFIG.innerCircle?.length);
+      console.log('🎮 [GameBoard] Внешний квадрат:', BOARD_CONFIG.outerSquare?.length);
+      
+    } catch (error) {
+      console.error('❌ [GameBoard] Ошибка инициализации CASHFLOW:', error);
+    }
+  }, [roomId]);
+
   // Инициализация компонента при загрузке
   useEffect(() => {
     console.log('🎮 [GameBoard] Компонент загружен, инициализируем игровое поле');
@@ -199,7 +249,35 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
     if (!isMyTurn() || isRolling) return;
     
     setIsRolling(true);
-    socket.emit('roll_dice', { roomId, playerId: playerData.id });
+    
+    // 🎮 Обработка броска кубика через модули CASHFLOW
+    try {
+      const dice1 = Math.floor(Math.random() * 6) + 1;
+      const dice2 = Math.floor(Math.random() * 6) + 1;
+      const total = dice1 + dice2;
+      
+      console.log('🎲 [GameBoard] Бросок кубика:', { dice1, dice2, total });
+      
+      // Обрабатываем через модули CASHFLOW
+      const result = processGameAction(roomId, playerData.id, 'roll_dice', { steps: total });
+      
+      if (result.success) {
+        console.log('✅ [GameBoard] Бросок кубика обработан через CASHFLOW:', result);
+        showToast(`🎲 Выпало: ${dice1} + ${dice2} = ${total}`, 'success');
+        
+        // Отправляем событие на сервер
+        socket.emit('roll_dice', { roomId, playerId: playerData.id, steps: total });
+      } else {
+        console.error('❌ [GameBoard] Ошибка обработки броска:', result.error);
+        showToast('❌ Ошибка обработки броска', 'error');
+      }
+    } catch (error) {
+      console.error('❌ [GameBoard] Ошибка CASHFLOW модулей:', error);
+      showToast('❌ Ошибка игровой логики', 'error');
+    } finally {
+      // Сбрасываем состояние через 2 секунды
+      setTimeout(() => setIsRolling(false), 2000);
+    }
   };
 
   const isMyTurn = () => {
@@ -266,6 +344,13 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
   };
 
   const renderCell = (cell, index) => {
+    console.log('🎮 [GameBoard] renderCell вызван:', { cell, index });
+    
+    if (!cell) {
+      console.error('❌ [GameBoard] renderCell: cell не определен');
+      return <Box sx={{ width: 60, height: 60, bgcolor: 'red' }}>Error</Box>;
+    }
+    
     const playerAtCell = players.find(p => (p.position || 0) === index);
     const playerColor = playerAtCell ? PLAYER_COLORS[players.indexOf(playerAtCell) % PLAYER_COLORS.length] : '#FF6B6B';
 
@@ -552,7 +637,7 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
             color: 'rgba(255,255,255,0.8)',
             fontWeight: '300'
           }}>
-            76 клеток • 24 по кругу + 52 по периметру
+            74 клетки • 24 по кругу + 50 по периметру
           </Typography>
         </Box>
       </motion.div>
@@ -567,7 +652,7 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
           boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
           border: `2px solid ${CASHFLOW_THEME.colors.board.border}`
         }}>
-          {/* Внешний квадрат - 52 клетки */}
+          {/* Внешний квадрат - 50 клеток */}
           <Box
             sx={{
               display: 'grid',
@@ -577,7 +662,7 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
             }}
           >
             {/* Верхний ряд (1-15) */}
-            {BOARD_CONFIG.outerSquare.slice(0, 15).map((cell, index) => (
+            {BOARD_CONFIG.outerSquare?.slice(0, 15).map((cell, index) => (
               <Box key={`top-${index}`} sx={{ width: 70, height: 70 }}>
                 {renderCell(cell, index)}
               </Box>
@@ -595,7 +680,7 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
                 gap: 2
               }}
             >
-              {BOARD_CONFIG.outerSquare.slice(15, 27).map((cell, index) => (
+              {BOARD_CONFIG.outerSquare?.slice(15, 27).map((cell, index) => (
                 <Box key={`right-${index}`} sx={{ width: 70, height: 70 }}>
                   {renderCell(cell, index + 15)}
                 </Box>
@@ -613,7 +698,7 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
                 gap: 2
               }}
             >
-              {BOARD_CONFIG.outerSquare.slice(27, 39).map((cell, index) => (
+              {BOARD_CONFIG.outerSquare?.slice(27, 39).map((cell, index) => (
                 <Box key={`bottom-${index}`} sx={{ width: 70, height: 70 }}>
                   {renderCell(cell, index + 27)}
                 </Box>
@@ -631,7 +716,7 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
                 gap: 2
               }}
             >
-              {BOARD_CONFIG.outerSquare.slice(39, 52).map((cell, index) => (
+              {BOARD_CONFIG.outerSquare?.slice(39, 50).map((cell, index) => (
                 <Box key={`left-${index}`} sx={{ width: 70, height: 70 }}>
                   {renderCell(cell, index + 39)}
                 </Box>
@@ -667,7 +752,7 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
               }}
             >
               {/* Размещаем 24 клетки по кругу */}
-              {BOARD_CONFIG.innerCircle.map((cell, index) => {
+              {BOARD_CONFIG.innerCircle?.map((cell, index) => {
                 const angle = (index * 15) - 90; // Начинаем сверху
                 const radius = 180;
                 const x = Math.cos((angle * Math.PI) / 180) * radius;
@@ -681,7 +766,7 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
                                           transition={{ 
                         duration: 0.5, 
                         delay: index * 0.05,
-                        ease: "easeOutBounce"
+                        ease: "easeOut"
                       }}
                     style={{
                       position: 'absolute',
