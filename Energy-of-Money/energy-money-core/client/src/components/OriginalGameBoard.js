@@ -22,15 +22,35 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     // Создаем 76 клеток: 24 внутренних + 52 внешних
     const cells = [];
     
-    // 24 внутренние клетки (темно-фиолетовые)
-    for (let i = 1; i <= 24; i++) {
-      cells.push({
-        id: i,
-        type: 'inner',
-        name: `Внутренний круг ${i}`,
-        color: '#8B5CF6' // Современный фиолетовый
-      });
-    }
+    // 24 внутренние клетки с описанием и цветами
+    const innerCells = [
+      { id: 1, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '💼', description: 'Малая/большая сделка (на выбор)' },
+      { id: 2, type: 'expenses', name: 'Всякая всячина', color: '#EC4899', icon: '🛍️', description: 'Обязательные траты $100-$4000' },
+      { id: 3, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '💼', description: 'Малая/большая сделка (на выбор)' },
+      { id: 4, type: 'charity', name: 'Благотворительность', color: '#F59E0B', icon: '❤️', description: 'Пожертвовать 10% от дохода' },
+      { id: 5, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '💼', description: 'Малая/большая сделка (на выбор)' },
+      { id: 6, type: 'payday', name: 'PayDay', color: '#FCD34D', icon: '💰', description: 'Получить зарплату' },
+      { id: 7, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '💼', description: 'Малая/большая сделка (на выбор)' },
+      { id: 8, type: 'market', name: 'Рынок', color: '#06B6D4', icon: '📈', description: 'Покупатели на активы' },
+      { id: 9, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '💼', description: 'Малая/большая сделка (на выбор)' },
+      { id: 10, type: 'expenses', name: 'Всякая всячина', color: '#EC4899', icon: '🛍️', description: 'Обязательные траты $100-$4000' },
+      { id: 11, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '💼', description: 'Малая/большая сделка (на выбор)' },
+      { id: 12, type: 'child', name: 'Ребенок', color: '#8B5CF6', icon: '👶', description: 'Увеличиваются расходы' },
+      { id: 13, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '💼', description: 'Малая/большая сделка (на выбор)' },
+      { id: 14, type: 'payday', name: 'PayDay', color: '#FCD34D', icon: '💰', description: 'Получить зарплату' },
+      { id: 15, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '💼', description: 'Малая/большая сделка (на выбор)' },
+      { id: 16, type: 'market', name: 'Рынок', color: '#06B6D4', icon: '📈', description: 'Покупатели на активы' },
+      { id: 17, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '💼', description: 'Малая/большая сделка (на выбор)' },
+      { id: 18, type: 'expenses', name: 'Всякая всячина', color: '#EC4899', icon: '🛍️', description: 'Обязательные траты $100-$4000' },
+      { id: 19, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '💼', description: 'Малая/большая сделка (на выбор)' },
+      { id: 20, type: 'loss', name: 'Потеря', color: '#000000', icon: '💸', description: 'Потеря денег или увольнение' },
+      { id: 21, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '💼', description: 'Малая/большая сделка (на выбор)' },
+      { id: 22, type: 'payday', name: 'PayDay', color: '#FCD34D', icon: '💰', description: 'Получить зарплату' },
+      { id: 23, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '💼', description: 'Малая/большая сделка (на выбор)' },
+      { id: 24, type: 'market', name: 'Рынок', color: '#06B6D4', icon: '📈', description: 'Покупатели на активы' }
+    ];
+    
+    cells.push(...innerCells);
     
     // 52 внешние клетки (голубые)
     for (let i = 1; i <= 52; i++) {
@@ -48,6 +68,14 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [diceValue, setDiceValue] = useState(1);
   const [isRolling, setIsRolling] = useState(false);
   const [timerProgress, setTimerProgress] = useState(75);
+  
+  // Состояние игроков и их позиций
+  const [players, setPlayers] = useState([
+    { id: 1, name: 'MAG', position: 0, color: '#8B5CF6', profession: 'Менеджер' },
+    { id: 2, name: 'Игрок 2', position: 0, color: '#EF4444', profession: 'Дворник' },
+    { id: 3, name: 'Игрок 3', position: 0, color: '#10B981', profession: 'Курьер' }
+  ]);
+  const [currentPlayer, setCurrentPlayer] = useState(0); // Индекс текущего игрока
 
   const totalCells = originalBoard.length;
 
@@ -65,7 +93,26 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       const finalValue = Math.floor(Math.random() * 6) + 1;
       setDiceValue(finalValue);
       setIsRolling(false);
+      
+      // Перемещаем текущего игрока
+      movePlayer(finalValue);
     }, 1000);
+  };
+  
+  // Функция перемещения игрока
+  const movePlayer = (steps) => {
+    setPlayers(prevPlayers => {
+      const newPlayers = [...prevPlayers];
+      const player = newPlayers[currentPlayer];
+      
+      // Перемещаем игрока по кругу (24 клетки)
+      player.position = (player.position + steps) % 24;
+      
+      // Переходим к следующему игроку
+      setCurrentPlayer((prev) => (prev + 1) % players.length);
+      
+      return newPlayers;
+    });
   };
 
   return (
@@ -97,19 +144,157 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             background: 'linear-gradient(45deg, #8B5CF6, #06B6D4)',
             backgroundClip: 'text',
             WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
+            WebkitTextFillColor: 'transparent',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2
           }}>
-            🎯 Cashflow Game
+            <Box
+              sx={{
+                width: '60px',
+                height: '60px',
+                background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
+                borderRadius: '50%',
+                border: '3px solid #EF4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 8px 25px rgba(139, 92, 246, 0.5), 0 0 20px rgba(239, 68, 68, 0.4)',
+                position: 'relative',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '-5px',
+                  width: '20px',
+                  height: '20px',
+                  background: 'linear-gradient(135deg, #F59E0B 0%, #EF4444 100%)',
+                  borderRadius: '50%',
+                  boxShadow: '0 4px 15px rgba(245, 158, 11, 0.6)'
+                },
+                '&::after': {
+                  content: '""',
+                  position: 'absolute',
+                  top: '-5px',
+                  right: '-2px',
+                  width: '8px',
+                  height: '8px',
+                  background: '#EF4444',
+                  borderRadius: '50%',
+                  boxShadow: '0 2px 8px rgba(239, 68, 68, 0.8)'
+                }
+              }}
+            >
+              <Typography variant="h4" sx={{ 
+                color: 'white', 
+                fontWeight: 'bold',
+                fontSize: '28px',
+                textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+              }}>
+                💎
+              </Typography>
+            </Box>
+            Финансовый Рай
           </Typography>
           
-          <Typography variant="h6" sx={{ 
-            color: '#94A3B8', 
-            mb: 4,
-            textAlign: 'center'
-          }}>
-            {totalCells} клеток • 24 по кругу + 52 по периметру
-          </Typography>
+
         </motion.div>
+
+        {/* Информация о текущем игроке и управление */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          gap: 4, 
+          mb: 3,
+          flexWrap: 'wrap'
+        }}>
+          {/* Текущий игрок */}
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 2,
+            p: 2,
+            bgcolor: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: 2,
+            border: '1px solid rgba(255, 255, 255, 0.2)'
+          }}>
+            <Box
+              sx={{
+                width: '40px',
+                height: '40px',
+                background: `linear-gradient(135deg, ${players[currentPlayer]?.color} 0%, ${players[currentPlayer]?.color}DD 100%)`,
+                borderRadius: '50%',
+                border: '3px solid #EF4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontWeight: 'bold',
+                fontSize: '16px'
+              }}
+            >
+              {players[currentPlayer]?.name.charAt(0)}
+            </Box>
+            <Box>
+              <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                {players[currentPlayer]?.name}
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#94A3B8' }}>
+                {players[currentPlayer]?.profession}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Кнопка броска кубика */}
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 2,
+            p: 2,
+            bgcolor: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: 2,
+            border: '1px solid rgba(255, 255, 255, 0.2)'
+          }}>
+            <Button
+              variant="contained"
+              onClick={rollDice}
+              disabled={isRolling}
+              sx={{
+                background: 'linear-gradient(45deg, #8B5CF6 30%, #EC4899 90%)',
+                borderRadius: 2,
+                px: 3,
+                py: 1.5,
+                fontSize: '1.1rem',
+                fontWeight: 'bold',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #EC4899 30%, #8B5CF6 90%)'
+                }
+              }}
+            >
+              {isRolling ? '🎲 Бросаем...' : '🎲 Бросить кубик'}
+            </Button>
+            
+            {/* Значение кубика */}
+            <Box sx={{
+              width: '50px',
+              height: '50px',
+              background: 'linear-gradient(135deg, #F59E0B 0%, #EF4444 100%)',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '20px',
+              fontWeight: 'bold',
+              color: 'white',
+              border: '2px solid #EF4444',
+              boxShadow: '0 4px 15px rgba(245, 158, 11, 0.4)'
+            }}>
+              {diceValue}
+            </Box>
+          </Box>
+        </Box>
 
         {/* Игровое поле */}
         <Box sx={{
@@ -177,30 +362,100 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     top: '50%',
                     left: '50%',
                     transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-                    width: '40px',
-                    height: '40px',
+                    width: '50px',
+                    height: '50px',
                     background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
-                    borderRadius: '12px',
+                    borderRadius: '15px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    color: 'white',
+                    fontSize: '18px', // Увеличил размер для иконок
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
                     border: '2px solid rgba(255, 255, 255, 0.3)',
                     boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
                     zIndex: 1,
+                    position: 'relative', // Для позиционирования номера
                     '&:hover': {
                       transform: `translate(-50%, -50%) translate(${x}px, ${y}px) scale(1.3)`,
                       boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
                       zIndex: 3
                     }
                   }}
-                  title={cell.name}
+                  title={`${cell.name}: ${cell.description}`}
                 >
-                  {cell.id}
+                  {/* Иконка клетки */}
+                  {cell.icon}
+                  
+                  {/* Номер клетки в левом верхнем углу */}
+                  <Typography
+                    sx={{
+                      position: 'absolute',
+                      top: '2px',
+                      left: '4px',
+                      fontSize: '10px',
+                      fontWeight: 'bold',
+                      color: 'white',
+                      textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+                      zIndex: 2
+                    }}
+                  >
+                    {cell.id}
+                  </Typography>
+                </Box>
+              </motion.div>
+            );
+          })}
+
+          {/* Фишки игроков на внутреннем круге */}
+          {players.map((player, index) => {
+            // Вычисляем позицию фишки на круге
+            const cell = originalBoard[player.position];
+            if (!cell) return null;
+            
+            const angle = (player.position * 360) / 24;
+            const radius = 150; // Тот же радиус, что и для клеток
+            const x = Math.cos((angle - 90) * Math.PI / 180) * radius;
+            const y = Math.sin((angle - 90) * Math.PI / 180) * radius;
+            
+            return (
+              <motion.div
+                key={player.id}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 1.5 + index * 0.1, duration: 0.5 }}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
+                  zIndex: 5
+                }}
+              >
+                <Box
+                  sx={{
+                    width: '20px',
+                    height: '20px',
+                    background: `linear-gradient(135deg, ${player.color} 0%, ${player.color}DD 100%)`,
+                    borderRadius: '50%',
+                    border: '3px solid #EF4444',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.4)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'scale(1.2)',
+                      boxShadow: '0 8px 25px rgba(0,0,0,0.6)'
+                    }
+                  }}
+                  title={`${player.name} (${player.profession}) - Клетка ${player.position + 1}`}
+                >
+                  {player.name.charAt(0)}
                 </Box>
               </motion.div>
             );
@@ -402,6 +657,209 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             return cells;
           })()}
 
+
+
+          {/* 4 угловые карточки */}
+          {/* Верхний левый угол - Большая сделка */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+          >
+            <Box
+              sx={{
+                position: 'absolute',
+                top: '120px', // Сдвинул внутрь, между верхним рядом и внутренним кругом
+                left: '120px', // Сдвинул внутрь, между левым рядом и внутренним кругом
+                width: '100px',
+                height: '120px',
+                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                borderRadius: '20px',
+                border: '3px solid #EF4444',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 12px 35px rgba(16, 185, 129, 0.4), 0 0 20px rgba(239, 68, 68, 0.3)',
+                zIndex: 3,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                  boxShadow: '0 20px 50px rgba(16, 185, 129, 0.5), 0 0 30px rgba(239, 68, 68, 0.4)'
+                }
+              }}
+            >
+              <Typography variant="h4" sx={{ 
+                color: 'white', 
+                mb: 1,
+                fontSize: '24px'
+              }}>
+                💰
+              </Typography>
+              <Typography variant="caption" sx={{ 
+                color: 'white', 
+                fontWeight: 'bold',
+                textAlign: 'center',
+                fontSize: '11px',
+                lineHeight: 1.2,
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+              }}>
+                Большая сделка
+              </Typography>
+            </Box>
+          </motion.div>
+
+          {/* Верхний правый угол - Малая сделка */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.9 }}
+          >
+            <Box
+              sx={{
+                position: 'absolute',
+                top: '120px', // Сдвинул внутрь, между верхним рядом и внутренним кругом
+                right: '120px', // Сдвинул внутрь, между правым рядом и внутренним кругом
+                width: '100px',
+                height: '120px',
+                background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+                borderRadius: '20px',
+                border: '3px solid #EF4444',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 12px 35px rgba(59, 130, 246, 0.4), 0 0 20px rgba(239, 68, 68, 0.3)',
+                zIndex: 3,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                  boxShadow: '0 20px 50px rgba(59, 130, 246, 0.5), 0 0 30px rgba(239, 68, 68, 0.4)'
+                }
+              }}
+            >
+              <Typography variant="h4" sx={{ 
+                color: 'white', 
+                mb: 1,
+                fontSize: '24px'
+              }}>
+                💼
+              </Typography>
+              <Typography variant="caption" sx={{ 
+                color: 'white', 
+                fontWeight: 'bold',
+                textAlign: 'center',
+                fontSize: '11px',
+                lineHeight: 1.2,
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+              }}>
+                Малая сделка
+              </Typography>
+            </Box>
+          </motion.div>
+
+          {/* Нижний правый угол - Рынок */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 1.0 }}
+          >
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: '120px', // Сдвинул внутрь, между нижним рядом и внутренним кругом
+                right: '120px', // Сдвинул внутрь, между правым рядом и внутренним кругом
+                width: '100px',
+                height: '120px',
+                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                borderRadius: '20px',
+                border: '3px solid #EF4444',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 12px 35px rgba(245, 158, 11, 0.4), 0 0 20px rgba(239, 68, 68, 0.3)',
+                zIndex: 3,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                  boxShadow: '0 20px 50px rgba(245, 158, 11, 0.5), 0 0 30px rgba(239, 68, 68, 0.4)'
+                }
+              }}
+            >
+              <Typography variant="h4" sx={{ 
+                color: 'white', 
+                mb: 1,
+                fontSize: '24px'
+              }}>
+                📈
+              </Typography>
+              <Typography variant="caption" sx={{ 
+                color: 'white', 
+                fontWeight: 'bold',
+                textAlign: 'center',
+                fontSize: '11px',
+                lineHeight: 1.2,
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+              }}>
+                Рынок
+              </Typography>
+            </Box>
+          </motion.div>
+
+          {/* Нижний левый угол - Расходы */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 1.1 }}
+          >
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: '120px', // Сдвинул внутрь, между нижним рядом и внутренним кругом
+                left: '120px', // Сдвинул внутрь, между левым рядом и внутренним кругом
+                width: '100px',
+                height: '120px',
+                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                borderRadius: '20px',
+                border: '3px solid #EF4444',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 12px 35px rgba(239, 68, 68, 0.4), 0 0 20px rgba(239, 68, 68, 0.3)',
+                zIndex: 3,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                  boxShadow: '0 20px 50px rgba(239, 68, 68, 0.5), 0 0 30px rgba(239, 68, 68, 0.4)'
+                }
+              }}
+            >
+              <Typography variant="h4" sx={{ 
+                color: 'white', 
+                mb: 1,
+                fontSize: '24px'
+              }}>
+                💸
+              </Typography>
+              <Typography variant="caption" sx={{ 
+                color: 'white', 
+                fontWeight: 'bold',
+                textAlign: 'center',
+                fontSize: '11px',
+                lineHeight: 1.2,
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+              }}>
+                Расходы
+              </Typography>
+            </Box>
+          </motion.div>
+
           {/* Визуальная рамка для внешнего квадрата 700x700 */}
           <Box
             sx={{
@@ -416,235 +874,6 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               zIndex: 0
             }}
           />
-
-          {/* Иконки игроков по кругу */}
-          {/* Игрок 1 - MAG */}
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 1.2 }}
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)'
-            }}
-          >
-            <Box
-              sx={{
-                position: 'absolute',
-                top: '-220px', // Выше внутреннего круга
-                left: '0',
-                width: '50px',
-                height: '50px',
-                background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
-                borderRadius: '50%',
-                border: '3px solid #EF4444',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 8px 25px rgba(139, 92, 246, 0.5), 0 0 20px rgba(239, 68, 68, 0.4)',
-                zIndex: 4,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'scale(1.1)',
-                  boxShadow: '0 12px 35px rgba(139, 92, 246, 0.6), 0 0 30px rgba(239, 68, 68, 0.5)'
-                }
-              }}
-            >
-              <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
-                👤
-              </Typography>
-            </Box>
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                position: 'absolute',
-                top: '-270px',
-                left: '0',
-                color: 'white',
-                fontWeight: 'bold',
-                textAlign: 'center',
-                fontSize: '12px',
-                textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              MAG
-            </Typography>
-          </motion.div>
-
-          {/* Игрок 2 - Алексей */}
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 1.3 }}
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)'
-            }}
-          >
-            <Box
-              sx={{
-                position: 'absolute',
-                top: '0',
-                right: '-220px', // Справа от внутреннего круга
-                width: '50px',
-                height: '50px',
-                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                borderRadius: '50%',
-                border: '3px solid #EF4444',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 8px 25px rgba(16, 185, 129, 0.5), 0 0 20px rgba(239, 68, 68, 0.4)',
-                zIndex: 4,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'scale(1.1)',
-                  boxShadow: '0 12px 35px rgba(16, 185, 129, 0.6), 0 0 30px rgba(239, 68, 68, 0.5)'
-                }
-              }}
-            >
-              <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
-                👤
-              </Typography>
-            </Box>
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                position: 'absolute',
-                top: '0',
-                right: '-270px',
-                color: 'white',
-                fontWeight: 'bold',
-                textAlign: 'center',
-                fontSize: '12px',
-                textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              Алексей
-            </Typography>
-          </motion.div>
-
-          {/* Игрок 3 - Мария */}
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 1.4 }}
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)'
-            }}
-          >
-            <Box
-              sx={{
-                position: 'absolute',
-                bottom: '-220px', // Ниже внутреннего круга
-                left: '0',
-                width: '50px',
-                height: '50px',
-                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-                borderRadius: '50%',
-                border: '3px solid #EF4444',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 8px 25px rgba(245, 158, 11, 0.5), 0 0 20px rgba(239, 68, 68, 0.4)',
-                zIndex: 4,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'scale(1.1)',
-                  boxShadow: '0 12px 35px rgba(245, 158, 11, 0.6), 0 0 30px rgba(239, 68, 68, 0.5)'
-                }
-              }}
-            >
-              <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
-                👤
-              </Typography>
-            </Box>
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                position: 'absolute',
-                bottom: '-270px',
-                left: '0',
-                color: 'white',
-                fontWeight: 'bold',
-                textAlign: 'center',
-                fontSize: '12px',
-                textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              Мария
-            </Typography>
-          </motion.div>
-
-          {/* Игрок 4 - Дмитрий */}
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 1.5 }}
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)'
-            }}
-          >
-            <Box
-              sx={{
-                position: 'absolute',
-                top: '0',
-                left: '-220px', // Слева от внутреннего круга
-                width: '50px',
-                height: '50px',
-                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-                borderRadius: '50%',
-                border: '3px solid #EF4444',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 8px 25px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.4)',
-                zIndex: 4,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'scale(1.1)',
-                  boxShadow: '0 12px 35px rgba(239, 68, 68, 0.6), 0 0 30px rgba(239, 68, 68, 0.5)'
-                }
-              }}
-            >
-              <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
-                👤
-              </Typography>
-            </Box>
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                position: 'absolute',
-                top: '0',
-                left: '-270px',
-                color: 'white',
-                fontWeight: 'bold',
-                textAlign: 'center',
-                fontSize: '12px',
-                textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              Дмитрий
-            </Typography>
-          </motion.div>
         </Box>
       </Box>
 
