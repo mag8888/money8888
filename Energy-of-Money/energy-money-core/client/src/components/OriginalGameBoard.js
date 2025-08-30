@@ -99,10 +99,16 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
           }}>
-Energy of Money
+            🎯 Cashflow Game
           </Typography>
           
-
+          <Typography variant="h6" sx={{ 
+            color: '#94A3B8', 
+            mb: 4,
+            textAlign: 'center'
+          }}>
+            {totalCells} клеток • 24 по кругу + 52 по периметру
+          </Typography>
         </motion.div>
 
         {/* Игровое поле */}
@@ -207,17 +213,13 @@ Energy of Money
             
             // Размер внешнего квадрата
             const outerSquareSize = 700;
-            const cellSize = 42; // Размер клетки 42px (+5% с 40px)
-            const margin = 5; // Отступ между клетками
-            const sideMargin = margin + 2; // Отступ для боковых столбцов + 2px
+            const cellSize = 40; // Увеличил на 15% с 35px до 40px
             
-            // Верхний ряд (14 клеток) - 1-14 по всей ширине
+            // Верхний ряд (14 клеток) - равномерно распределяем по всей ширине
             for (let i = 0; i < 14; i++) {
               const cell = outerCells[i];
-              const totalWidth = 14 * cellSize + 13 * margin; // Общая ширина: клетки + промежутки
-              const startX = 50 + (outerSquareSize - totalWidth) / 2; // Центрируем ряд
-              const x = startX + i * (cellSize + margin); // Позиция каждой клетки
-              
+              const spacing = (outerSquareSize - (14 * cellSize)) / 13; // Равномерные промежутки
+              const x = 50 + (i * (cellSize + spacing));
               cells.push(
                 <motion.div
                   key={cell.id}
@@ -253,19 +255,17 @@ Energy of Money
                     }}
                     title={cell.name}
                   >
-                    {i + 1}
+                    {cell.id - 24}
                   </Box>
                 </motion.div>
               );
             }
             
-            // Правый столбец (12 клеток) - 15-26 по всей высоте
+            // Правый столбец (12 клеток) - фиксированное расстояние 11px
             for (let i = 0; i < 12; i++) {
               const cell = outerCells[14 + i];
-              const totalHeight = 12 * cellSize + 11 * sideMargin; // Общая высота: клетки + промежутки + 2px
-              const startY = 50 + (outerSquareSize - totalHeight) / 2; // Центрируем столбец
-              const y = startY + i * (cellSize + sideMargin); // Позиция каждой клетки + 2px
-              
+              const spacing = 11; // Фиксированное расстояние 11px
+              const y = 50 + (i + 1) * (cellSize + spacing);
               cells.push(
                 <motion.div
                   key={cell.id}
@@ -301,19 +301,17 @@ Energy of Money
                     }}
                     title={cell.name}
                   >
-                    {i + 15}
+                    {cell.id - 24}
                   </Box>
                 </motion.div>
               );
             }
             
-            // Нижний ряд (14 клеток) - 27-40 по всей ширине (слева 40, справа 27)
+            // Нижний ряд (14 клеток) - равномерно распределяем по всей ширине
             for (let i = 0; i < 14; i++) {
               const cell = outerCells[26 + i];
-              const totalWidth = 14 * cellSize + 13 * margin; // Общая ширина: клетки + промежутки
-              const startX = 50 + (outerSquareSize - totalWidth) / 2; // Центрируем ряд
-              const x = startX + i * (cellSize + margin); // Позиция каждой клетки
-              
+              const spacing = (outerSquareSize - (14 * cellSize)) / 13; // Равномерные промежутки
+              const x = 50 + (i * (cellSize + spacing));
               cells.push(
                 <motion.div
                   key={cell.id}
@@ -349,19 +347,17 @@ Energy of Money
                     }}
                     title={cell.name}
                   >
-                    {40 - i}
+                    {cell.id - 24}
                   </Box>
                 </motion.div>
               );
             }
             
-            // Левый столбец (12 клеток) - 41-52 по всей высоте
+            // Левый столбец (12 клеток) - фиксированное расстояние 11px
             for (let i = 0; i < 12; i++) {
-              const cell = outerCells[16 + i];
-              const totalHeight = 12 * cellSize + 11 * sideMargin; // Общая высота: клетки + промежутки + 2px
-              const startY = 50 + (outerSquareSize - totalHeight) / 2; // Центрируем столбец
-              const y = startY + i * (cellSize + sideMargin); // Позиция каждой клетки + 2px
-              
+              const cell = outerCells[40 + i];
+              const spacing = 11; // Фиксированное расстояние 11px
+              const y = 50 + (i + 1) * (cellSize + spacing);
               cells.push(
                 <motion.div
                   key={cell.id}
@@ -397,7 +393,7 @@ Energy of Money
                     }}
                     title={cell.name}
                   >
-                    {52 - i}
+                    {cell.id - 24}
                   </Box>
                 </motion.div>
               );
@@ -420,6 +416,235 @@ Energy of Money
               zIndex: 0
             }}
           />
+
+          {/* Иконки игроков по кругу */}
+          {/* Игрок 1 - MAG */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 1.2 }}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <Box
+              sx={{
+                position: 'absolute',
+                top: '-220px', // Выше внутреннего круга
+                left: '0',
+                width: '50px',
+                height: '50px',
+                background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                borderRadius: '50%',
+                border: '3px solid #EF4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 8px 25px rgba(139, 92, 246, 0.5), 0 0 20px rgba(239, 68, 68, 0.4)',
+                zIndex: 4,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.1)',
+                  boxShadow: '0 12px 35px rgba(139, 92, 246, 0.6), 0 0 30px rgba(239, 68, 68, 0.5)'
+                }
+              }}
+            >
+              <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                👤
+              </Typography>
+            </Box>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                position: 'absolute',
+                top: '-270px',
+                left: '0',
+                color: 'white',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                fontSize: '12px',
+                textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              MAG
+            </Typography>
+          </motion.div>
+
+          {/* Игрок 2 - Алексей */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 1.3 }}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <Box
+              sx={{
+                position: 'absolute',
+                top: '0',
+                right: '-220px', // Справа от внутреннего круга
+                width: '50px',
+                height: '50px',
+                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                borderRadius: '50%',
+                border: '3px solid #EF4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 8px 25px rgba(16, 185, 129, 0.5), 0 0 20px rgba(239, 68, 68, 0.4)',
+                zIndex: 4,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.1)',
+                  boxShadow: '0 12px 35px rgba(16, 185, 129, 0.6), 0 0 30px rgba(239, 68, 68, 0.5)'
+                }
+              }}
+            >
+              <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                👤
+              </Typography>
+            </Box>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                position: 'absolute',
+                top: '0',
+                right: '-270px',
+                color: 'white',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                fontSize: '12px',
+                textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Алексей
+            </Typography>
+          </motion.div>
+
+          {/* Игрок 3 - Мария */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 1.4 }}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: '-220px', // Ниже внутреннего круга
+                left: '0',
+                width: '50px',
+                height: '50px',
+                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                borderRadius: '50%',
+                border: '3px solid #EF4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 8px 25px rgba(245, 158, 11, 0.5), 0 0 20px rgba(239, 68, 68, 0.4)',
+                zIndex: 4,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.1)',
+                  boxShadow: '0 12px 35px rgba(245, 158, 11, 0.6), 0 0 30px rgba(239, 68, 68, 0.5)'
+                }
+              }}
+            >
+              <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                👤
+              </Typography>
+            </Box>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                position: 'absolute',
+                bottom: '-270px',
+                left: '0',
+                color: 'white',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                fontSize: '12px',
+                textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Мария
+            </Typography>
+          </motion.div>
+
+          {/* Игрок 4 - Дмитрий */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 1.5 }}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <Box
+              sx={{
+                position: 'absolute',
+                top: '0',
+                left: '-220px', // Слева от внутреннего круга
+                width: '50px',
+                height: '50px',
+                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                borderRadius: '50%',
+                border: '3px solid #EF4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 8px 25px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.4)',
+                zIndex: 4,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.1)',
+                  boxShadow: '0 12px 35px rgba(239, 68, 68, 0.6), 0 0 30px rgba(239, 68, 68, 0.5)'
+                }
+              }}
+            >
+              <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                👤
+              </Typography>
+            </Box>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                position: 'absolute',
+                top: '0',
+                left: '-270px',
+                color: 'white',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                fontSize: '12px',
+                textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Дмитрий
+            </Typography>
+          </motion.div>
         </Box>
       </Box>
 
