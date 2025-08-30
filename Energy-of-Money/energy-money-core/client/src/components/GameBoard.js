@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Avatar, Button } from '@mui/material';
+import { motion, AnimatePresence } from 'framer-motion';
 import socket from '../socket';
 import CasinoIcon from '@mui/icons-material/Casino';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
@@ -18,158 +19,42 @@ import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
+import { CASHFLOW_THEME, COMPONENT_STYLES } from '../styles/cashflow-theme';
+import AnimatedCell from './AnimatedCell';
+import StylishControlPanel from './StylishControlPanel';
 
-// Конфигурация игрового поля
+// Импортируем конфигурацию Cashflow
+import { CELL_CONFIG, PLAYER_COLORS } from '../data/gameCells';
+
+// Дополнительные иконки для Cashflow
+import ChildCareIcon from '@mui/icons-material/ChildCare';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+
+// Конфигурация игрового поля Cashflow
 const BOARD_CONFIG = {
-  cells: [
-    {
-      id: 1,
-      type: 'money',
-      name: 'Деньги',
-      description: 'Вам выплачивается доход от ваших инвестиций',
-      icon: <AttachMoneyIcon />,
-      color: '#FFD700',
-      action: 'income'
-    },
-    {
-      id: 2,
-      type: 'dream',
-      name: 'Построить дом мечты',
-      description: 'Собственный дом с садом и бассейном',
-      cost: 100000,
-      icon: <HomeIcon />,
-      color: '#87CEEB',
-      action: 'dream'
-    },
-    {
-      id: 3,
-      type: 'business',
-      name: 'Кофейня в центре города',
-      description: 'Кофейня с высоким трафиком',
-      cost: 100000,
-      income: 3000,
-      icon: <LocalCafeIcon />,
-      color: '#90EE90',
-      action: 'business'
-    },
-    {
-      id: 4,
-      type: 'loss',
-      name: 'Потеря аудит',
-      description: 'Налоговая проверка',
-      penalty: -0.5,
-      icon: <GavelIcon />,
-      color: '#FFB6C1',
-      action: 'penalty'
-    },
-    {
-      id: 5,
-      type: 'business',
-      name: 'Центр здоровья и спа',
-      description: 'Премиум спа-центр',
-      cost: 270000,
-      income: 5000,
-      icon: <SpaIcon />,
-      color: '#90EE90',
-      action: 'business'
-    },
-    {
-      id: 6,
-      type: 'dream',
-      name: 'Посетить Антарктиду',
-      description: 'Путешествие на край света',
-      cost: 150000,
-      icon: <FlightIcon />,
-      color: '#87CEEB',
-      action: 'dream'
-    },
-    {
-      id: 7,
-      type: 'business',
-      name: 'Мобильное приложение (подписка)',
-      description: 'Приложение с ежемесячной подпиской',
-      cost: 420000,
-      income: 10000,
-      icon: <PhoneAndroidIcon />,
-      color: '#90EE90',
-      action: 'business'
-    },
-    {
-      id: 8,
-      type: 'charity',
-      name: 'Благотворительность',
-      description: 'Помощь нуждающимся',
-      icon: <VolunteerActivismIcon />,
-      color: '#FF69B4',
-      action: 'charity'
-    },
-    {
-      id: 9,
-      type: 'business',
-      name: 'Агентство цифрового маркетинга',
-      description: 'Маркетинговые услуги',
-      cost: 160000,
-      income: 4000,
-      icon: <CampaignIcon />,
-      color: '#90EE90',
-      action: 'business'
-    },
-    {
-      id: 10,
-      type: 'loss',
-      name: 'Кража 100% наличных',
-      description: 'Потеря всех наличных денег',
-      penalty: -1,
-      icon: <WarningIcon />,
-      color: '#FFB6C1',
-      action: 'penalty'
-    },
-    {
-      id: 11,
-      type: 'business',
-      name: 'Мини-отель/бутик-гостиница',
-      description: 'Элитная гостиница',
-      cost: 200000,
-      income: 5000,
-      icon: <HotelIcon />,
-      color: '#90EE90',
-      action: 'business'
-    },
-    {
-      id: 12,
-      type: 'dream',
-      name: 'Подняться на все высочайшие вершины мира',
-      description: 'Альпинистское достижение',
-      cost: 500000,
-      icon: <LandscapeIcon />,
-      color: '#87CEEB',
-      action: 'dream'
-    },
-    {
-      id: 13,
-      type: 'business',
-      name: 'Франшиза популярного ресторана',
-      description: 'Ресторан известной сети',
-      cost: 320000,
-      income: 8000,
-      icon: <RestaurantIcon />,
-      color: '#90EE90',
-      action: 'business'
-    },
-    {
-      id: 14,
-      type: 'money',
-      name: 'Объехать 100 стран',
-      description: 'Путешествие по всему миру',
-      cost: 500000,
-      icon: <FlightTakeoffIcon />,
-      color: '#FFD700',
-      action: 'money'
-    }
-  ]
+  // Внутренний круг - 24 клетки (Крысиные Бега)
+  innerCircle: CELL_CONFIG.innerCircle,
+  
+  // Внешний квадрат - 56 клеток (Быстрый Путь)
+  outerSquare: CELL_CONFIG.outerSquare,
+  
+  // Объединяем все клетки для рендеринга
+  getAllCells: function() {
+    return [
+      ...this.innerCircle.map((cell, index) => ({ ...cell, id: index, position: index })),
+      ...this.outerSquare.map((cell, index) => ({ ...cell, id: index + 24, position: index + 24 }))
+    ];
+  },
+  
+  // Получаем общее количество клеток
+  getTotalCells: function() {
+    return this.innerCircle.length + this.outerSquare.length; // 24 + 52 = 76
+  }
 };
 
 const GameBoard = ({ roomId, playerData, onExit }) => {
+  console.log('🎮 [GameBoard] Компонент загружен:', { roomId, playerData });
+  
   const [players, setPlayers] = useState([]);
   const [currentTurn, setCurrentTurn] = useState(null);
   const [timer, setTimer] = useState(0);
@@ -184,8 +69,25 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
   const [canEndTurn, setCanEndTurn] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [gamePhase, setGamePhase] = useState('waiting'); // 'waiting', 'determining_order', 'playing'
+  
+  // Логирование изменений состояния (опционально)
+  useEffect(() => {
+    console.log('🎮 [GameBoard] Состояние изменилось:', { gameStarted, gamePhase });
+  }, [gameStarted, gamePhase]);
+  
+  // Инициализация компонента при загрузке
+  useEffect(() => {
+    console.log('🎮 [GameBoard] Компонент загружен, инициализируем игровое поле');
+    
+    // Запрашиваем состояние игры у сервера
+    if (socket && roomId) {
+      console.log('🎮 [GameBoard] Запрашиваем состояние игры у сервера');
+      socket.emit('getGameState', roomId);
+    }
+  }, [socket, roomId]);
 
   useEffect(() => {
+    console.log('🎮 [GameBoard] useEffect выполняется, socket:', socket?.connected);
     if (socket) {
       // Слушаем обновления игроков
       socket.on('game_started', ({ room }) => {
@@ -193,6 +95,38 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
         setPlayers(room.players || []);
         setCurrentTurn(room.players?.[0]?.id || null);
         showToast('🎮 Игра началась!', 'success');
+      });
+
+      // Обработка события запуска игры от RoomSetup
+      socket.on('gameStarted', (data) => {
+        console.log('🎮 [GameBoard] Игра запущена:', data);
+        setGameStarted(true);
+        setGamePhase('playing');
+        showToast('🎮 Игра началась!', 'success');
+        
+        // Если есть данные об игроках, обновляем их
+        if (data.players && Array.isArray(data.players)) {
+          setPlayers(data.players);
+        }
+      });
+      
+      // Обработка состояния игры от сервера
+      socket.on('gameState', (data) => {
+        console.log('🎮 [GameBoard] Получено состояние игры:', data);
+        if (data.status === 'playing') {
+          setGameStarted(true);
+          setGamePhase('playing');
+        }
+        if (data.players && Array.isArray(data.players)) {
+          setPlayers(data.players);
+        }
+      });
+
+      // Обработка начала определения очередности
+      socket.on('orderDeterminationStarted', (data) => {
+        console.log('🎲 [GameBoard] Началось определение очередности:', data);
+        setGamePhase('determining_order');
+        showToast('🎲 Определение очередности!', 'info');
       });
 
       socket.on('player_updated', ({ player, room }) => {
@@ -221,7 +155,7 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
       });
 
       socket.on('cell_event', ({ playerId, cellId, event }) => {
-        const cell = BOARD_CONFIG.cells.find(c => c.id === cellId);
+        const cell = BOARD_CONFIG.getAllCells().find(c => c.id === cellId);
         if (cell) {
           setModal({ cell, event, playerId });
         }
@@ -233,21 +167,7 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
         }
       });
 
-      // Обработка запуска игры
-      socket.on('gameStarted', (data) => {
-        console.log('🎮 [GameBoard] Игра запущена:', data);
-        setGameStarted(true);
-        setGamePhase('determining_order');
-        showToast('🎮 Игра запущена!', 'success');
-      });
 
-      // Обработка определения очередности
-      socket.on('orderDeterminationStarted', (data) => {
-        console.log('🎲 [GameBoard] Началось определение очередности:', data);
-        setGameStarted(true);
-        setGamePhase('determining_order');
-        showToast('🎲 Определение очередности! Бросайте кубики...', 'info');
-      });
 
       socket.on('playersList', (playersList) => {
         console.log('👥 [GameBoard] Получен список игроков:', playersList);
@@ -294,7 +214,7 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
     
     const moveStep = () => {
       if (steps > 0) {
-        currentPos = (currentPos + 1) % BOARD_CONFIG.cells.length;
+        currentPos = (currentPos + 1) % BOARD_CONFIG.getAllCells().length;
         steps--;
         setTimeout(moveStep, 500);
       } else {
@@ -347,59 +267,19 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
 
   const renderCell = (cell, index) => {
     const playerAtCell = players.find(p => (p.position || 0) === index);
-    
+    const playerColor = playerAtCell ? PLAYER_COLORS[players.indexOf(playerAtCell) % PLAYER_COLORS.length] : '#FF6B6B';
+
     return (
-      <Box
+      <AnimatedCell
         key={cell.id}
-        sx={{
-          position: 'relative',
-          width: 120,
-          height: 120,
-          border: '2px solid #333',
-          borderRadius: '8px',
-          backgroundColor: cell.color,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          '&:hover': { opacity: 0.8 },
-          p: 1,
-          textAlign: 'center'
-        }}
+        cell={cell}
+        index={index}
+        isPlayerHere={!!playerAtCell}
+        playerColor={playerColor}
         onClick={() => setModal({ cell, event: null, playerId: null })}
-      >
-        <Box sx={{ fontSize: '24px', mb: 1 }}>
-          {cell.icon}
-        </Box>
-        <Typography variant="caption" sx={{ fontSize: '10px', fontWeight: 'bold' }}>
-          {cell.name}
-        </Typography>
-        
-        {/* Фишки игроков на клетке */}
-        {playerAtCell && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: -10,
-              right: -10,
-              width: 20,
-              height: 20,
-              borderRadius: '50%',
-              backgroundColor: '#FF6B6B',
-              border: '2px solid white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              color: 'white'
-            }}
-          >
-            {playerAtCell.username?.charAt(0) || '?'}
-          </Box>
-        )}
-      </Box>
+        size="medium"
+        variant={index < 24 ? 'inner' : 'outer'}
+      />
     );
   };
 
@@ -504,70 +384,125 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
     </Box>
   );
 
-  if (!gameStarted) {
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography variant="h5" gutterBottom>
-          ⏳ Ожидание начала игры...
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Хост должен запустить игру
-        </Typography>
-      </Box>
-    );
-  }
+  console.log('🎮 [GameBoard] Рендеринг, gameStarted:', gameStarted, 'gamePhase:', gamePhase);
+  
+  // Убираем экран ожидания - сразу показываем игровое поле
+  // if (!gameStarted) {
+  //   return (
+  //     <Box sx={{ p: 3, textAlign: 'center' }}>
+  //       <Typography variant="h5" gutterBottom>
+  //         ⏳ Ожидание начала игры...
+  //       </Typography>
+  //       <Typography variant="body1" color="text.secondary">
+  //         Хост должен запустить игру
+  //       </Typography>
+  //       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+  //         Debug: gameStarted = {gameStarted.toString()}, gamePhase = {gamePhase}
+  //       </Typography>
+  //     </Box>
+  //   );
+  // }
 
-  // Проверяем, находимся ли мы в фазе определения очередности
-  if (gamePhase === 'determining_order') {
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography variant="h4" gutterBottom>
-          🎲 Определение очередности
-        </Typography>
-        <Typography variant="h6" color="primary" gutterBottom>
-          Бросайте кубики для определения порядка ходов!
-        </Typography>
-        
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h5" gutterBottom>
-            👥 Игроки в комнате:
-          </Typography>
-          {players.map((player) => (
-            <Box key={player.id} sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: 2 }}>
-              <Typography variant="h6">
-                {player.username}
-              </Typography>
-              {player.profession && (
-                <Typography variant="body1" color="primary">
-                  💼 {player.profession.name}
-                </Typography>
-              )}
-              {player.dream && (
-                <Typography variant="body1" color="secondary">
-                  💭 {player.dream.name}
-                </Typography>
-              )}
-              {player.diceRoll ? (
-                <Typography variant="h5" color="success">
-                  🎲 Результат: {player.diceRoll}
-                </Typography>
-              ) : (
-                <Typography variant="body1" color="text.secondary">
-                  ⏳ Ожидание броска...
-                </Typography>
-              )}
-            </Box>
-          ))}
-        </Box>
-      </Box>
-    );
-  }
+  // Убираем экран определения очередности - сразу показываем игровое поле
+  // if (gamePhase === 'determining_order') {
+  //   return (
+  //     <Box sx={{ p: 3, textAlign: 'center' }}>
+  //       <Typography variant="h4" gutterBottom>
+  //         🎲 Определение очередности
+  //       </Typography>
+  //       <Typography variant="h6" color="primary" gutterBottom>
+  //         Бросайте кубики для определения порядка ходов!
+  //       </Typography>
+  //       
+  //       <Box sx={{ mt: 4 }}>
+  //         <Typography variant="h5" gutterBottom>
+  //           👥 Игроки в комнате:
+  //         </Typography>
+  //         {players.map((player) => (
+  //           <Box key={player.id} sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: 2 }}>
+  //             <Typography variant="h6">
+  //               {player.username}
+  //             </Typography>
+  //             {player.profession && (
+  //               <Typography variant="body1" color="primary">
+  //                 💼 {player.profession.name}
+  //               </Typography>
+  //             )}
+  //             {player.dream && (
+  //               <Typography variant="body2" color="secondary">
+  //                 💭 {player.dream.name}
+  //               </Typography>
+  //               )}
+  //               {player.diceRoll ? (
+  //                 <Typography variant="h5" color="success">
+  //                   🎲 Результат: {player.diceRoll}
+  //                 </Typography>
+  //               ) : (
+  //                 <Typography variant="body1" color="text.secondary">
+  //                   ⏳ Ожидание броска...
+  //                 </Typography>
+  //               )}
+  //             </Box>
+  //           ))}
+  //         </Box>
+  //       </Box>
+  //     );
+  //   }
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1400, mx: 'auto' }}>
-      <Typography variant="h4" gutterBottom align="center">
-        🎮 Energy of Money - Игровое поле
-      </Typography>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      background: CASHFLOW_THEME.effects.gradients.board,
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      {/* Анимированный фон */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'url("data:image/svg+xml,%3Csvg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.02"%3E%3Ccircle cx="50" cy="50" r="1"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+          opacity: 0.5,
+          zIndex: 0
+        }}
+      />
+      
+      {/* Заголовок */}
+      <motion.div
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        style={{ position: 'relative', zIndex: 1 }}
+      >
+        <Box sx={{ 
+          textAlign: 'center', 
+          py: 4,
+          background: 'rgba(30, 41, 59, 0.8)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: `1px solid ${CASHFLOW_THEME.colors.board.border}`
+        }}>
+          <Typography variant="h2" sx={{ 
+            color: '#FFFFFF',
+            fontWeight: 'bold',
+            textShadow: '0 4px 20px rgba(0,0,0,0.5)',
+            mb: 2
+          }}>
+            🎮 Cashflow
+          </Typography>
+          <Typography variant="h5" sx={{ 
+            color: 'rgba(255,255,255,0.8)',
+            fontWeight: '300'
+          }}>
+            Игровое поле
+          </Typography>
+        </Box>
+      </motion.div>
+      
+      {/* Основной контент */}
+      <Box sx={{ p: 3, maxWidth: 1400, mx: 'auto', position: 'relative', zIndex: 1 }}>
 
       {/* Баннер текущего хода */}
       {turnBanner && (
@@ -595,25 +530,188 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
       {/* Управление игрой */}
       {renderGameControls()}
 
-      {/* Игровое поле */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          🎯 Игровое поле
-        </Typography>
-        
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            gap: 1,
-            maxWidth: 'fit-content',
-            mx: 'auto'
-          }}
-        >
-          {BOARD_CONFIG.cells.map((cell, index) => renderCell(cell, index))}
+      {/* Игровое поле Cashflow */}
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
+      >
+        <Box sx={{ 
+          mb: 4,
+          textAlign: 'center'
+        }}>
+          <Typography variant="h4" sx={{ 
+            color: '#FFFFFF',
+            fontWeight: 'bold',
+            mb: 2,
+            textShadow: '0 2px 10px rgba(0,0,0,0.5)'
+          }}>
+            🎯 Игровое поле Cashflow
+          </Typography>
+          <Typography variant="h6" sx={{ 
+            color: 'rgba(255,255,255,0.8)',
+            fontWeight: '300'
+          }}>
+            76 клеток • 24 по кругу + 52 по периметру
+          </Typography>
         </Box>
+      </motion.div>
+        
+        <Box sx={{ 
+          position: 'relative', 
+          width: 'fit-content', 
+          mx: 'auto',
+          background: 'rgba(15, 23, 42, 0.9)',
+          borderRadius: '24px',
+          padding: '32px',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+          border: `2px solid ${CASHFLOW_THEME.colors.board.border}`
+        }}>
+          {/* Внешний квадрат - 52 клетки */}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(15, 1fr)',
+              gap: 2,
+              position: 'relative'
+            }}
+          >
+            {/* Верхний ряд (1-15) */}
+            {BOARD_CONFIG.outerSquare.slice(0, 15).map((cell, index) => (
+              <Box key={`top-${index}`} sx={{ width: 70, height: 70 }}>
+                {renderCell(cell, index)}
+              </Box>
+            ))}
+          </Box>
+          
+                      {/* Правый ряд (16-27) */}
+            <Box
+              sx={{
+                position: 'absolute',
+                right: 0,
+                top: 70,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2
+              }}
+            >
+              {BOARD_CONFIG.outerSquare.slice(15, 27).map((cell, index) => (
+                <Box key={`right-${index}`} sx={{ width: 70, height: 70 }}>
+                  {renderCell(cell, index + 15)}
+                </Box>
+              ))}
+            </Box>
+            
+            {/* Нижний ряд (28-39) */}
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                display: 'grid',
+                gridTemplateColumns: 'repeat(12, 1fr)',
+                gap: 2
+              }}
+            >
+              {BOARD_CONFIG.outerSquare.slice(27, 39).map((cell, index) => (
+                <Box key={`bottom-${index}`} sx={{ width: 70, height: 70 }}>
+                  {renderCell(cell, index + 27)}
+                </Box>
+              ))}
+            </Box>
+            
+            {/* Левый ряд (40-52) */}
+            <Box
+              sx={{
+                position: 'absolute',
+                left: 0,
+                top: 70,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2
+              }}
+            >
+              {BOARD_CONFIG.outerSquare.slice(39, 52).map((cell, index) => (
+                <Box key={`left-${index}`} sx={{ width: 70, height: 70 }}>
+                  {renderCell(cell, index + 39)}
+                </Box>
+              ))}
+            </Box>
+          
+          {/* Внутренний круг - 24 клетки */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 500,
+              height: 500,
+              borderRadius: '50%',
+              background: CASHFLOW_THEME.effects.gradients.primary,
+              border: '6px solid #A855F7',
+              boxShadow: 'inset 0 0 60px rgba(124, 58, 237, 0.4), 0 0 80px rgba(124, 58, 237, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backdropFilter: 'blur(10px)'
+            }}
+          >
+            <Box
+              sx={{
+                position: 'relative',
+                width: 460,
+                height: 460,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, rgba(76, 29, 149, 0.2) 100%)'
+              }}
+            >
+              {/* Размещаем 24 клетки по кругу */}
+              {BOARD_CONFIG.innerCircle.map((cell, index) => {
+                const angle = (index * 15) - 90; // Начинаем сверху
+                const radius = 180;
+                const x = Math.cos((angle * Math.PI) / 180) * radius;
+                const y = Math.sin((angle * Math.PI) / 180) * radius;
+                
+                return (
+                  <motion.div
+                    key={`circle-${index}`}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                                          transition={{ 
+                        duration: 0.5, 
+                        delay: index * 0.05,
+                        ease: "easeOutBounce"
+                      }}
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
+                      width: 60,
+                      height: 60
+                    }}
+                  >
+                    {renderCell(cell, index)}
+                  </motion.div>
+                );
+              })}
+            </Box>
+          </Box>
+                </Box>
       </Box>
-
+      
+      {/* Стильная панель управления */}
+      <StylishControlPanel
+        players={players}
+        currentTurn={currentTurn}
+        playerData={playerData}
+        onRollDice={handleRollDice}
+        isMyTurn={isMyTurn}
+        isRolling={isRolling}
+        timer={timer}
+      />
+      
       {/* Информация об игроках */}
       {renderPlayers()}
 

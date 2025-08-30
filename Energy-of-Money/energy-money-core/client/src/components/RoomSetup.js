@@ -15,7 +15,6 @@ import {
   Select, 
   MenuItem, 
   Chip,
-  Divider,
   Card,
   CardContent,
   Avatar
@@ -28,62 +27,55 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   const { roomId } = useParams();
   const navigate = useNavigate();
   
-  // Проверяем, что playerData передан
-  if (!playerData) {
-    console.error('❌ [RoomSetup] playerData не передан');
-    return (
-      <Container maxWidth="md" sx={{ mt: 4 }}>
-        <Alert severity="error">
-          Ошибка: данные игрока не загружены. Пожалуйста, перезагрузите страницу.
-        </Alert>
-      </Container>
-    );
-  }
+  // Все хуки должны быть в начале компонента, до любых условных проверок
   
   // Основные настройки комнаты
   const [roomName, setRoomName] = useState('');
   const [isPublic, setIsPublic] = useState(true);
   const [roomPassword, setRoomPassword] = useState('');
-  const [professionType, setProfessionType] = useState('individual'); // 'individual' или 'shared'
+  const [professionType, setProfessionType] = useState('individual');
   
   // Выбор профессии и мечты
   const [selectedProfession, setSelectedProfession] = useState(null);
   const [selectedDream, setSelectedDream] = useState(null);
 
-  
   // Состояние игрока
   const [isReady, setIsReady] = useState(false);
   const [playerName, setPlayerName] = useState('');
+  const [isHost, setIsHost] = useState(false);
   
   // Данные комнаты
-
   const [players, setPlayers] = useState([]);
   const [canStart, setCanStart] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  
+  // Отладочное логирование состояния players
+  useEffect(() => {
+    console.log('👥 [RoomSetup] Состояние players обновлено:', players);
+    console.log('👥 [RoomSetup] Количество игроков в UI:', players.length);
+  }, [players]);
   
   // Уведомления
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
+  
   // Инициализируем имя игрока из playerData или localStorage
   useEffect(() => {
     if (playerData?.username) {
       setPlayerName(playerData.username);
       console.log('👤 [RoomSetup] Установлено имя игрока из playerData:', playerData.username);
     } else {
-      // Пытаемся загрузить сохраненное имя игрока
       const savedPlayerName = localStorage.getItem('energy_of_money_player_name');
       if (savedPlayerName) {
         setPlayerName(savedPlayerName);
         console.log('💾 [RoomSetup] Загружено сохраненное имя игрока:', savedPlayerName);
       } else {
-        // Если нет сохраненного имени, генерируем случайное
         const randomName = `Игрок ${Math.floor(Math.random() * 9000) + 1000}`;
         setPlayerName(randomName);
         console.log('🎲 [RoomSetup] Сгенерировано случайное имя:', randomName);
       }
     }
     
-    // Имя комнаты будет загружено с сервера через roomData
     console.log('🏠 [RoomSetup] Ожидаем загрузку имени комнаты с сервера...');
   }, [playerData]);
 
@@ -103,27 +95,70 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
       roomId: roomId
     });
 
+    // Обработка успешного присоединения к комнате
+    socket.on('roomJoined', (data) => {
+      console.log('✅ [RoomSetup] Успешно присоединились к комнате:', data);
+      if (data.success) {
+        console.log('🏠 [RoomSetup] Запрашиваем данные комнаты после присоединения');
+        socket.emit('getRoomData', roomId);
+      }
+    });
+
+    // Обработка ошибки присоединения к комнате
+    socket.on('joinRoomError', (data) => {
+      console.error('❌ [RoomSetup] Ошибка присоединения к комнате:', data);
+      setError(data.error || 'Ошибка присоединения к комнате');
+    });
+
     // Обработка данных комнаты
     socket.on('roomData', (data) => {
       console.log('🏠 [RoomSetup] Получены данные комнаты:', data);
+      console.log('🏠 [RoomSetup] data.displayName:', data.displayName);
+      console.log('🏠 [RoomSetup] data.roomId:', data.roomId);
+      console.log('🏠 [RoomSetup] data.hostId:', data.hostId);
+      console.log('👥 [RoomSetup] data.currentPlayers:', data.currentPlayers);
+      
       if (data.displayName) {
         setRoomName(data.displayName);
         console.log('🏠 [RoomSetup] Установлено имя комнаты:', data.displayName);
+      } else {
+        console.log('⚠️ [RoomSetup] displayName отсутствует в данных комнаты');
       }
+      
       setIsPublic(data.isPublic !== false);
       setRoomPassword(data.password || '');
       setProfessionType(data.professionType || 'individual');
       
-      // Устанавливаем профессию хоста, если она есть
+      // Если в roomData есть информация об игроках, обновляем состояние
+      if (data.currentPlayers && Array.isArray(data.currentPlayers)) {
+        console.log('👥 [RoomSetup] Обновляем игроков из roomData:', data.currentPlayers.length);
+        setPlayers(data.currentPlayers);
+        
+        const readyPlayers = data.currentPlayers.filter(p => p.ready);
+        console.log('✅ [RoomSetup] Готовых игроков из roomData:', readyPlayers.length);
+        setCanStart(readyPlayers.length >= 2);
+        
+        const currentPlayer = data.currentPlayers.find(p => p.socketId === socket.id);
+        if (currentPlayer) {
+          console.log('👤 [RoomSetup] Текущий игрок найден в roomData:', currentPlayer);
+          setIsReady(currentPlayer.ready || false);
+        }
+      }
+      
       if (data.hostProfession && data.hostProfession !== 'none') {
         setSelectedProfession(data.hostProfession);
         console.log('💼 [RoomSetup] Установлена профессия хоста из roomData:', data.hostProfession);
       }
 
-      // Проверяем статус игры
+      if (data.hostId === socket.id) {
+        setIsHost(true);
+        console.log('👑 [RoomSetup] Текущий игрок является хостом');
+      } else {
+        setIsHost(false);
+      }
+
       if (data.status === 'determining_order') {
         setSuccess('Игра запущена! Определение очередности...');
-        // Переходим к игровому полю
         setTimeout(() => {
           navigate(`/room/${roomId}/game`);
         }, 2000);
@@ -138,7 +173,6 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
         console.log('🏠 [RoomSetup] Установлено имя созданной комнаты:', data.displayName);
       }
       
-      // Устанавливаем профессию хоста, если она есть
       if (data.hostProfession && data.hostProfession !== 'none') {
         setSelectedProfession(data.hostProfession);
         console.log('💼 [RoomSetup] Установлена профессия хоста:', data.hostProfession);
@@ -147,28 +181,31 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
 
     // Обработка списка игроков
     socket.on('playersUpdate', (updatedPlayers) => {
+      console.log('👥 [RoomSetup] Получен playersUpdate:', updatedPlayers);
+      console.log('👥 [RoomSetup] Количество игроков:', updatedPlayers.length);
+      
       setPlayers(updatedPlayers);
       
-      // Проверяем, может ли игра начаться
       const readyPlayers = updatedPlayers.filter(p => p.ready);
+      console.log('✅ [RoomSetup] Готовых игроков:', readyPlayers.length);
       setCanStart(readyPlayers.length >= 2);
       
-      // Проверяем, готов ли текущий игрок
       const currentPlayer = updatedPlayers.find(p => p.socketId === socket.id);
       if (currentPlayer) {
+        console.log('👤 [RoomSetup] Текущий игрок найден:', currentPlayer);
         setIsReady(currentPlayer.ready || false);
         
-        // Устанавливаем выбранную профессию из данных игрока
         if (currentPlayer.profession && currentPlayer.profession !== 'none') {
           setSelectedProfession(currentPlayer.profession);
           console.log('💼 [RoomSetup] Установлена профессия из данных игрока:', currentPlayer.profession);
         }
         
-        // Устанавливаем выбранную мечту из данных игрока
         if (currentPlayer.dream && currentPlayer.dream !== 'none') {
           setSelectedDream(currentPlayer.dream);
           console.log('⭐ [RoomSetup] Установлена мечта из данных игрока:', currentPlayer.dream);
         }
+      } else {
+        console.log('⚠️ [RoomSetup] Текущий игрок не найден в списке игроков');
       }
     });
 
@@ -178,14 +215,38 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
     });
 
     socket.on('error', (error) => {
+      console.error('❌ [RoomSetup] Socket error:', error);
       setError(`Ошибка: ${error.message || 'Неизвестная ошибка'}`);
+      setTimeout(() => setError(''), 5000);
+    });
+
+    // Обработка переподключения
+    socket.on('connect', () => {
+      console.log('✅ [RoomSetup] Socket reconnected, restoring room state...');
+      setIsConnected(true);
+      setError('');
+      // Автоматически восстанавливаем состояние комнаты
+      if (roomId) {
+        socket.emit('restoreRoomState', roomId);
+      }
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.warn('⚠️ [RoomSetup] Socket disconnected:', reason);
+      setIsConnected(false);
+      if (reason === 'io server disconnect') {
+        // Сервер разорвал соединение, пытаемся переподключиться
+        console.log('🔄 [RoomSetup] Server disconnected, attempting to reconnect...');
+        setTimeout(() => {
+          socket.connect();
+        }, 1000); // Задержка 1 секунда перед переподключением
+      }
     });
 
     // Обработка запуска игры
     socket.on('gameStarted', (data) => {
       console.log('🎮 [RoomSetup] Игра запущена:', data);
       setSuccess('Игра запущена! Переходим к игровому полю...');
-      // Переходим к игровому полю
       setTimeout(() => {
         navigate(`/room/${roomId}/game`);
       }, 2000);
@@ -195,19 +256,12 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
     socket.on('orderDeterminationStarted', (data) => {
       console.log('🎲 [RoomSetup] Началось определение очередности:', data);
       setSuccess('Определение очередности! Переходим к игровому полю...');
-      // Переходим к игровому полю
       setTimeout(() => {
         navigate(`/room/${roomId}/game`);
       }, 2000);
     });
 
-
-
-    // Запрашиваем данные комнаты при входе
-    if (roomId) {
-      socket.emit('getRoomData', roomId);
-      console.log('🏠 [RoomSetup] Запрошены данные комнаты:', roomId);
-    }
+    console.log('🏠 [RoomSetup] Ожидаем присоединения к комнате для получения данных');
 
     return () => {
       socket.off('roomData');
@@ -217,17 +271,30 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
       socket.off('error');
       socket.off('gameStarted');
       socket.off('orderDeterminationStarted');
+      socket.off('roomJoined');
+      socket.off('joinRoomError');
+      socket.off('connect');
+      socket.off('disconnect');
     };
-  }, [roomId, playerName, roomName, navigate]);
+  }, [roomId, playerName, roomName, navigate, playerData, isConnected]);
+
+  // Проверяем, что playerData передан (после всех хуков)
+  if (!playerData) {
+    console.error('❌ [RoomSetup] playerData не передан');
+    return (
+      <Container maxWidth="md" sx={{ mt: 4 }}>
+        <Alert severity="error">
+          Ошибка: данные игрока не загружены. Пожалуйста, перезагрузите страницу.
+        </Alert>
+      </Container>
+    );
+  }
 
   // Обработчики действий
-  // handleRoomNameChange удален - имя комнаты нельзя изменить после создания
-
   const handlePublicToggle = () => {
     const newPublicState = !isPublic;
     setIsPublic(newPublicState);
     
-    // Если комната становится закрытой, очищаем пароль
     if (!newPublicState) {
       setRoomPassword('');
     }
@@ -242,10 +309,6 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
       setSuccess('Пароль комнаты обновлен!');
     }
   };
-
-  // handleProfessionTypeChange удален - тип профессий нельзя изменить после создания комнаты
-
-
 
   const handleProfessionSelect = (profession) => {
     setSelectedProfession(profession);
@@ -264,21 +327,27 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
     setIsReady(newReadyState);
     
     if (newReadyState) {
-      // Отправляем готовность игрока
       socket.emit('playerReady', roomId, socket.id);
       setSuccess('Вы готовы!');
     } else {
-      // Снимаем готовность (пока не реализовано на сервере)
       setSuccess('Готовность снята');
     }
   };
 
   const handleStartGame = () => {
+    console.log('🚀 [RoomSetup] Запускаем игру в комнате:', roomId);
+    
+    // Сразу переходим к игровому полю
+    setSuccess('Игра запускается! Переходим к игровому полю...');
+    
+    // Отправляем событие на сервер
     socket.emit('startGame', roomId);
-    setSuccess('Игра запускается...');
+    
+    // Немедленно переходим к игровому полю
+    setTimeout(() => {
+      navigate(`/room/${roomId}/game`);
+    }, 1000); // Задержка 1 секунда для показа сообщения
   };
-
-
 
   // Данные для профессий и мечт
   const professions = [
@@ -301,9 +370,14 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
     <Container maxWidth="lg">
       <Box
         sx={{
-        minHeight: '100vh',
+          minHeight: '100vh',
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          py: 4
+          py: 4,
+          '@keyframes pulse': {
+            '0%': { opacity: 1 },
+            '50%': { opacity: 0.5 },
+            '100%': { opacity: 1 }
+          }
         }}
       >
         <motion.div
@@ -317,506 +391,341 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
               p: 4,
               borderRadius: 3,
               background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)'
+              backdropFilter: 'blur(10px)'
             }}
           >
-      {/* Заголовок */}
-            <Typography
-              variant="h3"
-              component="h1"
-              align="center"
-              sx={{
-        mb: 4, 
-        fontWeight: 'bold', 
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}
-            >
-              🎮 Настройка партии
-      </Typography>
-
-            <Grid container spacing={4} alignItems="flex-start">
-              {/* Левая колонка - Настройки комнаты */}
-              <Grid item xs={12} md={6}>
-                <Typography variant="h5" sx={{ mb: 3, color: '#333', fontWeight: 'bold' }}>
-                  ⚙️ Настройки комнаты
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
+              <Typography variant="h4" sx={{ color: '#333', fontWeight: 'bold' }}>
+                🏠 Настройки комнаты
+              </Typography>
+              
+              {/* Индикатор состояния соединения */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: '50%',
+                    bgcolor: isConnected ? '#4caf50' : '#ff9800',
+                    animation: isConnected ? 'none' : 'pulse 2s infinite'
+                  }}
+                />
+                <Typography variant="body2" sx={{ color: isConnected ? '#4caf50' : '#ff9800' }}>
+                  {isConnected ? 'Подключено' : 'Переподключение...'}
                 </Typography>
+              </Box>
+            </Box>
 
-                {/* Имя комнаты */}
-                    <Box sx={{ mb: 3 }}>
+            {/* Имя комнаты */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                🏠 Имя комнаты (только для просмотра)
+              </Typography>
+              <TextField
+                fullWidth
+                value={roomName}
+                disabled={true}
+                placeholder="Имя комнаты"
+                variant="outlined"
+                sx={{ 
+                  mb: 1,
+                  '& .MuiInputBase-input.Mui-disabled': {
+                    WebkitTextFillColor: '#666',
+                    color: '#666'
+                  }
+                }}
+              />
+              <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                ⚠️ Имя комнаты нельзя изменить после создания
+              </Typography>
+            </Box>
+
+            {/* Флажок открытая/закрытая комната */}
+            <Box sx={{ mb: 3 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isPublic}
+                    onChange={handlePublicToggle}
+                    color="primary"
+                  />
+                }
+                label={
+                  <Typography variant="h6" sx={{ color: '#333' }}>
+                    {isPublic ? '🌍 Открытая комната' : '🔒 Закрытая комната'}
+                  </Typography>
+                }
+              />
+              <Typography variant="body2" sx={{ color: '#666', mt: 1 }}>
+                {isPublic 
+                  ? 'Любой может присоединиться к комнате' 
+                  : 'Только по приглашению или паролю'
+                }
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                ✅ Этот параметр можно изменять в любое время
+              </Typography>
+              
+              {/* Поле для пароля (показывается только для закрытых комнат) */}
+              {!isPublic && (
+                <Box sx={{ mt: 2 }}>
                   <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                    🏠 Имя комнаты (только для просмотра)
+                    🔐 Пароль комнаты
                   </Typography>
                   <TextField
                     fullWidth
-                    value={roomName}
-                    disabled={true}
-                    placeholder="Имя комнаты"
+                    value={roomPassword}
+                    onChange={(e) => setRoomPassword(e.target.value)}
+                    placeholder="Введите пароль для комнаты"
                     variant="outlined"
-                    sx={{ 
-                      mb: 1,
-                      '& .MuiInputBase-input.Mui-disabled': {
-                        WebkitTextFillColor: '#666',
-                        color: '#666'
-                      }
-                    }}
-                  />
-                  <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
-                    ⚠️ Имя комнаты нельзя изменить после создания
-                  </Typography>
-                    </Box>
-
-                {/* Флажок открытая/закрытая комната */}
-                    <Box sx={{ mb: 3 }}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={isPublic}
-                        onChange={handlePublicToggle}
-                        color="primary"
-                      />
-                    }
-                    label={
-                      <Typography variant="h6" sx={{ color: '#333' }}>
-                        {isPublic ? '🌍 Открытая комната' : '🔒 Закрытая комната'}
-                      </Typography>
-                    }
-                  />
-                  <Typography variant="body2" sx={{ color: '#666', mt: 1 }}>
-                    {isPublic 
-                      ? 'Любой может присоединиться к комнате' 
-                      : 'Только по приглашению или паролю'
-                    }
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
-                    ✅ Этот параметр можно изменять в любое время
-                  </Typography>
-                  
-                  {/* Поле для пароля (показывается только для закрытых комнат) */}
-                  {!isPublic && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                        🔐 Пароль комнаты
-                      </Typography>
-                        <TextField
-                          fullWidth
-                        value={roomPassword}
-                        onChange={(e) => setRoomPassword(e.target.value)}
-                        placeholder="Введите пароль для комнаты"
-                        variant="outlined"
-                        type="password"
-                        sx={{ mb: 1 }}
-                      />
-                        <Button
-                          variant="outlined"
-                        onClick={handlePasswordChange}
-                        fullWidth
-                        sx={{ borderRadius: 2 }}
-                        disabled={!roomPassword.trim()}
-                      >
-                        💾 Сохранить пароль
-                        </Button>
-                      <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.8rem' }}>
-                        💡 Поделитесь этим паролем с друзьями, чтобы они могли присоединиться
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
-                        ✅ Пароль можно изменять в любое время
-                      </Typography>
-                      </Box>
-                  )}
-                    </Box>
-
-                {/* Тип профессий */}
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                    👥 Тип профессий (только для просмотра)
-                  </Typography>
-                  <FormControl fullWidth>
-                    <Select
-                      value={professionType}
-                      disabled={true}
-                      variant="outlined"
-                      sx={{
-                        '& .MuiInputBase-input.Mui-disabled': {
-                          WebkitTextFillColor: '#666',
-                          color: '#666'
-                        }
-                      }}
-                    >
-                      <MenuItem value="individual">
-                        🎯 У каждого своя профессия
-                      </MenuItem>
-                      <MenuItem value="shared">
-                        🤝 Одна профессия на всех
-                      </MenuItem>
-                    </Select>
-                  </FormControl>
-                  <Typography variant="body2" sx={{ color: '#666', mt: 1 }}>
-                    {professionType === 'individual' 
-                      ? 'Каждый игрок выбирает свою профессию' 
-                      : 'Все игроки используют одну профессию'
-                    }
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
-                    ⚠️ Тип профессий нельзя изменить после создания комнаты
-                  </Typography>
-                </Box>
-
-                {/* Имя игрока */}
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                    👤 Ваше имя (можно изменять)
-                  </Typography>
-                        <TextField
-              fullWidth
-                    value={playerName}
-                    onChange={(e) => {
-                      const newName = e.target.value;
-                      setPlayerName(newName);
-                      
-                      // Автоматически сохраняем имя в localStorage при изменении
-                      if (newName.trim()) {
-                        localStorage.setItem('energy_of_money_player_name', newName.trim());
-                      }
-                    }}
-                    onBlur={() => {
-                      // При потере фокуса отправляем имя на сервер
-                      if (roomId && playerName.trim()) {
-                        socket.emit('updatePlayerName', roomId, playerName.trim());
-                        setSuccess('Имя игрока обновлено!');
-                      }
-                    }}
-                    placeholder="Введите ваше имя"
-                    variant="outlined"
+                    type="password"
                     sx={{ mb: 1 }}
                   />
-                  <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
-                    ✅ Имя игрока можно изменять в любое время
-                  </Typography>
-
-                </Box>
-              </Grid>
-
-              {/* Правая колонка - Выбор профессии и мечты */}
-              <Grid item xs={12} md={6}>
-                <Typography variant="h5" sx={{ mb: 3, color: '#333', fontWeight: 'bold' }}>
-                  🎯 Выбор персонажа
-                </Typography>
-
-                {/* Выбор профессии */}
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                    💼 Профессия (можно изменять)
-                  </Typography>
-                  {selectedProfession && (
-                    <Typography variant="body2" sx={{ mb: 2, color: '#4caf50', fontWeight: 'bold' }}>
-                      ✅ Выбрана: {selectedProfession.name}
-                    </Typography>
-                  )}
-                  <Grid container spacing={2}>
-                    {professions.map((profession) => (
-                      <Grid item xs={12} sm={6} key={profession.id} sx={{ display: 'flex', mb: 2 }}>
-                        <Card
-                          onClick={() => handleProfessionSelect(profession)}
-              sx={{
-                            cursor: 'pointer',
-                            border: selectedProfession?.id === profession.id ? '2px solid #667eea' : '1px solid #ddd',
-                            transition: 'all 0.3s ease',
-                            position: 'relative',
-                            height: '180px', // Фиксированная высота для всех карточек
-                            width: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            '&:hover': {
-                              transform: 'translateY(-2px)',
-                              boxShadow: 3
-                            }
-                          }}
-                        >
-                          {/* Сердечко для выбранной профессии */}
-                          {selectedProfession?.id === profession.id && (
-                            <Box
-              sx={{
-                                position: 'absolute',
-                                top: -8,
-                                right: -8,
-                                width: 32,
-                                height: 32,
-                                borderRadius: '50%',
-                                backgroundColor: '#ff6b6b',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                zIndex: 1,
-                                boxShadow: '0 2px 8px rgba(255, 107, 107, 0.3)',
-                                animation: 'pulse 2s infinite'
-                              }}
-                            >
-                              <Typography sx={{ color: 'white', fontSize: '16px', fontWeight: 'bold' }}>
-                                ❤️
-                              </Typography>
-                            </Box>
-                          )}
-                          <CardContent sx={{ p: 2, textAlign: 'center', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
-                            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, fontSize: '1.1rem' }}>
-                                {profession.name}
-                              </Typography>
-                              <Typography variant="body2" sx={{ color: '#666', mb: 1, lineHeight: 1.4, flexGrow: 1 }}>
-                                {profession.description}
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', mt: 'auto' }}>
-                              <Chip label={`💰 ${profession.salary}`} size="small" color="success" />
-                              <Chip label={`💸 ${profession.expenses}`} size="small" color="error" />
-                            </Box>
-                          </CardContent>
-                        </Card>
-                      </Grid>
-                    ))}
-                  </Grid>
-                </Box>
-
-                <Divider sx={{ my: 3 }} />
-
-                {/* Выбор мечты */}
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                    ⭐ Мечта (можно изменять)
-                  </Typography>
-                  {selectedDream && (
-                    <Typography variant="body2" sx={{ mb: 2, color: '#4caf50', fontWeight: 'bold' }}>
-                      ✅ Выбрана: {selectedDream.name}
-                    </Typography>
-                  )}
-                  <Grid container spacing={2}>
-                    {dreams.map((dream) => (
-                      <Grid item xs={12} sm={6} key={dream.id} sx={{ display: 'flex', mb: 2 }}>
-                        <Card
-                          onClick={() => handleDreamSelect(dream)}
-                          sx={{
-                            cursor: 'pointer',
-                            border: selectedDream?.id === dream.id ? '2px solid #667eea' : '1px solid #ddd',
-                            transition: 'all 0.3s ease',
-                            position: 'relative',
-                            height: '180px', // Фиксированная высота для всех карточек
-                            width: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            '&:hover': {
-                              transform: 'translateY(-2px)',
-                              boxShadow: 3
-                            }
-                          }}
-                        >
-                          {/* Сердечко для выбранной мечты */}
-                          {selectedDream?.id === dream.id && (
-                            <Box
-              sx={{
-                                position: 'absolute',
-                                top: -8,
-                                right: -8,
-                                width: 32,
-                                height: 32,
-                                borderRadius: '50%',
-                                backgroundColor: '#ff6b6b',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                zIndex: 1,
-                                boxShadow: '0 2px 8px rgba(255, 107, 107, 0.3)',
-                                animation: 'pulse 2s infinite'
-                              }}
-                            >
-                              <Typography sx={{ color: 'white', fontSize: '16px', fontWeight: 'bold' }}>
-                                ❤️
-                              </Typography>
-          </Box>
-                          )}
-                          <CardContent sx={{ p: 2, textAlign: 'center', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
-                            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, fontSize: '1.1rem' }}>
-                                {dream.name}
-                              </Typography>
-                              <Typography variant="body2" sx={{ color: '#666', mb: 1, lineHeight: 1.4, flexGrow: 1 }}>
-                                {dream.description}
-                              </Typography>
-        </Box>
-                            <Chip label={`🎯 ${dream.cost.toLocaleString()}`} size="small" color="primary" sx={{ mt: 'auto' }} />
-                          </CardContent>
-                        </Card>
-                      </Grid>
-                    ))}
-                  </Grid>
-                      </Box>
-              </Grid>
-
-              {/* Нижняя часть - Игроки и управление */}
-              <Grid item xs={12}>
-                <Divider sx={{ my: 3 }} />
-                
-                {/* Список игроков */}
-        <Box sx={{ mb: 3 }}>
-                  <Typography variant="h5" sx={{ mb: 2, color: '#333', fontWeight: 'bold' }}>
-                    👥 Игроки в комнате ({players.length})
-          </Typography>
-                  <Grid container spacing={2}>
-                    {players.map((player, index) => (
-                      <Grid item xs={12} sm={6} md={4} key={player.id}>
-                        <Card sx={{ 
-                          border: player.ready ? '2px solid #4caf50' : '1px solid #ddd',
-                          background: player.ready ? 'rgba(76, 175, 80, 0.1)' : 'white'
-                        }}>
-                          <CardContent sx={{ p: 2, textAlign: 'center' }}>
-                <Avatar sx={{
-                  mx: 'auto',
-                  mb: 1,
-                              bgcolor: player.ready ? '#4caf50' : '#666',
-                  width: 40,
-                  height: 40
-                }}>
-                              {player.username?.[0] || '?'}
-                </Avatar>
-                            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                              {player.username}
-                </Typography>
-                            {player.profession && (
-                              <Chip 
-                                label={player.profession.name} 
-                                size="small" 
-                                color="primary" 
-                                sx={{ mb: 1 }}
-                              />
-                            )}
-                            {player.ready && (
-                              <Chip 
-                                label="✅ Готов" 
-                                size="small" 
-                                color="success"
-                              />
-                            )}
-                          </CardContent>
-                        </Card>
-                      </Grid>
-                    ))}
-                  </Grid>
-        </Box>
-
-                {/* Кнопки управления */}
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        {/* Кнопка готовности */}
-        <Button
-                    variant={isReady ? "contained" : "outlined"}
-                    onClick={handleToggleReady}
-                    size="large"
-          sx={{
-                      py: 2,
-                      px: 4,
-                      borderRadius: 2,
-            fontSize: '1.1rem',
-                      fontWeight: 'bold',
-                      bgcolor: isReady ? '#4caf50' : 'transparent',
-                      color: isReady ? 'white' : '#4caf50',
-                      borderColor: '#4caf50',
-            '&:hover': {
-                        bgcolor: isReady ? '#45a049' : 'rgba(76, 175, 80, 0.1)',
-            }
-          }}
-        >
-                    {isReady ? '✅ Готов' : '🎯 Готов'}
-        </Button>
-
-                  {/* Кнопка старта */}
-                        <Button
-                          variant="contained"
-                    onClick={handleStartGame}
-                    disabled={!canStart}
-                    size="large"
-                          sx={{
-                            py: 2,
-                      px: 4,
-                      borderRadius: 2,
-                      fontSize: '1.1rem',
-                      fontWeight: 'bold',
-                      background: canStart 
-                        ? 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)'
-                        : '#ccc',
-                            '&:hover': {
-                        background: canStart 
-                          ? 'linear-gradient(135deg, #45a049 0%, #388e3c 100%)'
-                          : '#ccc',
-                      }
-                    }}
+                  <Button
+                    variant="outlined"
+                    onClick={handlePasswordChange}
+                    fullWidth
+                    sx={{ borderRadius: 2 }}
+                    disabled={!roomPassword.trim()}
                   >
-                    🚀 СТАРТ ИГРЫ
-                        </Button>
-                        
-                  {/* Информация о готовности */}
-                  {!canStart && (
-                        <Box sx={{
-                          p: 2,
-                          borderRadius: 2,
-                      background: 'rgba(255, 193, 7, 0.1)',
-                      border: '1px solid #ffc107'
-                    }}>
-                      <Typography variant="body2" sx={{ color: '#f57c00' }}>
-                        ⏳ Для старта игры нужно минимум 2 готовых игрока
+                    💾 Сохранить пароль
+                  </Button>
+                  <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.8rem' }}>
+                    💡 Поделитесь этим паролем с друзьями, чтобы они могли присоединиться
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                    ✅ Пароль можно изменять в любое время
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            {/* Тип профессий */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                👥 Тип профессий (только для просмотра)
+              </Typography>
+              <FormControl fullWidth>
+                <Select
+                  value={professionType}
+                  disabled={true}
+                  variant="outlined"
+                  sx={{
+                    '& .MuiInputBase-input.Mui-disabled': {
+                      WebkitTextFillColor: '#666',
+                      color: '#666'
+                    }
+                  }}
+                >
+                  <MenuItem value="individual">Индивидуальные профессии</MenuItem>
+                  <MenuItem value="shared">Общие профессии</MenuItem>
+                </Select>
+              </FormControl>
+              <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                ⚠️ Тип профессий нельзя изменить после создания комнаты
+              </Typography>
+            </Box>
+
+            {/* Выбор профессии */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                💼 Профессия (можно изменять)
+              </Typography>
+              <Grid container spacing={2}>
+                {professions.map((profession) => (
+                  <Grid item xs={12} sm={6} md={4} key={profession.id}>
+                    <Card
+                      sx={{
+                        cursor: 'pointer',
+                        border: selectedProfession?.id === profession.id ? '2px solid #4caf50' : '1px solid #ddd',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: 3
+                        }
+                      }}
+                      onClick={() => handleProfessionSelect(profession)}
+                    >
+                      <CardContent>
+                        <Typography variant="h6" sx={{ mb: 1, color: '#333' }}>
+                          {profession.name}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
+                          💰 Зарплата: {profession.salary}₽
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
+                          💸 Расходы: {profession.expenses}₽
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#666', fontSize: '0.9rem' }}>
+                          {profession.description}
+                        </Typography>
+                        {selectedProfession?.id === profession.id && (
+                          <Chip
+                            label="Выбрано"
+                            color="success"
+                            size="small"
+                            sx={{ mt: 1 }}
+                          />
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+
+            {/* Выбор мечты */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                ⭐ Мечта (можно изменять)
+              </Typography>
+              <Grid container spacing={2}>
+                {dreams.map((dream) => (
+                  <Grid item xs={12} sm={6} md={4} key={dream.id}>
+                    <Card
+                      sx={{
+                        cursor: 'pointer',
+                        border: selectedDream?.id === dream.id ? '2px solid #ff9800' : '1px solid #ddd',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: 3
+                        }
+                      }}
+                      onClick={() => handleDreamSelect(dream)}
+                    >
+                      <CardContent>
+                        <Typography variant="h6" sx={{ mb: 1, color: '#333' }}>
+                          {dream.name}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
+                          💰 Стоимость: {dream.cost}₽
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#666', fontSize: '0.9rem' }}>
+                          {dream.description}
+                        </Typography>
+                        {selectedDream?.id === dream.id && (
+                          <Chip
+                            label="Выбрано"
+                            color="warning"
+                            size="small"
+                            sx={{ mt: 1 }}
+                          />
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+
+            {/* Готовность игрока */}
+            <Box sx={{ mb: 3, textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                🎯 Готовность к игре
+              </Typography>
+              <Button
+                variant={isReady ? "contained" : "outlined"}
+                color={isReady ? "success" : "primary"}
+                onClick={handleToggleReady}
+                size="large"
+                sx={{ borderRadius: 2, px: 4 }}
+              >
+                {isReady ? '✅ Готов к игре' : '⏳ Не готов'}
+              </Button>
+            </Box>
+
+            {/* Список игроков */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                👥 Игроки в комнате ({players.length})
+                {players.length === 0 && (
+                  <Typography variant="body2" sx={{ color: '#ff9800', ml: 2, fontSize: '0.9rem' }}>
+                    ⚠️ Загрузка списка игроков...
+                  </Typography>
+                )}
+              </Typography>
+              <Grid container spacing={2}>
+                {players.map((player) => (
+                  <Grid item xs={12} sm={6} md={4} key={player.socketId}>
+                    <Card sx={{ p: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar sx={{ bgcolor: player.ready ? '#4caf50' : '#ff9800' }}>
+                          {player.username.charAt(0).toUpperCase()}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                            {player.username}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#666' }}>
+                            {player.ready ? '✅ Готов' : '⏳ Не готов'}
                           </Typography>
                         </Box>
-                  )}
-        </Box>
+                      </Box>
+                    </Card>
+                  </Grid>
+                ))}
               </Grid>
-            </Grid>
-      </Paper>
+            </Box>
+
+            {/* Кнопка запуска игры */}
+            <Box sx={{ mb: 3, textAlign: 'center' }}>
+              {isHost ? (
+                <Button
+                  variant="contained"
+                  color="success"
+                  size="large"
+                  onClick={handleStartGame}
+                  disabled={!canStart}
+                  sx={{
+                    borderRadius: 2,
+                    px: 6,
+                    py: 2,
+                    fontSize: '1.2rem',
+                    background: !canStart ? '#ccc' : 'linear-gradient(45deg, #4caf50 30%, #45a049 90%)',
+                    '&:hover': {
+                      background: !canStart ? '#ccc' : 'linear-gradient(45deg, #45a049 30%, #4caf50 90%)'
+                    }
+                  }}
+                >
+                  🚀 СТАРТ ИГРЫ
+                </Button>
+              ) : (
+                <Box sx={{ p: 3, bgcolor: '#f5f5f5', borderRadius: 2 }}>
+                  <Typography variant="h6" sx={{ color: '#666', textAlign: 'center' }}>
+                    👑 Только хост комнаты может запустить игру
+                  </Typography>
+                </Box>
+              )}
+              
+              {!canStart && (
+                <Typography variant="body2" sx={{ color: '#666', mt: 2, textAlign: 'center' }}>
+                  ⚠️ Для запуска игры нужно минимум 2 готовых игрока
+                </Typography>
+              )}
+            </Box>
+
+            {/* Уведомления */}
+            {error && (
+              <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError('')}>
+                <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
+                  {error}
+                </Alert>
+              </Snackbar>
+            )}
+
+            {success && (
+              <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess('')}>
+                <Alert onClose={() => setSuccess('')} severity="success" sx={{ width: '100%' }}>
+                  {success}
+                </Alert>
+              </Snackbar>
+            )}
+          </Paper>
         </motion.div>
       </Box>
-
-      {/* Уведомления */}
-      <Snackbar
-        open={!!error}
-        autoHideDuration={4000}
-        onClose={() => setError('')}
-      >
-        <Alert severity="error" onClose={() => setError('')}>
-          {error}
-        </Alert>
-      </Snackbar>
-
-      <Snackbar
-        open={!!success}
-        autoHideDuration={3000}
-        onClose={() => setSuccess('')}
-      >
-        <Alert severity="success" onClose={() => setSuccess('')}>
-          {success}
-        </Alert>
-      </Snackbar>
-
-      {/* CSS анимация для пульсации сердечка */}
-      <Box sx={{
-        '@keyframes pulse': {
-          '0%': {
-            transform: 'scale(1)',
-            opacity: 1
-          },
-          '50%': {
-            transform: 'scale(1.1)',
-            opacity: 0.8
-          },
-          '100%': {
-            transform: 'scale(1)',
-            opacity: 1
-          }
-        }
-      }} />
     </Container>
   );
 };
 
 export default RoomSetup;
-
-
-

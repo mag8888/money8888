@@ -123,17 +123,56 @@ const createDefaultRoom = () => {
 
 // Функция для получения списка комнат
 const getRoomsList = () => {
-  const roomsList = Array.from(rooms.values()).map(room => ({
-    id: room.roomId,
-    roomId: room.roomId,
-    displayName: room.displayName,
-    maxPlayers: room.maxPlayers,
-    currentPlayers: room.currentPlayers,
-    status: room.status,
-    hostId: room.hostId,
-    password: room.password,
-    createdAt: room.createdAt // Добавляем время создания для сортировки
-  }))
+  const roomsList = Array.from(rooms.values()).map(room => {
+    // Находим имя хоста по hostId
+    let hostUsername = 'Неизвестно';
+    if (room.hostId) {
+      console.log(`🔍 [SERVER] Looking for host username for room ${room.roomId}, hostId: ${room.hostId}`);
+      console.log(`🔍 [SERVER] Available users:`, Array.from(users.values()).map(u => ({ username: u.username, socketId: u.socketId })));
+      console.log(`🔍 [SERVER] Room currentPlayers:`, room.currentPlayers.map(p => ({ username: p.username, socketId: p.socketId })));
+      
+      // Ищем пользователя по socketId в глобальном хранилище
+      for (const [userId, userData] of users.entries()) {
+        if (userData.socketId === room.hostId) {
+          hostUsername = userData.username;
+          console.log(`✅ [SERVER] Found host username in users: ${hostUsername}`);
+          break;
+        }
+      }
+      
+      // Если не нашли в users, ищем в currentPlayers комнаты
+      if (hostUsername === 'Неизвестно') {
+        const hostPlayer = room.currentPlayers.find(p => p.socketId === room.hostId);
+        if (hostPlayer) {
+          hostUsername = hostPlayer.username;
+          console.log(`✅ [SERVER] Found host username in currentPlayers: ${hostUsername}`);
+        } else {
+          console.log(`❌ [SERVER] Host player not found in currentPlayers for room ${room.roomId}`);
+          // Попробуем найти по id (если hostId это userId, а не socketId)
+          for (const [userId, userData] of users.entries()) {
+            if (userId === room.hostId) {
+              hostUsername = userData.username;
+              console.log(`✅ [SERVER] Found host username by userId: ${hostUsername}`);
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    return {
+      id: room.roomId,
+      roomId: room.roomId,
+      displayName: room.displayName,
+      maxPlayers: room.maxPlayers,
+      currentPlayers: room.currentPlayers,
+      status: room.status,
+      hostId: room.hostId,
+      hostUsername: hostUsername, // Добавляем имя хоста
+      password: room.password,
+      createdAt: room.createdAt // Добавляем время создания для сортировки
+    };
+  })
   .sort((a, b) => b.createdAt - a.createdAt); // Сортируем по времени создания (новые в начало)
   
   console.log(`📊 [SERVER] getRoomsList: ${roomsList.length} rooms`);
@@ -265,7 +304,7 @@ io.on('connection', (socket) => {
     console.log('🏠 [SERVER] createRoom requested:', roomData);
     
     try {
-      const { roomId, name, password, professionType, profession, maxPlayers } = roomData;
+      const { name, password, professionType, profession, maxPlayers } = roomData;
       
       // Генерируем уникальный ID комнаты
       const uniqueRoomId = `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -292,7 +331,7 @@ io.on('connection', (socket) => {
       const newRoom = {
         roomId: uniqueRoomId,
         displayName: name.trim(),
-        maxPlayers: maxPlayers || 1, // Используем переданное значение или по умолчанию 1 (диапазон 1-10)
+        maxPlayers: maxPlayers || 2, // Используем переданное значение или по умолчанию 2 (диапазон 1-10)
         currentPlayers: [],
         status: 'waiting',
         password: password || '',
@@ -310,6 +349,22 @@ io.on('connection', (socket) => {
         name: name,
         hostId: socket.id
       });
+      
+      // Проверяем, есть ли пользователь с таким socketId
+      let hostUser = null;
+      for (const [userId, userData] of users.entries()) {
+        if (userData.socketId === socket.id) {
+          hostUser = userData;
+          break;
+        }
+      }
+      
+      if (hostUser) {
+        console.log('✅ [SERVER] Host user found:', { username: hostUser.username, email: hostUser.email });
+      } else {
+        console.log('❌ [SERVER] Host user not found for socketId:', socket.id);
+        console.log('📊 [SERVER] Available users:', Array.from(users.values()).map(u => ({ username: u.username, socketId: u.socketId })));
+      }
       
       // Отправляем подтверждение клиенту через emit
       socket.emit('roomCreated', { 
@@ -390,6 +445,14 @@ io.on('connection', (socket) => {
       const roomsList = getRoomsList();
       io.emit('roomsList', roomsList);
       
+      // Логируем состояние комнаты после присоединения игрока
+      console.log('🏠 [SERVER] Room state after player join:', {
+        roomId: room.roomId,
+        displayName: room.displayName,
+        hostId: room.hostId,
+        currentPlayers: room.currentPlayers.map(p => ({ username: p.username, socketId: p.socketId }))
+      });
+      
     } catch (error) {
       console.error('❌ [SERVER] Error joining room:', error);
       socket.emit('joinRoomError', { success: false, error: 'Ошибка присоединения к комнате' });
@@ -423,6 +486,208 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('❌ [SERVER] Error setting player ready:', error);
       socket.emit('error', { message: 'Ошибка установки готовности' });
+    }
+  });
+
+  // Запуск игры
+  socket.on('startGame', (roomId) => {
+    console.log('🚀 [SERVER] Start game requested:', { roomId });
+    
+    try {
+      const room = rooms.get(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Комната не найдена' });
+        return;
+      }
+      
+      // Проверяем, что игрок является хостом комнаты
+      if (room.hostId !== socket.id) {
+        socket.emit('error', { message: 'Только хост может запустить игру' });
+        return;
+      }
+      
+      // Проверяем, что все игроки готовы
+      const readyPlayers = room.currentPlayers.filter(p => p.ready);
+      if (readyPlayers.length < 2) {
+        socket.emit('error', { message: 'Для запуска игры нужно минимум 2 готовых игрока' });
+        return;
+      }
+      
+      // Меняем статус комнаты на "playing"
+      room.status = 'playing';
+      console.log('🚀 [SERVER] Game started in room:', { roomId, status: room.status });
+      
+      // Отправляем событие запуска игры всем игрокам в комнате
+      io.to(roomId).emit('gameStarted', {
+        success: true,
+        roomId: roomId,
+        status: room.status,
+        players: room.currentPlayers
+      });
+      
+      // Отправляем обновленный список комнат всем
+      const roomsList = getRoomsList();
+      io.emit('roomsList', roomsList);
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error starting game:', error);
+      socket.emit('error', { message: 'Ошибка запуска игры' });
+    }
+  });
+
+  // Получение состояния игры
+  socket.on('getGameState', (roomId) => {
+    console.log('🎮 [SERVER] getGameState requested:', { roomId });
+    
+    try {
+      const room = rooms.get(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Комната не найдена' });
+        return;
+      }
+      
+      // Отправляем текущее состояние игры
+      socket.emit('gameState', {
+        roomId: roomId,
+        status: room.status,
+        players: room.currentPlayers,
+        gamePhase: room.status === 'playing' ? 'playing' : 'waiting'
+      });
+      
+      console.log('🎮 [SERVER] Game state sent:', { roomId, status: room.status });
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error getting game state:', error);
+      socket.emit('error', { message: 'Ошибка получения состояния игры' });
+    }
+  });
+
+  // Получение данных комнаты
+  socket.on('getRoomData', (roomId) => {
+    console.log('🏠 [SERVER] getRoomData requested:', { roomId });
+    console.log('🏠 [SERVER] Всего комнат:', rooms.size);
+    console.log('🏠 [SERVER] Ключи комнат:', Array.from(rooms.keys()));
+    
+    try {
+      const room = rooms.get(roomId);
+      console.log('🏠 [SERVER] Найдена комната:', room);
+      
+      if (!room) {
+        console.log('❌ [SERVER] Комната не найдена в Map');
+        socket.emit('error', { message: 'Комната не найдена' });
+        return;
+      }
+      
+      // Находим имя хоста
+      let hostUsername = 'Неизвестно';
+      if (room.hostId) {
+        console.log(`🔍 [SERVER] getRoomData: Looking for host username, hostId: ${room.hostId}`);
+        
+        // Ищем пользователя по socketId в глобальном хранилище
+        for (const [userId, userData] of users.entries()) {
+          if (userData.socketId === room.hostId) {
+            hostUsername = userData.username;
+            console.log(`✅ [SERVER] getRoomData: Found host username in users: ${hostUsername}`);
+            break;
+          }
+        }
+        
+        // Если не нашли в users, ищем в currentPlayers комнаты
+        if (hostUsername === 'Неизвестно') {
+          const hostPlayer = room.currentPlayers.find(p => p.socketId === room.hostId);
+          if (hostPlayer) {
+            hostUsername = hostPlayer.username;
+            console.log(`✅ [SERVER] getRoomData: Found host username in currentPlayers: ${hostUsername}`);
+          } else {
+            console.log(`❌ [SERVER] getRoomData: Host player not found in currentPlayers`);
+            // Попробуем найти по id (если hostId это userId, а не socketId)
+            for (const [userId, userData] of users.entries()) {
+              if (userId === room.hostId) {
+                hostUsername = userData.username;
+                console.log(`✅ [SERVER] getRoomData: Found host username by userId: ${hostUsername}`);
+                break;
+              }
+            }
+          }
+        }
+      }
+      
+      // Отправляем данные комнаты клиенту
+      socket.emit('roomData', {
+        roomId: room.roomId,
+        displayName: room.displayName,
+        maxPlayers: room.maxPlayers,
+        currentPlayers: room.currentPlayers,
+        status: room.status,
+        hostId: room.hostId,
+        hostUsername: hostUsername,
+        password: room.password,
+        isPublic: room.password === '', // Комната считается открытой, если нет пароля
+        professionType: room.professionType || 'individual',
+        hostProfession: room.hostProfession || null,
+        createdAt: room.createdAt
+      });
+      
+      console.log('🏠 [SERVER] Room data sent:', { roomId, displayName: room.displayName });
+      
+      // Также отправляем обновленный список игроков
+      socket.emit('playersUpdate', room.currentPlayers);
+      console.log('👥 [SERVER] Players update sent after roomData:', room.currentPlayers.length, 'players');
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error getting room data:', error);
+      socket.emit('error', { message: 'Ошибка получения данных комнаты' });
+    }
+  });
+
+  // Восстановление состояния комнаты после переподключения
+  socket.on('restoreRoomState', (roomId) => {
+    console.log('🔄 [SERVER] restoreRoomState requested:', { roomId, socketId: socket.id });
+    
+    try {
+      const room = rooms.get(roomId);
+      if (!room) {
+        console.log('❌ [SERVER] Room not found for restore:', roomId);
+        return;
+      }
+      
+      // Проверяем, был ли игрок в этой комнате
+      const existingPlayer = room.currentPlayers.find(p => p.socketId === socket.id);
+      if (existingPlayer) {
+        console.log('✅ [SERVER] Player found in room, restoring state:', { 
+          roomId, 
+          username: existingPlayer.username,
+          socketId: socket.id 
+        });
+        
+        // Подключаем сокет к комнате
+        socket.join(roomId);
+        
+        // Отправляем данные комнаты
+        socket.emit('roomData', {
+          roomId: room.roomId,
+          displayName: room.displayName,
+          maxPlayers: room.maxPlayers,
+          currentPlayers: room.currentPlayers,
+          status: room.status,
+          hostId: room.hostId,
+          hostUsername: existingPlayer.username, // Используем имя текущего игрока
+          password: room.password,
+          isPublic: room.password === '',
+          professionType: room.professionType || 'individual',
+          hostProfession: room.hostProfession || null,
+          createdAt: room.createdAt
+        });
+        
+        // Отправляем обновленный список игроков
+        io.to(roomId).emit('playersUpdate', room.currentPlayers);
+        
+        console.log('✅ [SERVER] Room state restored for player:', existingPlayer.username);
+      } else {
+        console.log('⚠️ [SERVER] Player not found in room, cannot restore state:', { roomId, socketId: socket.id });
+      }
+    } catch (error) {
+      console.error('❌ [SERVER] Error restoring room state:', error);
     }
   });
 

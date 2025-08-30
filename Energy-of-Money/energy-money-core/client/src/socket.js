@@ -11,18 +11,19 @@ const baseUrl = process.env.NODE_ENV === 'production'
 
 console.log('🔌 [Socket] Configuration:', { baseUrl, env: process.env.NODE_ENV });
 
-// Создаем Socket.IO экземпляр с современными настройками
+// Создаем Socket.IO экземпляр с улучшенными настройками
 const socket = io(baseUrl, {
   transports: ['websocket', 'polling'],
   reconnection: true,
-  reconnectionAttempts: 5,
+  reconnectionAttempts: 10,
   reconnectionDelay: 1000,
-  reconnectionDelayMax: 5000,
-  timeout: 10000,
+  reconnectionDelayMax: 10000,
+  timeout: 15000,
   autoConnect: false,
-  forceNew: true,
+  forceNew: false,
   upgrade: true,
-  rememberUpgrade: true
+  rememberUpgrade: true,
+  maxReconnectionAttempts: 10
 });
 
 // Состояние подключения
@@ -116,6 +117,16 @@ socket.on('reconnect_attempt', (attemptNumber) => {
 
 socket.on('reconnect', (attemptNumber) => {
   console.log('✅ [Socket] Reconnected after', attemptNumber, 'attempts');
+  
+  // Автоматически восстанавливаем состояние после переподключения
+  if (window.location.pathname.includes('/room/')) {
+    const roomId = window.location.pathname.split('/room/')[1]?.split('/')[0];
+    if (roomId) {
+      console.log('🔄 [Socket] Restoring room state after reconnection:', roomId);
+      // Эмитим событие для восстановления состояния комнаты
+      socket.emit('restoreRoomState', roomId);
+    }
+  }
 });
 
 socket.on('reconnect_error', (error) => {

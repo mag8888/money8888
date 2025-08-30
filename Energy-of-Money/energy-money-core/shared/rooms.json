@@ -3,7 +3,7 @@
     "roomId": "lobby",
     "displayName": "Лобби",
     "originalRequestedId": "lobby",
-    "maxPlayers": 1,
+    "maxPlayers": 2,
     "currentPlayers": [
       {
         "id": "Romeo",

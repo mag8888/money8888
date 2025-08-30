@@ -35,7 +35,7 @@ const RoomSelection = ({ playerData, onRoomSelect,
   onLogout }) => {
   const [roomName, setRoomName] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
-  const [maxPlayers, setMaxPlayers] = useState(1); // Количество игроков (диапазон 1-10)
+  const [maxPlayers, setMaxPlayers] = useState(2); // Количество игроков (диапазон 1-10)
   const [professionType, setProfessionType] = useState('individual'); // 'individual' или 'shared'
   const [selectedProfession, setSelectedProfession] = useState(null);
   const [selectedDream, setSelectedDream] = useState(null);
@@ -66,12 +66,7 @@ const RoomSelection = ({ playerData, onRoomSelect,
     { id: 5, name: 'Благотворительность', cost: 75000, description: 'Помогать другим людям', icon: '❤️' }
   ];
 
-  // Функция для генерации уникального ID комнаты
-  const generateRoomId = () => {
-    const timestamp = Date.now().toString(36);
-    const randomStr = Math.random().toString(36).substring(2, 8);
-    return `room_${timestamp}_${randomStr}`;
-  };
+
 
   // Получаем список доступных комнат с сервера
   useEffect(() => {
@@ -118,11 +113,41 @@ const RoomSelection = ({ playerData, onRoomSelect,
       // Показываем сообщение об успешном создании комнаты
       setError('');
       console.log('🎉 [RoomSelection] Room successfully created and added to list');
+      
+      // Переходим в созданную комнату через 1 секунду
+      setTimeout(() => {
+        console.log('🚀 [RoomSelection] Navigating to created room:', createdRoom.roomId);
+        onRoomSelect({ roomId: createdRoom.roomId });
+      }, 1000);
+      
+      // Автоматически фокусируемся на поле названия комнаты и прокручиваем к нему
+      if (roomNameInputRef.current) {
+        setTimeout(() => {
+          roomNameInputRef.current.focus();
+          roomNameInputRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+          console.log('🎯 [RoomSelection] Auto-focus on room name input after creation');
+        }, 500); // Небольшая задержка для завершения анимации
+      }
     });
 
     socket.on('roomCreationError', (error) => {
       console.error('❌ [RoomSelection] Room creation error:', error);
       setError(`Ошибка создания комнаты: ${error.message || 'Неизвестная ошибка'}`);
+      
+      // Автоматически фокусируемся на поле названия комнаты при ошибке
+      if (roomNameInputRef.current) {
+        setTimeout(() => {
+          roomNameInputRef.current.focus();
+          roomNameInputRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+          console.log('🎯 [RoomSelection] Auto-focus on room name input after error');
+        }, 300);
+      }
     });
 
     // Добавляем логирование для отладки
@@ -201,11 +226,7 @@ const RoomSelection = ({ playerData, onRoomSelect,
       return;
     }
 
-    // Создаем комнату
-    const roomId = generateRoomId();
-    
     console.log('🚀 [RoomSelection] Creating room:', {
-      roomId,
       name: roomName.trim(),
       password: roomPassword,
       professionType,
@@ -214,9 +235,8 @@ const RoomSelection = ({ playerData, onRoomSelect,
       maxPlayers
     });
     
-    // Создаем комнату на сервере
+    // Создаем комнату на сервере (без roomId - сервер сам сгенерирует)
     socket.emit('createRoom', {
-      roomId,
       name: roomName.trim(),
       password: roomPassword,
       professionType,
@@ -228,10 +248,17 @@ const RoomSelection = ({ playerData, onRoomSelect,
     setError('');
     console.log('✅ [RoomSelection] Room creation initiated, waiting for server confirmation...');
     
-    // Сразу переходим в комнату после создания
-    setTimeout(() => {
-      onRoomSelect({ roomId: roomId });
-    }, 1000);
+    // Автоматически фокусируемся на поле названия комнаты после отправки запроса
+    if (roomNameInputRef.current) {
+      setTimeout(() => {
+        roomNameInputRef.current.focus();
+        roomNameInputRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+        console.log('🎯 [RoomSelection] Auto-focus on room name input after sending request');
+      }, 200);
+    }
   };
 
 
@@ -741,7 +768,7 @@ const RoomSelection = ({ playerData, onRoomSelect,
             label="Количество игроков"
             value={maxPlayers}
             onChange={(e) => setMaxPlayers(Number(e.target.value))}
-            helperText="От 1 до 10 игроков"
+            helperText="От 1 до 10 игроков (по умолчанию: 2)"
             sx={{
               '& .MuiOutlinedInput-root': {
                 borderRadius: 3,
