@@ -99,16 +99,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
           }}>
-            🎯 Cashflow Game
+Energy of Money
           </Typography>
           
-          <Typography variant="h6" sx={{ 
-            color: '#94A3B8', 
-            mb: 4,
-            textAlign: 'center'
-          }}>
-            {totalCells} клеток • 24 по кругу + 52 по периметру
-          </Typography>
+
         </motion.div>
 
         {/* Игровое поле */}
@@ -213,13 +207,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             
             // Размер внешнего квадрата
             const outerSquareSize = 700;
-            const cellSize = 40; // Увеличил на 15% с 35px до 40px
+            const cellSize = 42; // Размер клетки 42px (+5% с 40px)
+            const margin = 5; // Отступ между клетками
+            const sideMargin = margin + 2; // Отступ для боковых столбцов + 2px
             
-            // Верхний ряд (14 клеток) - равномерно распределяем по всей ширине
+            // Верхний ряд (14 клеток) - 1-14 по всей ширине
             for (let i = 0; i < 14; i++) {
               const cell = outerCells[i];
-              const spacing = (outerSquareSize - (14 * cellSize)) / 13; // Равномерные промежутки
-              const x = 50 + (i * (cellSize + spacing));
+              const totalWidth = 14 * cellSize + 13 * margin; // Общая ширина: клетки + промежутки
+              const startX = 50 + (outerSquareSize - totalWidth) / 2; // Центрируем ряд
+              const x = startX + i * (cellSize + margin); // Позиция каждой клетки
+              
               cells.push(
                 <motion.div
                   key={cell.id}
@@ -255,17 +253,19 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     }}
                     title={cell.name}
                   >
-                    {cell.id - 24}
+                    {i + 1}
                   </Box>
                 </motion.div>
               );
             }
             
-            // Правый столбец (12 клеток) - равномерно распределяем по всей высоте
+            // Правый столбец (12 клеток) - 15-26 по всей высоте
             for (let i = 0; i < 12; i++) {
               const cell = outerCells[14 + i];
-              const spacing = (outerSquareSize - (12 * cellSize)) / 11; // Равномерные промежутки
-              const y = 50 + (i + 1) * (cellSize + spacing);
+              const totalHeight = 12 * cellSize + 11 * sideMargin; // Общая высота: клетки + промежутки + 2px
+              const startY = 50 + (outerSquareSize - totalHeight) / 2; // Центрируем столбец
+              const y = startY + i * (cellSize + sideMargin); // Позиция каждой клетки + 2px
+              
               cells.push(
                 <motion.div
                   key={cell.id}
@@ -301,17 +301,19 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     }}
                     title={cell.name}
                   >
-                    {cell.id - 24}
+                    {i + 15}
                   </Box>
                 </motion.div>
               );
             }
             
-            // Нижний ряд (14 клеток) - равномерно распределяем по всей ширине
+            // Нижний ряд (14 клеток) - 27-40 по всей ширине (слева 40, справа 27)
             for (let i = 0; i < 14; i++) {
               const cell = outerCells[26 + i];
-              const spacing = (outerSquareSize - (14 * cellSize)) / 13; // Равномерные промежутки
-              const x = 50 + (i * (cellSize + spacing));
+              const totalWidth = 14 * cellSize + 13 * margin; // Общая ширина: клетки + промежутки
+              const startX = 50 + (outerSquareSize - totalWidth) / 2; // Центрируем ряд
+              const x = startX + i * (cellSize + margin); // Позиция каждой клетки
+              
               cells.push(
                 <motion.div
                   key={cell.id}
@@ -347,17 +349,19 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     }}
                     title={cell.name}
                   >
-                    {cell.id - 24}
+                    {40 - i}
                   </Box>
                 </motion.div>
               );
             }
             
-            // Левый столбец (12 клеток) - равномерно распределяем по всей высоте
+            // Левый столбец (12 клеток) - 41-52 по всей высоте
             for (let i = 0; i < 12; i++) {
-              const cell = outerCells[40 + i];
-              const spacing = (outerSquareSize - (12 * cellSize)) / 11; // Равномерные промежутки
-              const y = 50 + (i + 1) * (cellSize + spacing);
+              const cell = outerCells[16 + i];
+              const totalHeight = 12 * cellSize + 11 * sideMargin; // Общая высота: клетки + промежутки + 2px
+              const startY = 50 + (outerSquareSize - totalHeight) / 2; // Центрируем столбец
+              const y = startY + i * (cellSize + sideMargin); // Позиция каждой клетки + 2px
+              
               cells.push(
                 <motion.div
                   key={cell.id}
@@ -393,7 +397,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     }}
                     title={cell.name}
                   >
-                    {cell.id - 24}
+                    {52 - i}
                   </Box>
                 </motion.div>
               );
