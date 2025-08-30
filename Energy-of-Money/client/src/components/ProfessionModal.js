@@ -34,6 +34,38 @@ import {
   ArrowForward as ArrowForwardIcon
 } from '@mui/icons-material';
 
+// CSS анимация для сердечка
+const heartbeatAnimation = {
+  '@keyframes heartbeat': {
+    '0%': {
+      transform: 'scale(1)',
+    },
+    '14%': {
+      transform: 'scale(1.3)',
+    },
+    '28%': {
+      transform: 'scale(1)',
+    },
+    '42%': {
+      transform: 'scale(1.3)',
+    },
+    '70%': {
+      transform: 'scale(1)',
+    },
+  },
+};
+
+// Глобальные стили для анимации сердечка
+const globalStyles = `
+  @keyframes heartbeat {
+    0% { transform: scale(1); }
+    14% { transform: scale(1.3); }
+    28% { transform: scale(1); }
+    42% { transform: scale(1.3); }
+    70% { transform: scale(1); }
+  }
+`;
+
 const PROFESSIONS = [
   {
     id: 'engineer',
@@ -250,19 +282,21 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
   };
 
   return (
+    <>
+      <style>{globalStyles}</style>
     <Dialog
       open={open}
-      onClose={handleClose}
-      maxWidth="lg"
+        onClose={handleClose}
+        maxWidth="lg"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 4,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          overflow: 'hidden'
-        }
-      }}
-    >
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            overflow: 'hidden'
+          }
+        }}
+      >
       <DialogTitle sx={{ 
         background: 'rgba(255,255,255,0.95)', 
         backdropFilter: 'blur(20px)',
@@ -329,6 +363,7 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
                           cursor: 'pointer',
                           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                           border: `2px solid ${prof.color}`,
+                          position: 'relative',
                           '&:hover': {
                             transform: 'translateY(-8px) scale(1.02)',
                             boxShadow: `0 20px 40px ${prof.color}40`
@@ -336,6 +371,31 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
                         }}
                         onClick={() => handleSelectProfession(prof)}
                       >
+                        {/* Сердечко для выбранной профессии */}
+                        {selectedProfession?.id === prof.id && (
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: -12,
+                              right: -12,
+                              zIndex: 1,
+                              background: '#ff4081',
+                              borderRadius: '50%',
+                              width: 40,
+                              height: 40,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 6px 12px rgba(255, 64, 129, 0.4)',
+                              animation: 'heartbeat 1.5s ease-in-out infinite'
+                            }}
+                          >
+                            <Typography sx={{ color: 'white', fontSize: '20px', fontWeight: 'bold' }}>
+                              ❤️
+                    </Typography>
+                  </Box>
+                        )}
+                        
                         <CardContent sx={{ p: 3, textAlign: 'center' }}>
                           <Typography variant="h1" sx={{ mb: 2 }}>
                             {prof.icon}
@@ -347,11 +407,11 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
                             mb: 2
                           }}>
                             {prof.name}
-                          </Typography>
+                    </Typography>
                           
                           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                             {prof.description}
-                          </Typography>
+                    </Typography>
                           
                           <Box sx={{ mb: 2 }}>
                             <Chip 
@@ -385,20 +445,20 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
                                 }}
                               />
                             )}
-                          </Box>
+                  </Box>
                           
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
                             <Typography variant="caption" color="text.secondary">
                               Сложность: {prof.difficulty}
-                            </Typography>
+                    </Typography>
                             <Typography variant="caption" color="text.secondary">
                               Рост: {prof.growth}
-                            </Typography>
-                          </Box>
+                    </Typography>
+                  </Box>
                         </CardContent>
                       </Card>
                     </motion.div>
-                  </Grid>
+                </Grid>
                 ))}
               </Grid>
             </motion.div>
@@ -423,8 +483,8 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
                 
                 <Typography variant="h5" sx={{ color: '#667eea', fontWeight: 600 }}>
                   ⭐ Выберите свою мечту
-                </Typography>
-              </Box>
+                    </Typography>
+                  </Box>
               
               <Grid container spacing={3}>
                 {DREAMS.map((dream) => (
@@ -441,6 +501,7 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
                           cursor: 'pointer',
                           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                           border: `2px solid ${dream.color}`,
+                          position: 'relative',
                           '&:hover': {
                             transform: 'translateY(-8px) scale(1.02)',
                             boxShadow: `0 20px 40px ${dream.color}40`
@@ -448,10 +509,35 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
                         }}
                         onClick={() => handleSelectDream(dream)}
                       >
+                        {/* Сердечко для выбранной мечты */}
+                        {selectedDream?.id === dream.id && (
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: -12,
+                              right: -12,
+                              zIndex: 1,
+                              background: '#ff4081',
+                              borderRadius: '50%',
+                              width: 40,
+                              height: 40,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 6px 12px rgba(255, 64, 129, 0.4)',
+                              animation: 'heartbeat 1.5s ease-in-out infinite'
+                            }}
+                          >
+                            <Typography sx={{ color: 'white', fontSize: '20px', fontWeight: 'bold' }}>
+                              ❤️
+                    </Typography>
+                  </Box>
+                        )}
+                        
                         <CardContent sx={{ p: 3, textAlign: 'center' }}>
                           <Typography variant="h1" sx={{ mb: 2 }}>
                             {dream.icon}
-                          </Typography>
+              </Typography>
                           
                           <Typography variant="h6" sx={{ 
                             fontWeight: 700, 
@@ -459,15 +545,15 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
                             mb: 2
                           }}>
                             {dream.name}
-                          </Typography>
+                      </Typography>
                           
                           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                             {dream.description}
-                          </Typography>
+                        </Typography>
                           
                           <Chip 
                             label={dream.category}
-                            size="small"
+                          size="small"
                             sx={{ 
                               bgcolor: dream.color, 
                               color: 'white',
@@ -530,7 +616,7 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
                       </Typography>
                       <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
                         {selectedProfession?.description}
-                      </Typography>
+                        </Typography>
                       
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         <Chip 
@@ -566,7 +652,7 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
                       </Typography>
                       <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
                         {selectedDream?.description}
-                      </Typography>
+                        </Typography>
                       
                       <Chip 
                         label={selectedDream?.category}
@@ -593,11 +679,11 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
                 <Typography variant="body1" sx={{ textAlign: 'center', color: 'text.secondary' }}>
                   🎯 Ваша цель: накопить <strong>{formatCurrency(selectedDream?.cost)}</strong> 
                   работая <strong>{selectedProfession?.name}</strong>ом
-                </Typography>
+                  </Typography>
               </Paper>
             </motion.div>
-          )}
-        </Box>
+              )}
+            </Box>
       </DialogContent>
 
       <DialogActions sx={{ 
@@ -611,8 +697,8 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
         </Button>
         
         {activeStep === 2 && (
-          <Button
-            variant="contained"
+          <Button 
+            variant="contained" 
             onClick={handleConfirm}
             disabled={!selectedProfession || !selectedDream}
             startIcon={<CheckCircle />}
@@ -632,7 +718,7 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
             Подтвердить выбор
           </Button>
         )}
-      </DialogActions>
+        </DialogActions>
 
       {/* Alert для погашения кредита */}
       {showPayOffAlert && (
@@ -649,7 +735,10 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
         </Alert>
       )}
     </Dialog>
+    </>
   );
 };
 
 export default ProfessionModal;
+
+

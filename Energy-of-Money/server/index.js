@@ -72,18 +72,25 @@ const registerUser = (username, email, password, socketId) => {
 };
 
 // Функция для поиска пользователя по email
-const getUserByEmail = (email) => {
+const getUserByEmail = async (email) => {
   console.log(`🔍 [SERVER] Searching for user with email: ${email}`);
   
-  // Сначала ищем в БД
-  const dbUsers = db.getAllUsers();
-  const dbUser = dbUsers.find(user => user.email.toLowerCase() === email.toLowerCase());
-  
-  if (dbUser) {
-    console.log(`✅ [SERVER] User found in DB:`, { id: dbUser.id, username: dbUser.username, email: dbUser.email });
-    // Обновляем время последнего входа
-    db.updateUserLastLogin(dbUser.id);
-    return dbUser;
+  try {
+    // Сначала ищем в БД
+    const dbUser = await db.getUserByEmail(email);
+    
+    if (dbUser) {
+      console.log(`✅ [SERVER] User found in DB:`, { id: dbUser.id, username: dbUser.username, email: dbUser.email });
+      // Обновляем время последнего входа
+      try {
+        await db.updateUserLastLogin(dbUser.id);
+      } catch (error) {
+        console.log(`⚠️ [SERVER] Could not update last login:`, error.message);
+      }
+      return dbUser;
+    }
+  } catch (error) {
+    console.log(`⚠️ [SERVER] Error searching in DB:`, error.message);
   }
   
   // Также проверяем в памяти для обратной совместимости
@@ -108,6 +115,12 @@ const checkUserPassword = (userData, password) => {
 
 // Функция для получения пользователя по ID
 const getUserById = (userId) => {
+  // Проверяем, что userId не undefined/null
+  if (!userId) {
+    console.log(`❌ [SERVER] getUserById called with invalid userId: ${userId}`);
+    return null;
+  }
+  
   // Сначала ищем в памяти
   const user = users.get(userId);
   if (user) {
@@ -129,6 +142,12 @@ const getUserById = (userId) => {
 
 // Функция для получения пользователя по username
 const getUserByUsername = (username) => {
+  // Проверяем, что username не undefined/null
+  if (!username) {
+    console.log(`❌ [SERVER] getUserByUsername called with invalid username: ${username}`);
+    return null;
+  }
+  
   // Сначала ищем в памяти
   const userId = usernameToUserId.get(username.toLowerCase());
   if (userId && users.get(userId)) {
@@ -1201,6 +1220,13 @@ io.on('connection', (socket) => {
       const hostUsername = playerName.trim();
       console.log(`👑 [SERVER] Creating host player with username: ${hostUsername}`);
       
+      // Проверяем, что hostUsername не пустой
+      if (!hostUsername || hostUsername.trim() === '') {
+        console.log(`❌ [SERVER] createRoom: hostUsername is empty after trim`);
+        socket.emit('roomCreationError', { message: 'Имя игрока не может быть пустым' });
+        return;
+      }
+      
       // Получаем user ID из зарегистрированного пользователя
       const userData = getUserByUsername(hostUsername);
       if (!userData) {
@@ -1272,6 +1298,13 @@ io.on('connection', (socket) => {
       
       const hostUsername = playerName.trim();
       console.log(`👑 [SERVER] Creating host player with username: ${hostUsername}`);
+      
+      // Проверяем, что hostUsername не пустой
+      if (!hostUsername || hostUsername.trim() === '') {
+        console.log(`❌ [SERVER] createRoom: hostUsername is empty after trim`);
+        socket.emit('roomCreationError', { message: 'Имя игрока не может быть пустым' });
+        return;
+      }
       
       // Получаем user ID из зарегистрированного пользователя
       const userData = getUserByUsername(hostUsername);
@@ -3031,7 +3064,7 @@ io.on('connection', (socket) => {
   // Новые события для управления пользователями
   
   // Аутентификация пользователя (вход или регистрация)
-  socket.on('authenticateUser', (username, email, password, callback) => {
+  socket.on('authenticateUser', async (username, email, password, callback) => {
     console.log(`🔐 [SERVER] authenticateUser event received!`);
     try {
       console.log(`🔐 [SERVER] authenticateUser event received from socket ${socket.id}!`);
@@ -3042,56 +3075,38 @@ io.on('connection', (socket) => {
         socketId: socket.id
       });
       
-      // Проверяем username только если он передан (для новых пользователей)
-      if (username && (!username.trim() || username.trim().length < 2)) {
-        callback({ success: false, error: 'Имя должно содержать минимум 2 символа' });
-        return;
-      }
-      
       if (!email || !email.trim()) {
         callback({ success: false, error: 'Email обязателен' });
         return;
       }
       
-      // Убираем проверку пароля - пароль не обязателен
-      // if (!password || password.trim().length < 6) {
-      //   callback({ success: false, error: 'Пароль должен содержать минимум 6 символов' });
-      //   return;
-      // }
-      
       const trimmedEmail = email.trim();
-      const trimmedPassword = password.trim();
+      const trimmedPassword = password ? password.trim() : '';
       
       // Ищем пользователя по email
-      const existingUser = getUserByEmail(trimmedEmail);
+      const existingUser = await getUserByEmail(trimmedEmail);
       
       if (existingUser) {
-        // Пользователь найден - проверяем пароль для входа
-        if (checkUserPassword(existingUser, trimmedPassword)) {
-          // Пароль верный - обновляем socketId
-          console.log(`🔄 [SERVER] Updating socketId for existing user: ${existingUser.username} (${existingUser.id}) -> ${socket.id}`);
-          updateUserSocketId(existingUser.id, socket.id);
-          
-          callback({ 
-            success: true, 
-            isLogin: true,
-            userData: {
-              id: existingUser.id,
-              username: existingUser.username,
-              email: existingUser.email
-            }
-          });
-          
-          console.log(`✅ [SERVER] User logged in: ${existingUser.username} (${existingUser.email}) (ID: ${existingUser.id})`);
-        } else {
-          // Пароль неверный
-          callback({ success: false, error: 'Неверный пароль' });
-        }
+        // Пользователь найден - выполняем вход
+        console.log(`🔄 [SERVER] Updating socketId for existing user: ${existingUser.username} (${existingUser.id}) -> ${socket.id}`);
+        updateUserSocketId(existingUser.id, socket.id);
+        
+        callback({ 
+          success: true, 
+          isLogin: true,
+          userData: {
+            id: existingUser.id,
+            username: existingUser.username,
+            email: existingUser.email
+          }
+        });
+        
+        console.log(`✅ [SERVER] User logged in: ${existingUser.username} (${existingUser.email}) (ID: ${existingUser.id})`);
       } else {
         // Пользователь не найден - регистрируем нового
         
         // Проверяем, что username передан для новых пользователей
-        if (!username) {
+        if (!username || !username.trim()) {
           callback({ success: false, error: 'Имя обязательно для регистрации' });
           return;
         }
@@ -3139,10 +3154,10 @@ io.on('connection', (socket) => {
   });
 
   // Проверка существования пользователя по email
-  socket.on('checkUserExists', (email, callback) => {
+  socket.on('checkUserExists', async (email, callback) => {
     try {
       console.log(`🔍 [SERVER] Checking if user exists with email: ${email}`);
-      const existingUser = getUserByEmail(email);
+      const existingUser = await getUserByEmail(email);
       const exists = existingUser !== null;
       console.log(`🔍 [SERVER] User exists: ${exists}`);
       callback({ exists });

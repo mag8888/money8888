@@ -169,7 +169,7 @@ const RoomSelection = ({ playerData, onRoomSelect,
       });
       
       // Создаем комнату на сервере (передаем выбранную профессию)
-      socket.emit('createRoom', roomId, 2, roomPassword, 3, roomName.trim(), professionType, null, playerData.username, selectedProfession);
+      socket.emit('createRoom', roomId, 2, roomPassword, 3, roomName.trim(), playerData.username, professionType, null, selectedProfession);
       
       // Сохраняем данные для последующей отправки
       setCreatedRoomData({
@@ -179,7 +179,7 @@ const RoomSelection = ({ playerData, onRoomSelect,
       });
       
       setIsReady(true);
-      setError('');
+    setError('');
       console.log('✅ [RoomSelection] Room creation initiated, waiting for server confirmation...');
       
       // Сразу переходим в комнату после создания

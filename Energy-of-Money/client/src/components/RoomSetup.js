@@ -313,7 +313,7 @@ const RoomSetup = () => {
               }}
             >
               🎮 Настройка партии
-            </Typography>
+      </Typography>
 
             <Grid container spacing={4} alignItems="flex-start">
               {/* Левая колонка - Настройки комнаты */}
@@ -323,27 +323,27 @@ const RoomSetup = () => {
                 </Typography>
 
                 {/* Имя комнаты */}
-                <Box sx={{ mb: 3 }}>
+                    <Box sx={{ mb: 3 }}>
                   <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
                     🏠 Имя комнаты
-                  </Typography>
-                  <TextField
-                    fullWidth
+                      </Typography>
+                      <TextField
+                        fullWidth
                     value={roomName}
                     onChange={(e) => setRoomName(e.target.value)}
                     placeholder="Введите имя комнаты"
-                    variant="outlined"
+                        variant="outlined"
                     sx={{ mb: 1 }}
-                  />
-                  <Button
+                      />
+                      <Button
                     variant="outlined"
                     onClick={handleRoomNameChange}
-                    fullWidth
+                        fullWidth
                     sx={{ borderRadius: 2 }}
                   >
                     💾 Сохранить имя
-                  </Button>
-                </Box>
+                      </Button>
+                    </Box>
 
                 {/* Флажок открытая/закрытая комната */}
                     <Box sx={{ mb: 3 }}>
@@ -374,8 +374,8 @@ const RoomSetup = () => {
                       <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
                         🔐 Пароль комнаты
                       </Typography>
-                      <TextField
-                        fullWidth
+                        <TextField
+                          fullWidth
                         value={roomPassword}
                         onChange={(e) => setRoomPassword(e.target.value)}
                         placeholder="Введите пароль для комнаты"
@@ -383,41 +383,41 @@ const RoomSetup = () => {
                         type="password"
                         sx={{ mb: 1 }}
                       />
-                      <Button
-                        variant="outlined"
+                        <Button
+                          variant="outlined"
                         onClick={handlePasswordChange}
                         fullWidth
                         sx={{ borderRadius: 2 }}
                         disabled={!roomPassword.trim()}
                       >
                         💾 Сохранить пароль
-                      </Button>
+                        </Button>
                       <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.8rem' }}>
                         💡 Поделитесь этим паролем с друзьями, чтобы они могли присоединиться
                       </Typography>
-                    </Box>
+                      </Box>
                   )}
-                </Box>
+                    </Box>
 
                 {/* Тип профессий */}
-                <Box sx={{ mb: 3 }}>
+                    <Box sx={{ mb: 3 }}>
                   <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
                     👥 Тип профессий
-                  </Typography>
-                  <FormControl fullWidth>
-                    <Select
+                      </Typography>
+                        <FormControl fullWidth>
+                          <Select
                       value={professionType}
                       onChange={handleProfessionTypeChange}
                       variant="outlined"
                     >
                       <MenuItem value="individual">
                         🎯 У каждого своя профессия
-                      </MenuItem>
+                              </MenuItem>
                       <MenuItem value="shared">
                         🤝 Одна профессия на всех
                       </MenuItem>
-                    </Select>
-                  </FormControl>
+          </Select>
+        </FormControl>
                   <Typography variant="body2" sx={{ color: '#666', mt: 1 }}>
                     {professionType === 'individual' 
                       ? 'Каждый игрок выбирает свою профессию' 
@@ -427,12 +427,12 @@ const RoomSetup = () => {
                     </Box>
 
                 {/* Имя игрока */}
-                    <Box sx={{ mb: 3 }}>
+        <Box sx={{ mb: 3 }}>
                   <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
                         👤 Ваше имя
-                      </Typography>
+          </Typography>
                         <TextField
-                          fullWidth
+              fullWidth
                     value={playerName}
                     onChange={(e) => {
                       const newName = e.target.value;
@@ -479,7 +479,7 @@ const RoomSetup = () => {
                       <Grid item xs={12} sm={6} key={profession.id} sx={{ display: 'flex', mb: 2 }}>
                         <Card
                           onClick={() => handleProfessionSelect(profession)}
-                          sx={{
+              sx={{
                             cursor: 'pointer',
                             border: selectedProfession?.id === profession.id ? '2px solid #667eea' : '1px solid #ddd',
                             transition: 'all 0.3s ease',
@@ -497,7 +497,7 @@ const RoomSetup = () => {
                           {/* Сердечко для выбранной профессии */}
                           {selectedProfession?.id === profession.id && (
                             <Box
-                              sx={{
+              sx={{
                                 position: 'absolute',
                                 top: -8,
                                 right: -8,
@@ -573,7 +573,7 @@ const RoomSetup = () => {
                           {/* Сердечко для выбранной мечты */}
                           {selectedDream?.id === dream.id && (
                             <Box
-                              sx={{
+              sx={{
                                 position: 'absolute',
                                 top: -8,
                                 right: -8,
@@ -592,7 +592,7 @@ const RoomSetup = () => {
                               <Typography sx={{ color: 'white', fontSize: '16px', fontWeight: 'bold' }}>
                                 ❤️
                               </Typography>
-                            </Box>
+          </Box>
                           )}
                           <CardContent sx={{ p: 2, textAlign: 'center', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
                             <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -602,7 +602,7 @@ const RoomSetup = () => {
                               <Typography variant="body2" sx={{ color: '#666', mb: 1, lineHeight: 1.4, flexGrow: 1 }}>
                                 {dream.description}
                               </Typography>
-                            </Box>
+        </Box>
                             <Chip label={`🎯 ${dream.cost.toLocaleString()}`} size="small" color="primary" sx={{ mt: 'auto' }} />
                           </CardContent>
                         </Card>
@@ -777,4 +777,4 @@ const RoomSetup = () => {
 export default RoomSetup;
 
 
- 
+

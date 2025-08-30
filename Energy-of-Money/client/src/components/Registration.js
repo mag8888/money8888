@@ -116,6 +116,7 @@ const Registration = ({ onRegister }) => {
   };
 
   const checkUserExists = () => {
+    console.log('🔍 [Registration] Checking if user exists with email:', email.trim());
     // Проверяем, существует ли пользователь с таким email
     socket.emit('checkUserExists', email.trim(), (response) => {
       if (response.exists) {
