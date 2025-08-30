@@ -24,9 +24,21 @@ import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import socket from '../socket';
 
-const RoomSetup = () => {
+const RoomSetup = ({ playerData, onRoomSetup }) => {
   const { roomId } = useParams();
   const navigate = useNavigate();
+  
+  // Проверяем, что playerData передан
+  if (!playerData) {
+    console.error('❌ [RoomSetup] playerData не передан');
+    return (
+      <Container maxWidth="md" sx={{ mt: 4 }}>
+        <Alert severity="error">
+          Ошибка: данные игрока не загружены. Пожалуйста, перезагрузите страницу.
+        </Alert>
+      </Container>
+    );
+  }
   
   // Основные настройки комнаты
   const [roomName, setRoomName] = useState('');
@@ -52,28 +64,39 @@ const RoomSetup = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Загружаем сохраненное имя игрока или генерируем случайное
+  // Инициализируем имя игрока из playerData или localStorage
   useEffect(() => {
-    // Пытаемся загрузить сохраненное имя игрока
-    const savedPlayerName = localStorage.getItem('energy_of_money_player_name');
-    if (savedPlayerName) {
-      setPlayerName(savedPlayerName);
-      console.log('💾 [RoomSetup] Загружено сохраненное имя игрока:', savedPlayerName);
+    if (playerData?.username) {
+      setPlayerName(playerData.username);
+      console.log('👤 [RoomSetup] Установлено имя игрока из playerData:', playerData.username);
     } else {
-      // Если нет сохраненного имени, генерируем случайное
-      const randomName = `Игрок ${Math.floor(Math.random() * 9000) + 1000}`;
-      setPlayerName(randomName);
-      console.log('🎲 [RoomSetup] Сгенерировано случайное имя:', randomName);
+      // Пытаемся загрузить сохраненное имя игрока
+      const savedPlayerName = localStorage.getItem('energy_of_money_player_name');
+      if (savedPlayerName) {
+        setPlayerName(savedPlayerName);
+        console.log('💾 [RoomSetup] Загружено сохраненное имя игрока:', savedPlayerName);
+      } else {
+        // Если нет сохраненного имени, генерируем случайное
+        const randomName = `Игрок ${Math.floor(Math.random() * 9000) + 1000}`;
+        setPlayerName(randomName);
+        console.log('🎲 [RoomSetup] Сгенерировано случайное имя:', randomName);
+      }
     }
     
     // Имя комнаты будет загружено с сервера через roomData
     console.log('🏠 [RoomSetup] Ожидаем загрузку имени комнаты с сервера...');
-  }, []);
+  }, [playerData]);
 
   // Обработчики Socket.IO событий
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId || !playerName || !playerData) {
+      console.log('⏳ [RoomSetup] Ожидаем roomId, playerName или playerData:', { roomId, playerName, playerData });
+      return;
+    }
 
+    console.log('🔗 [RoomSetup] Подключаемся к комнате с именем:', playerName);
+    console.log('🔗 [RoomSetup] playerData:', playerData);
+    
     // Подключаемся к комнате
     socket.emit('joinRoom', roomId, {
       username: playerName,
@@ -154,11 +177,6 @@ const RoomSetup = () => {
       setError('Комната не найдена');
     });
 
-    socket.on('joinRoomError', (data) => {
-      console.error('❌ [RoomSetup] Join room error:', data);
-      setError(`Ошибка: ${data.error || 'Неизвестная ошибка'}`);
-    });
-
     socket.on('error', (error) => {
       setError(`Ошибка: ${error.message || 'Неизвестная ошибка'}`);
     });
@@ -203,12 +221,7 @@ const RoomSetup = () => {
   }, [roomId, playerName, roomName, navigate]);
 
   // Обработчики действий
-  const handleRoomNameChange = () => {
-    if (roomName.trim()) {
-      socket.emit('updateRoomName', roomId, roomName.trim());
-      setSuccess('Название комнаты обновлено!');
-    }
-  };
+  // handleRoomNameChange удален - имя комнаты нельзя изменить после создания
 
   const handlePublicToggle = () => {
     const newPublicState = !isPublic;
@@ -230,12 +243,7 @@ const RoomSetup = () => {
     }
   };
 
-  const handleProfessionTypeChange = (event) => {
-    const newType = event.target.value;
-    setProfessionType(newType);
-    socket.emit('updateProfessionType', roomId, newType);
-    setSuccess(`Тип профессий изменен на: ${newType === 'individual' ? 'индивидуальные' : 'общие'}!`);
-  };
+  // handleProfessionTypeChange удален - тип профессий нельзя изменить после создания комнаты
 
 
 
@@ -340,24 +348,25 @@ const RoomSetup = () => {
                 {/* Имя комнаты */}
                     <Box sx={{ mb: 3 }}>
                   <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                    🏠 Имя комнаты
-                      </Typography>
-                      <TextField
-                        fullWidth
+                    🏠 Имя комнаты (только для просмотра)
+                  </Typography>
+                  <TextField
+                    fullWidth
                     value={roomName}
-                    onChange={(e) => setRoomName(e.target.value)}
-                    placeholder="Введите имя комнаты"
-                        variant="outlined"
-                    sx={{ mb: 1 }}
-                      />
-                      <Button
+                    disabled={true}
+                    placeholder="Имя комнаты"
                     variant="outlined"
-                    onClick={handleRoomNameChange}
-                        fullWidth
-                    sx={{ borderRadius: 2 }}
-                  >
-                    💾 Сохранить имя
-                      </Button>
+                    sx={{ 
+                      mb: 1,
+                      '& .MuiInputBase-input.Mui-disabled': {
+                        WebkitTextFillColor: '#666',
+                        color: '#666'
+                      }
+                    }}
+                  />
+                  <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                    ⚠️ Имя комнаты нельзя изменить после создания
+                  </Typography>
                     </Box>
 
                 {/* Флажок открытая/закрытая комната */}
@@ -381,6 +390,9 @@ const RoomSetup = () => {
                       ? 'Любой может присоединиться к комнате' 
                       : 'Только по приглашению или паролю'
                     }
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                    ✅ Этот параметр можно изменять в любое время
                   </Typography>
                   
                   {/* Поле для пароля (показывается только для закрытых комнат) */}
@@ -410,42 +422,54 @@ const RoomSetup = () => {
                       <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.8rem' }}>
                         💡 Поделитесь этим паролем с друзьями, чтобы они могли присоединиться
                       </Typography>
+                      <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                        ✅ Пароль можно изменять в любое время
+                      </Typography>
                       </Box>
                   )}
                     </Box>
 
                 {/* Тип профессий */}
-                    <Box sx={{ mb: 3 }}>
+                <Box sx={{ mb: 3 }}>
                   <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                    👥 Тип профессий
-                      </Typography>
-                        <FormControl fullWidth>
-                          <Select
+                    👥 Тип профессий (только для просмотра)
+                  </Typography>
+                  <FormControl fullWidth>
+                    <Select
                       value={professionType}
-                      onChange={handleProfessionTypeChange}
+                      disabled={true}
                       variant="outlined"
+                      sx={{
+                        '& .MuiInputBase-input.Mui-disabled': {
+                          WebkitTextFillColor: '#666',
+                          color: '#666'
+                        }
+                      }}
                     >
                       <MenuItem value="individual">
                         🎯 У каждого своя профессия
-                              </MenuItem>
+                      </MenuItem>
                       <MenuItem value="shared">
                         🤝 Одна профессия на всех
                       </MenuItem>
-          </Select>
-        </FormControl>
+                    </Select>
+                  </FormControl>
                   <Typography variant="body2" sx={{ color: '#666', mt: 1 }}>
                     {professionType === 'individual' 
                       ? 'Каждый игрок выбирает свою профессию' 
                       : 'Все игроки используют одну профессию'
                     }
                   </Typography>
-                    </Box>
+                  <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                    ⚠️ Тип профессий нельзя изменить после создания комнаты
+                  </Typography>
+                </Box>
 
                 {/* Имя игрока */}
-        <Box sx={{ mb: 3 }}>
+                <Box sx={{ mb: 3 }}>
                   <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                        👤 Ваше имя
-          </Typography>
+                    👤 Ваше имя (можно изменять)
+                  </Typography>
                         <TextField
               fullWidth
                     value={playerName}
@@ -469,6 +493,9 @@ const RoomSetup = () => {
                     variant="outlined"
                     sx={{ mb: 1 }}
                   />
+                  <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                    ✅ Имя игрока можно изменять в любое время
+                  </Typography>
 
                 </Box>
               </Grid>
@@ -482,7 +509,7 @@ const RoomSetup = () => {
                 {/* Выбор профессии */}
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                    💼 Профессия
+                    💼 Профессия (можно изменять)
                   </Typography>
                   {selectedProfession && (
                     <Typography variant="body2" sx={{ mb: 2, color: '#4caf50', fontWeight: 'bold' }}>
@@ -558,7 +585,7 @@ const RoomSetup = () => {
                 {/* Выбор мечты */}
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                    ⭐ Мечта
+                    ⭐ Мечта (можно изменять)
                   </Typography>
                   {selectedDream && (
                     <Typography variant="body2" sx={{ mb: 2, color: '#4caf50', fontWeight: 'bold' }}>

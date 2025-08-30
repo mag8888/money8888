@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Box,
@@ -35,7 +35,7 @@ const RoomSelection = ({ playerData, onRoomSelect,
   onLogout }) => {
   const [roomName, setRoomName] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
-  const [maxPlayers, setMaxPlayers] = useState(6); // Количество игроков (2-10)
+  const [maxPlayers, setMaxPlayers] = useState(1); // Количество игроков (диапазон 1-10)
   const [professionType, setProfessionType] = useState('individual'); // 'individual' или 'shared'
   const [selectedProfession, setSelectedProfession] = useState(null);
   const [selectedDream, setSelectedDream] = useState(null);
@@ -44,6 +44,9 @@ const RoomSelection = ({ playerData, onRoomSelect,
   const [roomsLoading, setRoomsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
+
+  // Ref для поля названия комнаты
+  const roomNameInputRef = useRef(null);
 
   // Массив профессий для выбора
   const professions = [
@@ -65,8 +68,8 @@ const RoomSelection = ({ playerData, onRoomSelect,
 
   // Функция для генерации уникального ID комнаты
   const generateRoomId = () => {
-    const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substr(2, 9);
+    const timestamp = Date.now().toString(36);
+    const randomStr = Math.random().toString(36).substring(2, 8);
     return `room_${timestamp}_${randomStr}`;
   };
 
@@ -134,6 +137,21 @@ const RoomSelection = ({ playerData, onRoomSelect,
     };
   }, []);
 
+  // useEffect для автоматического фокуса при открытии формы
+  useEffect(() => {
+    if (showCreateForm && roomNameInputRef.current) {
+      // Небольшая задержка для анимации
+      setTimeout(() => {
+        roomNameInputRef.current.focus();
+        // Прокручиваем к полю
+        roomNameInputRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }, 300);
+    }
+  }, [showCreateForm]);
+
   // Обработка выбора комнаты
   const handleRoomSelect = (selectedRoomId) => {
     console.log('🔄 [RoomSelection] Selected room:', selectedRoomId);
@@ -148,10 +166,38 @@ const RoomSelection = ({ playerData, onRoomSelect,
   const handleCreateRoom = () => {
     if (!roomName.trim()) {
       setError('Введите название комнаты!');
+      // Фокусируемся на поле названия комнаты при ошибке
+      if (roomNameInputRef.current) {
+        roomNameInputRef.current.focus();
+        roomNameInputRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }
       return;
     }
     if (!selectedProfession) {
       setError('Сначала выберите профессию!');
+      // Фокусируемся на поле названия комнаты при ошибке
+      if (roomNameInputRef.current) {
+        roomNameInputRef.current.focus();
+        roomNameInputRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }
+      return;
+    }
+    if (maxPlayers < 1 || maxPlayers > 10) {
+      setError('Количество игроков должно быть от 1 до 10!');
+      // Фокусируемся на поле названия комнаты при ошибке
+      if (roomNameInputRef.current) {
+        roomNameInputRef.current.focus();
+        roomNameInputRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }
       return;
     }
 
@@ -558,7 +604,19 @@ const RoomSelection = ({ playerData, onRoomSelect,
               <Button
                 variant="contained"
                 size="large"
-                onClick={() => setShowCreateForm(!showCreateForm)}
+                onClick={() => {
+                  setShowCreateForm(!showCreateForm);
+                  // Если открываем форму, фокусируемся на поле названия комнаты
+                  if (!showCreateForm && roomNameInputRef.current) {
+                    setTimeout(() => {
+                      roomNameInputRef.current.focus();
+                      roomNameInputRef.current.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                      });
+                    }, 100);
+                  }
+                }}
                 startIcon={<AddIcon />}
                 sx={{
                   background: 'linear-gradient(135deg, #00d4ff 0%, #ff6b9d 100%)',
@@ -628,10 +686,11 @@ const RoomSelection = ({ playerData, onRoomSelect,
             label="Название комнаты"
             value={roomName}
             onChange={(e) => setRoomName(e.target.value)}
-                        placeholder="Например: Моя первая игра"
-                        helperText="Введите описательное название для игроков"
-                        type="text"
-                        autoComplete="off"
+            placeholder="Например: Моя первая игра"
+            helperText="Введите описательное название для игроков"
+            type="text"
+            autoComplete="off"
+            inputRef={roomNameInputRef}
             sx={{
               '& .MuiOutlinedInput-root': {
                             borderRadius: 3,
@@ -682,7 +741,7 @@ const RoomSelection = ({ playerData, onRoomSelect,
             label="Количество игроков"
             value={maxPlayers}
             onChange={(e) => setMaxPlayers(Number(e.target.value))}
-            helperText="От 2 до 10 игроков"
+            helperText="От 1 до 10 игроков"
             sx={{
               '& .MuiOutlinedInput-root': {
                 borderRadius: 3,
@@ -696,9 +755,9 @@ const RoomSelection = ({ playerData, onRoomSelect,
               }
             }}
           >
-            {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
               <MenuItem key={num} value={num}>
-                {num} игроков
+                {num === 1 ? '1 игрок' : `${num} игроков`}
               </MenuItem>
             ))}
           </TextField>
@@ -1078,7 +1137,7 @@ const RoomSelection = ({ playerData, onRoomSelect,
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                               <GroupIcon sx={{ color: '#667eea', fontSize: 20 }} />
                               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {room.currentPlayers?.length || 0} / {room.maxPlayers || 2} игроков
+                                {room.currentPlayers?.length || 0} / {room.maxPlayers || 1} {room.maxPlayers === 1 ? 'игрок' : 'игроков'}
                               </Typography>
                             </Box>
                             

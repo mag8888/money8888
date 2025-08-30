@@ -1,0 +1,43 @@
+{
+  "lobby": {
+    "roomId": "lobby",
+    "displayName": "Лобби",
+    "originalRequestedId": "lobby",
+    "maxPlayers": 1,
+    "currentPlayers": [
+      {
+        "id": "Romeo",
+        "username": "Romeo",
+        "socketId": "CXcBI1q4yRg1PlW0AAAF",
+        "offline": false,
+        "ready": false
+      }
+    ],
+    "status": "waiting",
+    "password": "",
+    "hostId": "Romeo",
+    "timer": {
+      "hours": 3,
+      "remaining": 10800
+    },
+    "currentTurn": null,
+    "board": {
+      "cells": [
+        {
+          "id": 1,
+          "type": "income",
+          "title": "Зарплата",
+          "description": "Получите зарплату"
+        },
+        {
+          "id": 2,
+          "type": "expense",
+          "title": "Налоги",
+          "description": "Заплатите налоги"
+        }
+      ]
+    },
+    "createdAt": 1756485002651,
+    "orderDetermination": null
+  }
+}

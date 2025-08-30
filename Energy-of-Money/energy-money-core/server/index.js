@@ -111,7 +111,7 @@ const createDefaultRoom = () => {
   rooms.set(roomId, {
     roomId: roomId,
     displayName: 'Лобби',
-    maxPlayers: 6,
+    maxPlayers: 1,
     currentPlayers: [],
     status: 'waiting',
     password: '',
@@ -267,8 +267,8 @@ io.on('connection', (socket) => {
     try {
       const { roomId, name, password, professionType, profession, maxPlayers } = roomData;
       
-      // Используем ID, переданный клиентом, или генерируем новый
-      const uniqueRoomId = roomId || `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Генерируем уникальный ID комнаты
+      const uniqueRoomId = `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       // Проверяем, что имя комнаты указано
       if (!name || !name.trim()) {
@@ -279,11 +279,20 @@ io.on('connection', (socket) => {
         return;
       }
 
+      // Проверяем количество игроков (1-10)
+      if (maxPlayers < 1 || maxPlayers > 10) {
+        socket.emit('roomCreationError', { 
+          success: false, 
+          error: 'Количество игроков должно быть от 1 до 10!' 
+        });
+        return;
+      }
+
       // Создаем новую комнату
       const newRoom = {
         roomId: uniqueRoomId,
         displayName: name.trim(),
-        maxPlayers: maxPlayers || 6, // Используем переданное значение или по умолчанию 6
+        maxPlayers: maxPlayers || 1, // Используем переданное значение или по умолчанию 1 (диапазон 1-10)
         currentPlayers: [],
         status: 'waiting',
         password: password || '',

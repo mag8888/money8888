@@ -154,11 +154,6 @@ const RoomSetup = () => {
       setError('Комната не найдена');
     });
 
-    socket.on('joinRoomError', (data) => {
-      console.error('❌ [RoomSetup] Join room error:', data);
-      setError(`Ошибка: ${data.error || 'Неизвестная ошибка'}`);
-    });
-
     socket.on('error', (error) => {
       setError(`Ошибка: ${error.message || 'Неизвестная ошибка'}`);
     });

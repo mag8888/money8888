@@ -1,0 +1,60 @@
+{
+  "rules": {
+    "defaultTimer": 3,
+    "loanStep": 1000,
+    "loanInterestPer1000": 10,
+    "bankruptcyThreshold": 0
+  },
+  "professions": [
+    {
+      "id": 1,
+      "name": "Дворник",
+      "salary": 2000,
+      "expenses": 200,
+      "balance": 2000,
+      "passiveIncome": 0,
+      "description": "Уборка улиц и дворов",
+      "charity": false
+    },
+    {
+      "id": 2,
+      "name": "Курьер",
+      "salary": 2500,
+      "expenses": 300,
+      "balance": 2500,
+      "passiveIncome": 0,
+      "description": "Доставка товаров и документов",
+      "charity": false
+    }
+  ],
+  "gameCells": [
+    {
+      "id": 1,
+      "type": "income",
+      "title": "Зарплата",
+      "description": "Получите зарплату"
+    },
+    {
+      "id": 2,
+      "type": "expense",
+      "title": "Налоги",
+      "description": "Заплатите налоги"
+    }
+  ],
+  "board": {
+    "cells": [
+      {
+        "id": 1,
+        "type": "income",
+        "title": "Зарплата",
+        "description": "Получите зарплату"
+      },
+      {
+        "id": 2,
+        "type": "expense",
+        "title": "Налоги",
+        "description": "Заплатите налоги"
+      }
+    ]
+  }
+}

@@ -65,8 +65,8 @@ const RoomSelection = ({ playerData, onRoomSelect,
 
   // Функция для генерации уникального ID комнаты
   const generateRoomId = () => {
-    const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substr(2, 9);
+    const timestamp = Date.now().toString(36);
+    const randomStr = Math.random().toString(36).substring(2, 8);
     return `room_${timestamp}_${randomStr}`;
   };
 
