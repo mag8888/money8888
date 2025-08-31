@@ -53,15 +53,64 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     // Добавляем внутренние клетки
     cells.push(...innerCells);
     
-    // 52 внешние клетки (голубые)
-    for (let i = 1; i <= 52; i++) {
-      cells.push({
-        id: i + 24,
-        type: 'outer',
-        name: `Быстрый Путь ${i}`,
-        color: '#06B6D4' // Современный голубой
-      });
-    }
+    // 52 внешние клетки с детальной раскладкой
+    const outerCells = [
+      { id: 25, type: 'money', name: 'Доход от инвестиций', color: '#EAB308', icon: '$', description: 'Ваши инвестиции приносят доход', cost: 0, income: 0 },
+      { id: 26, type: 'dream', name: 'Дом мечты', color: '#EC4899', icon: '🏠', description: 'Построить дом мечты для семьи', cost: 100000, income: 0 },
+      { id: 27, type: 'business', name: 'Кофейня', color: '#10B981', icon: '☕', description: 'Кофейня в центре города', cost: 100000, income: 3000 },
+      { id: 28, type: 'loss', name: 'Аудит', color: '#EF4444', icon: '📋', description: 'Аудит - потеря 50% активов', cost: 0, income: 0 },
+      { id: 29, type: 'business', name: 'Центр здоровья', color: '#10B981', icon: '💆', description: 'Центр здоровья и спа', cost: 270000, income: 5000 },
+      { id: 30, type: 'dream', name: 'Антарктида', color: '#EC4899', icon: '🧊', description: 'Посетить Антарктиду', cost: 150000, income: 0 },
+      { id: 31, type: 'business', name: 'Мобильное приложение', color: '#10B981', icon: '📱', description: 'Мобильное приложение (подписка)', cost: 420000, income: 10000 },
+      { id: 32, type: 'charity', name: 'Благотворительность', color: '#F97316', icon: '❤️', description: 'Благотворительность', cost: 0, income: 0 },
+      { id: 33, type: 'business', name: 'Цифровой маркетинг', color: '#3B82F6', icon: '📊', description: 'Агентство цифрового маркетинга', cost: 160000, income: 4000 },
+      { id: 34, type: 'loss', name: 'Кража', color: '#EF4444', icon: '🦹', description: 'Кража 100% наличных', cost: 0, income: 0 },
+      { id: 35, type: 'business', name: 'Мини-отель', color: '#3B82F6', icon: '🏨', description: 'Мини-отель/бутик-гостиница', cost: 200000, income: 5000 },
+      { id: 36, type: 'dream', name: 'Высочайшие вершины', color: '#EC4899', icon: '🏔️', description: 'Подняться на все высочайшие вершины мира', cost: 500000, income: 0 },
+      { id: 37, type: 'business', name: 'Франшиза ресторана', color: '#3B82F6', icon: '🍽️', description: 'Франшиза популярного ресторана', cost: 320000, income: 8000 },
+      { id: 38, type: 'money', name: 'Доход от инвестиций', color: '#EAB308', icon: '$', description: 'Ваши инвестиции приносят доход', cost: 0, income: 0 },
+      { id: 39, type: 'business', name: 'Мини-отель', color: '#3B82F6', icon: '🏨', description: 'Мини-отель/бутик-гостиница', cost: 200000, income: 4000 },
+      { id: 40, type: 'dream', name: 'Книга-бестселлер', color: '#EC4899', icon: '📚', description: 'Стать автором книги-бестселлера', cost: 300000, income: 0 },
+      { id: 41, type: 'business', name: 'Йога-центр', color: '#3B82F6', icon: '🧘', description: 'Йога- и медитационный центр', cost: 170000, income: 4500 },
+      { id: 42, type: 'loss', name: 'Развод', color: '#EF4444', icon: '💔', description: 'Развод - потеря 50% активов', cost: 0, income: 0 },
+      { id: 43, type: 'business', name: 'Автомойки', color: '#3B82F6', icon: '🚗', description: 'Сеть автомоек самообслуживания', cost: 120000, income: 3000 },
+      { id: 44, type: 'dream', name: 'Яхта в Средиземном море', color: '#F59E0B', icon: '⛵', description: 'Жить год на яхте в Средиземном море', cost: 300000, income: 0 },
+      { id: 45, type: 'business', name: 'Салон красоты', color: '#3B82F6', icon: '💇', description: 'Салон красоты/барбершоп', cost: 500000, income: 15000 },
+      { id: 46, type: 'dream', name: 'Фонд поддержки', color: '#F59E0B', icon: '🎭', description: 'Создать фонд поддержки талантов', cost: 300000, income: 0 },
+      { id: 47, type: 'business', name: 'Онлайн-магазин', color: '#3B82F6', icon: '🛍️', description: 'Онлайн-магазин одежды', cost: 110000, income: 3000 },
+      { id: 48, type: 'dream', name: 'Мировой фестиваль', color: '#F59E0B', icon: '🎪', description: 'Организовать мировой фестиваль', cost: 200000, income: 0 },
+      { id: 49, type: 'loss', name: 'Пожар', color: '#EF4444', icon: '🔥', description: 'Пожар (вы теряете бизнес с мин доходом)', cost: 0, income: 0 },
+      { id: 50, type: 'dream', name: 'Ретрит-центр', color: '#F59E0B', icon: '🏕️', description: 'Построить ретрит-центр', cost: 500000, income: 0 },
+      { id: 51, type: 'money', name: 'Доход от инвестиций', color: '#EAB308', icon: '$', description: 'Ваши инвестиции приносят доход', cost: 0, income: 0 },
+      { id: 52, type: 'dream', name: 'Кругосветное плавание', color: '#F59E0B', icon: '🌊', description: 'Кругосветное плавание на паруснике', cost: 200000, income: 0 },
+      { id: 53, type: 'business', name: 'Эко-ранчо', color: '#3B82F6', icon: '🌿', description: 'Туристический комплекс (эко-ранчо)', cost: 1000000, income: 20000 },
+      { id: 54, type: 'dream', name: 'Кругосветное плавание', color: '#F59E0B', icon: '🌊', description: 'Кругосветное плавание на паруснике', cost: 300000, income: 0 },
+      { id: 55, type: 'business', name: 'Биржа', color: '#3B82F6', icon: '📈', description: 'Биржа (Разово выплачивается 500 000$ если выпало 5 или 6 на кубике)', cost: 50000, income: 500000 },
+      { id: 56, type: 'dream', name: 'Частный самолёт', color: '#F59E0B', icon: '✈️', description: 'Купить частный самолёт', cost: 1000000, income: 0 },
+      { id: 57, type: 'business', name: 'NFT-платформа', color: '#3B82F6', icon: '🎨', description: 'NFT-платформа', cost: 400000, income: 12000 },
+      { id: 58, type: 'dream', name: 'Мировой лидер', color: '#F59E0B', icon: '👑', description: 'Стать мировым лидером мнений', cost: 1000000, income: 0 },
+      { id: 59, type: 'business', name: 'Школа языков', color: '#3B82F6', icon: '🌍', description: 'Школа иностранных языков', cost: 20000, income: 3000 },
+      { id: 60, type: 'dream', name: 'Коллекция суперкаров', color: '#F59E0B', icon: '🏎️', description: 'Купить коллекцию суперкаров', cost: 1000000, income: 0 },
+      { id: 61, type: 'business', name: 'Школа будущего', color: '#3B82F6', icon: '🎓', description: 'Создать школу будущего для детей', cost: 300000, income: 10000 },
+      { id: 62, type: 'dream', name: 'Фильм', color: '#F59E0B', icon: '🎬', description: 'Снять полнометражный фильм', cost: 500000, income: 0 },
+      { id: 63, type: 'loss', name: 'Рейдерский захват', color: '#EF4444', icon: '🦈', description: 'Рейдерский захват (Вы теряете бизнес с крупным доходом)', cost: 0, income: 0 },
+      { id: 64, type: 'dream', name: 'Кругосветное плавание', color: '#F59E0B', icon: '🌊', description: 'Кругосветное плавание на паруснике', cost: 200000, income: 0 },
+      { id: 65, type: 'business', name: 'Автомойки', color: '#3B82F6', icon: '🚗', description: 'Сеть автомоек самообслуживания', cost: 120000, income: 3500 },
+      { id: 66, type: 'dream', name: 'Белоснежная яхта', color: '#F59E0B', icon: '⛵', description: 'Белоснежная Яхта', cost: 300000, income: 0 },
+      { id: 67, type: 'business', name: 'Франшиза "Поток денег"', color: '#3B82F6', icon: '💸', description: 'Франшиза "поток денег"', cost: 100000, income: 10000 },
+      { id: 68, type: 'loss', name: 'Санкции', color: '#EF4444', icon: '🚫', description: 'Санкции заблокировали все счета', cost: 0, income: 0 },
+      { id: 69, type: 'business', name: 'Пекарня', color: '#3B82F6', icon: '🥖', description: 'Пекарня с доставкой', cost: 300000, income: 7000 },
+      { id: 70, type: 'dream', name: 'Благотворительный фонд', color: '#F59E0B', icon: '🤝', description: 'Организовать благотворительный фонд', cost: 200000, income: 0 },
+      { id: 71, type: 'business', name: 'Онлайн-образование', color: '#3B82F6', icon: '💻', description: 'Онлайн-образовательная платформа', cost: 200000, income: 5000 },
+      { id: 72, type: 'dream', name: 'Полёт в космос', color: '#F59E0B', icon: '🚀', description: 'Полёт в космос', cost: 250000, income: 0 },
+      { id: 73, type: 'business', name: 'Фитнес-студии', color: '#3B82F6', icon: '💪', description: 'Сеть фитнес-студий', cost: 750000, income: 20000 },
+      { id: 74, type: 'dream', name: 'Кругосветное путешествие', color: '#F59E0B', icon: '🌍', description: 'Кругосветное путешествие', cost: 300000, income: 0 },
+      { id: 75, type: 'business', name: 'Коворкинг', color: '#3B82F6', icon: '🏢', description: 'Коворкинг-пространство', cost: 500000, income: 10000 },
+      { id: 76, type: 'dream', name: 'Мечта', color: '#F59E0B', icon: '⭐', description: 'Придумай свою мечту', cost: 0, income: 0 }
+    ];
+    
+    // Добавляем внешние клетки
+    cells.push(...outerCells);
     
     return cells;
   });
@@ -79,6 +128,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   ]);
   
   const [currentPlayer, setCurrentPlayer] = useState(0); // Индекс текущего игрока
+  const [isMoving, setIsMoving] = useState(false); // Флаг движения фишки
+  const [movingPlayerId, setMovingPlayerId] = useState(null); // ID движущегося игрока
 
   const totalCells = originalBoard.length;
 
@@ -107,21 +158,39 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     const updatedPlayers = [...players];
     const player = updatedPlayers[currentPlayer];
     
-    // Вычисляем новую позицию (по кругу 1-24)
-    let newPosition = player.position + steps;
-    if (newPosition > 24) {
-      newPosition = newPosition - 24; // Замыкаем круг
-    }
+    // Устанавливаем флаг движения и ID движущегося игрока
+    setIsMoving(true);
+    setMovingPlayerId(player.id);
     
-    // Обновляем позицию игрока
-    player.position = newPosition;
+    // Создаем промежуточные позиции для плавного движения
+    const startPosition = player.position;
+    let currentPosition = startPosition;
     
-    // Переходим к следующему игроку
-    const nextPlayer = (currentPlayer + 1) % players.length;
-    setCurrentPlayer(nextPlayer);
+    // Анимация движения пошагово
+    const moveStep = () => {
+      if (currentPosition < startPosition + steps) {
+        currentPosition++;
+        if (currentPosition > 24) {
+          currentPosition = 1; // Замыкаем круг
+        }
+        
+        // Обновляем позицию игрока
+        player.position = currentPosition;
+        setPlayers([...updatedPlayers]);
+        
+        // Продолжаем движение
+        setTimeout(moveStep, 200); // 200ms между шагами
+      } else {
+        // Движение завершено, переходим к следующему игроку
+        const nextPlayer = (currentPlayer + 1) % players.length;
+        setCurrentPlayer(nextPlayer);
+        setIsMoving(false); // Снимаем флаг движения
+        setMovingPlayerId(null); // Сбрасываем ID движущегося игрока
+      }
+    };
     
-    // Обновляем состояние игроков
-    setPlayers(updatedPlayers);
+    // Начинаем движение
+    moveStep();
   };
 
   return (
@@ -203,20 +272,24 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             <Button
               variant="contained"
               onClick={rollDice}
-              disabled={isRolling}
+              disabled={isRolling || isMoving}
               sx={{
-                background: 'linear-gradient(45deg, #8B5CF6, #06B6D4)',
+                background: isRolling || isMoving 
+                  ? 'linear-gradient(45deg, #9CA3AF, #6B7280)' 
+                  : 'linear-gradient(45deg, #8B5CF6, #06B6D4)',
                 color: 'white',
                 fontWeight: 'bold',
                 px: 3,
                 py: 1,
                 borderRadius: '25px',
                 '&:hover': {
-                  background: 'linear-gradient(45deg, #7C3AED, #0891B2)'
+                  background: isRolling || isMoving 
+                    ? 'linear-gradient(45deg, #9CA3AF, #6B7280)' 
+                    : 'linear-gradient(45deg, #7C3AED, #0891B2)'
                 }
               }}
             >
-              {isRolling ? 'Бросаю...' : 'Бросить кубик'}
+              {isRolling ? 'Бросаю...' : isMoving ? 'Фишка движется...' : 'Бросить кубик'}
             </Button>
           </Box>
         </Box>
@@ -580,32 +653,55 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 <motion.div
                   key={player.id}
                   initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 1.2 + playerIndex * 0.1, duration: 0.6 }}
+                  animate={{ 
+                    scale: movingPlayerId === player.id ? 1.1 : 1, 
+                    opacity: 1,
+                    x: x + offsetX,
+                    y: y + offsetY
+                  }}
+                  transition={{ 
+                    delay: 1.2 + playerIndex * 0.1, 
+                    duration: 0.6,
+                    x: { duration: isMoving ? 0.2 : 0.6, ease: "easeInOut" },
+                    y: { duration: isMoving ? 0.2 : 0.6, ease: "easeInOut" },
+                    scale: { duration: 0.3, ease: "easeInOut" }
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '32px',
+                    height: '32px',
+                    zIndex: 4
+                  }}
                 >
                   <Box
                     sx={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: `translate(-50%, -50%) translate(${x + offsetX}px, ${y + offsetY}px)`,
-                      width: '32px',
-                      height: '32px',
+                      width: '100%',
+                      height: '100%',
                       background: `linear-gradient(135deg, ${player.color} 0%, ${player.color}DD 100%)`,
                       borderRadius: '50%',
-                      border: '3px solid white',
+                      border: movingPlayerId === player.id ? '4px solid #FFD700' : '3px solid white',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '14px',
                       fontWeight: 'bold',
                       color: 'white',
-                      boxShadow: '0 4px 15px rgba(0,0,0,0.4), 0 0 10px rgba(255,255,255,0.3)',
-                      zIndex: 4,
+                      boxShadow: movingPlayerId === player.id 
+                        ? '0 0 20px rgba(255, 215, 0, 0.8), 0 4px 15px rgba(0,0,0,0.4)' 
+                        : '0 4px 15px rgba(0,0,0,0.4), 0 0 10px rgba(255,255,255,0.3)',
                       cursor: 'pointer',
                       transition: 'all 0.3s ease',
+                      animation: movingPlayerId === player.id ? 'pulse 1s infinite' : 'none',
+                      '@keyframes pulse': {
+                        '0%': { boxShadow: '0 0 20px rgba(255, 215, 0, 0.8), 0 4px 15px rgba(0,0,0,0.4)' },
+                        '50%': { boxShadow: '0 0 30px rgba(255, 215, 0, 1), 0 4px 15px rgba(0,0,0,0.4)' },
+                        '100%': { boxShadow: '0 0 20px rgba(255, 215, 0, 0.8), 0 4px 15px rgba(0,0,0,0.4)' }
+                      },
                       '&:hover': {
-                        transform: `translate(-50%, -50%) translate(${x + offsetX}px, ${y + offsetY}px) scale(1.2)`,
+                        transform: 'scale(1.2)',
                         boxShadow: '0 8px 25px rgba(0,0,0,0.5), 0 0 20px rgba(255,255,255,0.4)'
                       }
                     }}
@@ -670,6 +766,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             const cellSize = 40; // Увеличил на 15% с 35px до 40px
             
             // Верхний ряд (14 клеток) - равномерно распределяем по всей ширине
+            // Клетки 25-38 (индексы 0-13)
             for (let i = 0; i < 14; i++) {
               const cell = outerCells[i];
               const spacing = (outerSquareSize - (14 * cellSize)) / 13; // Равномерные промежутки
@@ -707,17 +804,38 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         zIndex: 3
                       }
                     }}
-                    title={cell.name}
+                    title={cell.description}
                   >
-                    {cell.id - 24}
+                    {/* Иконка клетки */}
+                    <Typography variant="h6" sx={{ fontSize: '16px', mb: 0.5 }}>
+                      {cell.icon}
+                    </Typography>
+                    
+                    {/* Номер клетки в левом углу */}
+                    <Typography
+                      sx={{
+                        position: 'absolute',
+                        top: '2px',
+                        left: '4px',
+                        fontSize: '8px',
+                        fontWeight: 'bold',
+                        color: 'white',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                        zIndex: 2
+                      }}
+                    >
+                      {cell.id - 24}
+                    </Typography>
                   </Box>
                 </motion.div>
               );
             }
             
             // Правый столбец (12 клеток) - фиксированное расстояние 11px
+            // Клетки 15-26 (индексы 14-25)
             for (let i = 0; i < 12; i++) {
-              const cell = outerCells[14 + i];
+              const cellIndex = 14 + i;
+              const cell = outerCells[cellIndex];
               const spacing = 11; // Фиксированное расстояние 11px
               const y = 50 + (i + 1) * (cellSize + spacing);
               cells.push(
@@ -753,17 +871,38 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         zIndex: 3
                       }
                     }}
-                    title={cell.name}
+                    title={cell.description}
                   >
-                    {cell.id - 24}
+                    {/* Иконка клетки */}
+                    <Typography variant="h6" sx={{ fontSize: '16px', mb: 0.5 }}>
+                      {cell.icon}
+                    </Typography>
+                    
+                    {/* Номер клетки в левом углу */}
+                    <Typography
+                      sx={{
+                        position: 'absolute',
+                        top: '2px',
+                        left: '4px',
+                        fontSize: '8px',
+                        fontWeight: 'bold',
+                        color: 'white',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                        zIndex: 2
+                      }}
+                    >
+                      {cell.id - 24}
+                    </Typography>
                   </Box>
                 </motion.div>
               );
             }
             
             // Нижний ряд (14 клеток) - равномерно распределяем по всей ширине
+            // Клетки 27-40 (индексы 26-39) - справа налево
             for (let i = 0; i < 14; i++) {
-              const cell = outerCells[26 + i];
+              const cellIndex = 39 - i; // Идем справа налево: 39, 38, 37, ..., 26
+              const cell = outerCells[cellIndex];
               const spacing = (outerSquareSize - (14 * cellSize)) / 13; // Равномерные промежутки
               const x = 50 + (i * (cellSize + spacing));
               cells.push(
@@ -799,17 +938,38 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         zIndex: 3
                       }
                     }}
-                    title={cell.name}
+                    title={cell.description}
                   >
-                    {cell.id - 24}
+                    {/* Иконка клетки */}
+                    <Typography variant="h6" sx={{ fontSize: '16px', mb: 0.5 }}>
+                      {cell.icon}
+                    </Typography>
+                    
+                    {/* Номер клетки в левом углу */}
+                    <Typography
+                      sx={{
+                        position: 'absolute',
+                        top: '2px',
+                        left: '4px',
+                        fontSize: '8px',
+                        fontWeight: 'bold',
+                        color: 'white',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                        zIndex: 2
+                      }}
+                    >
+                      {cell.id - 24}
+                    </Typography>
                   </Box>
                 </motion.div>
               );
             }
             
             // Левый столбец (12 клеток) - фиксированное расстояние 11px
+            // Клетки 41-52 (индексы 40-51) - снизу вверх
             for (let i = 0; i < 12; i++) {
-              const cell = outerCells[40 + i];
+              const cellIndex = 51 - i; // Идем снизу вверх: 51, 50, 49, ..., 40
+              const cell = outerCells[cellIndex];
               const spacing = 11; // Фиксированное расстояние 11px
               const y = 50 + (i + 1) * (cellSize + spacing);
               cells.push(
@@ -845,9 +1005,28 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         zIndex: 3
                       }
                     }}
-                    title={cell.name}
+                    title={cell.description}
                   >
-                    {cell.id - 24}
+                    {/* Иконка клетки */}
+                    <Typography variant="h6" sx={{ fontSize: '16px', mb: 0.5 }}>
+                      {cell.icon}
+                    </Typography>
+                    
+                    {/* Номер клетки в левом углу */}
+                    <Typography
+                      sx={{
+                        position: 'absolute',
+                        top: '2px',
+                        left: '4px',
+                        fontSize: '8px',
+                        fontWeight: 'bold',
+                        color: 'white',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                        zIndex: 2
+                      }}
+                    >
+                      {cell.id - 24}
+                    </Typography>
                   </Box>
                 </motion.div>
               );

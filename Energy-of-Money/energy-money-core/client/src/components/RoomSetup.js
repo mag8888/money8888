@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Box, 
@@ -49,6 +50,22 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   const [canStart, setCanStart] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   
+  // Банковские операции
+  const [bankBalance, setBankBalance] = useState(2500); // Текущий баланс
+  const [transferAmount, setTransferAmount] = useState('');
+  const [selectedRecipient, setSelectedRecipient] = useState('');
+  const [transferHistory, setTransferHistory] = useState([]); // История переводов
+  const [showBankModal, setShowBankModal] = useState(false); // Показать/скрыть модальное окно банка
+  
+  // Активы (купленные карточки)
+  const [assets, setAssets] = useState([
+    { id: 1, name: 'Акции McDonald\'s', type: 'stock', value: 5000, description: 'Дивидендные акции', icon: '📈' },
+    { id: 2, name: 'Недвижимость', type: 'real_estate', value: 15000, description: 'Квартира в центре', icon: '🏠' },
+    { id: 3, name: 'Бизнес', type: 'business', value: 25000, description: 'Маленький магазин', icon: '🏪' },
+    { id: 4, name: 'Облигации', type: 'bonds', value: 8000, description: 'Государственные облигации', icon: '💼' }
+  ]); // Купленные активы
+  const [showAssetsModal, setShowAssetsModal] = useState(false); // Показать/скрыть модальное окно активов
+  
   // Отладочное логирование состояния players
   useEffect(() => {
     console.log('👥 [RoomSetup] Состояние players обновлено:', players);
@@ -58,6 +75,91 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   // Уведомления
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  // Функции банковских операций
+  const handleBankClick = () => {
+    setShowBankModal(true);
+  };
+  
+  const handleTransfer = () => {
+    if (!transferAmount || !selectedRecipient) {
+      setError('Пожалуйста, заполните все поля');
+      return;
+    }
+    
+    const amount = parseInt(transferAmount);
+    if (amount <= 0 || amount > bankBalance) {
+      setError('Недостаточно средств или неверная сумма');
+      return;
+    }
+    
+    // Выполняем перевод
+    const newBalance = bankBalance - amount;
+    setBankBalance(newBalance);
+    
+    // Добавляем в историю
+    const transfer = {
+      id: Date.now(),
+      from: playerName,
+      to: selectedRecipient,
+      amount: amount,
+      date: new Date().toLocaleString(),
+      type: 'outgoing'
+    };
+    
+    setTransferHistory(prev => [transfer, ...prev]);
+    
+    // Сбрасываем форму
+    setTransferAmount('');
+    setSelectedRecipient('');
+    setSuccess(`Переведено $${amount} игроку ${selectedRecipient}`);
+    
+    // Скрываем модальное окно через 2 секунды
+    setTimeout(() => {
+      setShowBankModal(false);
+    }, 2000);
+  };
+  
+  const closeBankModal = () => {
+    setShowBankModal(false);
+    setTransferAmount('');
+    setSelectedRecipient('');
+    setError('');
+    setSuccess('');
+  };
+  
+  // Функции для работы с активами
+  const handleAssetsClick = () => {
+    setShowAssetsModal(true);
+  };
+  
+  const closeAssetsModal = () => {
+    setShowAssetsModal(false);
+  };
+  
+  const getTotalAssetsValue = () => {
+    return assets.reduce((total, asset) => total + asset.value, 0);
+  };
+  
+  const getAssetTypeColor = (type) => {
+    switch (type) {
+      case 'stock': return '#1976d2';
+      case 'real_estate': return '#2e7d32';
+      case 'business': return '#ed6c02';
+      case 'bonds': return '#9c27b0';
+      default: return '#666';
+    }
+  };
+  
+  const getAssetTypeLabel = (type) => {
+    switch (type) {
+      case 'stock': return 'Акции';
+      case 'real_estate': return 'Недвижимость';
+      case 'business': return 'Бизнес';
+      case 'bonds': return 'Облигации';
+      default: return 'Другое';
+    }
+  };
   
   // Инициализируем имя игрока из playerData или localStorage
   useEffect(() => {
@@ -668,6 +770,76 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
               </Grid>
             </Box>
 
+            {/* Банк */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                🏦 Банк
+              </Typography>
+              <Card sx={{ p: 3, background: 'linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%)' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Box>
+                    <Typography variant="h5" sx={{ color: '#2e7d32', fontWeight: 'bold', mb: 1 }}>
+                      💰 Текущий баланс: ${bankBalance}
+                    </Typography>
+                    {selectedProfession && (
+                      <Typography variant="body2" sx={{ color: '#666' }}>
+                        💼 Профессия: {selectedProfession.name} | 💸 Расходы: ${selectedProfession.expenses}/мес
+                      </Typography>
+                    )}
+                  </Box>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleBankClick}
+                    sx={{
+                      background: 'linear-gradient(45deg, #1976d2 30%, #1565c0 90%)',
+                      borderRadius: 2,
+                      px: 3,
+                      '&:hover': {
+                        background: 'linear-gradient(45deg, #1565c0 30%, #1976d2 90%)'
+                      }
+                    }}
+                  >
+                    🏦 Банковские операции
+                  </Button>
+                </Box>
+              </Card>
+            </Box>
+
+            {/* Активы */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                💼 Активы
+              </Typography>
+              <Card sx={{ p: 3, background: 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Box>
+                    <Typography variant="h5" sx={{ color: '#f57c00', fontWeight: 'bold', mb: 1 }}>
+                      💰 Общая стоимость активов: ${getTotalAssetsValue()}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#666' }}>
+                      📊 Количество активов: {assets.length} карточек
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="contained"
+                    color="warning"
+                    onClick={handleAssetsClick}
+                    sx={{
+                      background: 'linear-gradient(45deg, #f57c00 30%, #ef6c00 90%)',
+                      borderRadius: 2,
+                      px: 3,
+                      '&:hover': {
+                        background: 'linear-gradient(45deg, #ef6c00 30%, #f57c00 90%)'
+                      }
+                    }}
+                  >
+                    💼 Каталог активов
+                  </Button>
+                </Box>
+              </Card>
+            </Box>
+
             {/* Кнопка запуска игры */}
             <Box sx={{ mb: 3, textAlign: 'center' }}>
               {isHost ? (
@@ -724,6 +896,329 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
           </Paper>
         </motion.div>
       </Box>
+
+      {/* Модальное окно банка */}
+      {showBankModal && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            bgcolor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }}
+          onClick={closeBankModal}
+        >
+          <Paper
+            elevation={24}
+            sx={{
+              p: 4,
+              maxWidth: 600,
+              width: '90%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              borderRadius: 3,
+              background: 'rgba(255, 255, 255, 0.98)',
+              backdropFilter: 'blur(20px)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Заголовок */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+              <Typography variant="h4" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+                🏦 Банковские операции
+              </Typography>
+              <Button
+                onClick={closeBankModal}
+                sx={{ minWidth: 'auto', p: 1 }}
+              >
+                ✕
+              </Button>
+            </Box>
+
+            {/* Текущий баланс */}
+            <Box sx={{ mb: 3, p: 2, bgcolor: '#f0f8ff', borderRadius: 2, border: '1px solid #e3f2fd' }}>
+              <Typography variant="h5" sx={{ color: '#2e7d32', fontWeight: 'bold', textAlign: 'center' }}>
+                💰 Текущий баланс: ${bankBalance}
+              </Typography>
+            </Box>
+
+            {/* Форма перевода */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                💸 Перевод средств
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <Typography variant="body2" sx={{ mb: 1, color: '#666' }}>
+                      Получатель
+                    </Typography>
+                    <Select
+                      value={selectedRecipient}
+                      onChange={(e) => setSelectedRecipient(e.target.value)}
+                      displayEmpty
+                      sx={{ minHeight: 56 }}
+                    >
+                      <MenuItem value="" disabled>
+                        Выберите игрока
+                      </MenuItem>
+                      {players
+                        .filter(player => player.username !== playerName)
+                        .map((player) => (
+                          <MenuItem key={player.socketId} value={player.username}>
+                            {player.username}
+                          </MenuItem>
+                        ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Сумма перевода"
+                    type="number"
+                    value={transferAmount}
+                    onChange={(e) => setTransferAmount(e.target.value)}
+                    placeholder="Введите сумму"
+                    sx={{ minHeight: 56 }}
+                  />
+                </Grid>
+              </Grid>
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={handleTransfer}
+                disabled={!transferAmount || !selectedRecipient}
+                sx={{
+                  mt: 2,
+                  background: 'linear-gradient(45deg, #2e7d32 30%, #1b5e20 90%)',
+                  borderRadius: 2,
+                  py: 1.5,
+                  '&:hover': {
+                    background: 'linear-gradient(45deg, #1b5e20 30%, #2e7d32 90%)'
+                  },
+                  '&:disabled': {
+                    background: '#ccc'
+                  }
+                }}
+              >
+                💸 Выполнить перевод
+              </Button>
+            </Box>
+
+            {/* История переводов */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                📋 История переводов
+              </Typography>
+              {transferHistory.length === 0 ? (
+                <Box sx={{ p: 3, textAlign: 'center', color: '#666', bgcolor: '#f5f5f5', borderRadius: 2 }}>
+                  <Typography variant="body2">
+                    История переводов пуста
+                  </Typography>
+                </Box>
+              ) : (
+                <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
+                  {transferHistory.map((transfer) => (
+                    <Card key={transfer.id} sx={{ mb: 1, p: 2, bgcolor: '#f8f9fa' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                            {transfer.from} → {transfer.to}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: '#666' }}>
+                            {transfer.date}
+                          </Typography>
+                        </Box>
+                        <Typography variant="h6" sx={{ color: '#d32f2f', fontWeight: 'bold' }}>
+                          -${transfer.amount}
+                        </Typography>
+                      </Box>
+                    </Card>
+                  ))}
+                </Box>
+              )}
+            </Box>
+
+            {/* Уведомления */}
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+            {success && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                {success}
+              </Alert>
+            )}
+          </Paper>
+        </Box>
+      )}
+
+      {/* Модальное окно активов */}
+      {showAssetsModal && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            bgcolor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }}
+          onClick={closeAssetsModal}
+        >
+          <Paper
+            elevation={24}
+            sx={{
+              p: 4,
+              maxWidth: 800,
+              width: '90%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              borderRadius: 3,
+              background: 'rgba(255, 255, 255, 0.98)',
+              backdropFilter: 'blur(20px)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Заголовок */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+              <Typography variant="h4" sx={{ color: '#f57c00', fontWeight: 'bold' }}>
+                💼 Каталог активов
+              </Typography>
+              <Button
+                onClick={closeAssetsModal}
+                sx={{ minWidth: 'auto', p: 1 }}
+              >
+                ✕
+              </Button>
+            </Box>
+
+            {/* Общая информация */}
+            <Box sx={{ mb: 3, p: 3, bgcolor: '#fff3e0', borderRadius: 2, border: '1px solid #ffcc02' }}>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h6" sx={{ color: '#f57c00', fontWeight: 'bold' }}>
+                      💰 Общая стоимость
+                    </Typography>
+                    <Typography variant="h4" sx={{ color: '#e65100', fontWeight: 'bold' }}>
+                      ${getTotalAssetsValue()}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h6" sx={{ color: '#f57c00', fontWeight: 'bold' }}>
+                      📊 Количество
+                    </Typography>
+                    <Typography variant="h4" sx={{ color: '#e65100', fontWeight: 'bold' }}>
+                      {assets.length}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h6" sx={{ color: '#f57c00', fontWeight: 'bold' }}>
+                      🏦 Чистый капитал
+                    </Typography>
+                    <Typography variant="h4" sx={{ color: '#e65100', fontWeight: 'bold' }}>
+                      ${bankBalance + getTotalAssetsValue()}
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+
+            {/* Список активов */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                📋 Купленные карточки
+              </Typography>
+              <Grid container spacing={2}>
+                {assets.map((asset) => (
+                  <Grid item xs={12} sm={6} md={4} key={asset.id}>
+                    <Card 
+                      sx={{ 
+                        p: 2, 
+                        border: `2px solid ${getAssetTypeColor(asset.type)}`,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: 4
+                        }
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                        <Typography variant="h4">
+                          {asset.icon}
+                        </Typography>
+                        <Box>
+                          <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#333' }}>
+                            {asset.name}
+                          </Typography>
+                          <Chip 
+                            label={getAssetTypeLabel(asset.type)}
+                            size="small"
+                            sx={{ 
+                              bgcolor: getAssetTypeColor(asset.type),
+                              color: 'white',
+                              fontWeight: 'bold'
+                            }}
+                          />
+                        </Box>
+                      </Box>
+                      <Typography variant="body2" sx={{ color: '#666', mb: 2 }}>
+                        {asset.description}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="h6" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>
+                          ${asset.value}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#666' }}>
+                          ID: {asset.id}
+                        </Typography>
+                      </Box>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+
+            {/* Кнопка закрытия */}
+            <Box sx={{ textAlign: 'center' }}>
+              <Button
+                variant="outlined"
+                onClick={closeAssetsModal}
+                sx={{
+                  borderColor: '#f57c00',
+                  color: '#f57c00',
+                  borderRadius: 2,
+                  px: 4,
+                  '&:hover': {
+                    borderColor: '#e65100',
+                    color: '#e65100',
+                    bgcolor: '#fff3e0'
+                  }
+                }}
+              >
+                Закрыть
+              </Button>
+            </Box>
+          </Paper>
+        </Box>
+      )}
     </Container>
   );
 };
