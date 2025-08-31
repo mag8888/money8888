@@ -23,10 +23,21 @@ import {
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import socket from '../socket';
+import { PROFESSIONS } from '../data/professions';
+import ProfessionCard from './ProfessionCard';
+import PlayerProfessionCard from './PlayerProfessionCard';
+import PlayerAssetsModal from './PlayerAssetsModal';
 
 const RoomSetup = ({ playerData, onRoomSetup }) => {
   const { roomId } = useParams();
   const navigate = useNavigate();
+  
+  console.log('🏗️ [RoomSetup] Компонент инициализирован');
+  console.log('🏗️ [RoomSetup] Импортированные компоненты:', { 
+    ProfessionCard: !!ProfessionCard, 
+    PlayerProfessionCard: !!PlayerProfessionCard, 
+    PlayerAssetsModal: !!PlayerAssetsModal 
+  });
   
   // Все хуки должны быть в начале компонента, до любых условных проверок
   
@@ -35,6 +46,17 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   const [isPublic, setIsPublic] = useState(true);
   const [roomPassword, setRoomPassword] = useState('');
   const [professionType, setProfessionType] = useState('individual');
+  
+  // Фильтры для профессий
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [difficultyFilter, setDifficultyFilter] = useState('all');
+  
+  // Состояние для карточки игрока
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [showPlayerCard, setShowPlayerCard] = useState(false);
+  
+  // Состояние для модального окна активов игрока
+  const [showPlayerAssets, setShowPlayerAssets] = useState(false);
   
   // Выбор профессии и мечты
   const [selectedProfession, setSelectedProfession] = useState(null);
@@ -70,7 +92,12 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   useEffect(() => {
     console.log('👥 [RoomSetup] Состояние players обновлено:', players);
     console.log('👥 [RoomSetup] Количество игроков в UI:', players.length);
-  }, [players]);
+    console.log('👤 [RoomSetup] Состояние карточки игрока:', { 
+      selectedPlayer, 
+      showPlayerCard, 
+      showPlayerAssets 
+    });
+  }, [players, selectedPlayer, showPlayerCard, showPlayerAssets]);
   
   // Уведомления
   const [error, setError] = useState('');
@@ -78,7 +105,10 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   
   // Функции банковских операций
   const handleBankClick = () => {
+    console.log('🏦 [RoomSetup] handleBankClick вызван');
+    console.log('🏦 [RoomSetup] Текущее состояние showBankModal:', showBankModal);
     setShowBankModal(true);
+    console.log('🏦 [RoomSetup] Состояние обновлено: showBankModal = true');
   };
   
   const handleTransfer = () => {
@@ -163,6 +193,9 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   
   // Инициализируем имя игрока из playerData или localStorage
   useEffect(() => {
+    console.log('🚀 [RoomSetup] useEffect для playerData запущен');
+    console.log('🚀 [RoomSetup] playerData:', playerData);
+    
     if (playerData?.username) {
       setPlayerName(playerData.username);
       console.log('👤 [RoomSetup] Установлено имя игрока из playerData:', playerData.username);
@@ -415,7 +448,51 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   const handleProfessionSelect = (profession) => {
     setSelectedProfession(profession);
     socket.emit('updateProfession', roomId, profession);
-    setSuccess(`Профессия выбрана: ${profession.name}!`);
+    setSuccess(`Профессия выбрана: ${profession.name}! 💰 Зарплата: $${profession.salary}`);
+  };
+  
+  // Функции для работы с карточкой игрока
+  const handlePlayerClick = (player) => {
+    console.log('👤 [RoomSetup] handlePlayerClick вызван с игроком:', player);
+    setSelectedPlayer(player);
+    setShowPlayerCard(true);
+    console.log('👤 [RoomSetup] Состояние обновлено: selectedPlayer =', player, 'showPlayerCard = true');
+  };
+  
+  const closePlayerCard = () => {
+    console.log('👤 [RoomSetup] closePlayerCard вызван');
+    setShowPlayerCard(false);
+    setSelectedPlayer(null);
+    console.log('👤 [RoomSetup] Состояние обновлено: showPlayerCard = false, selectedPlayer = null');
+  };
+  
+  // Функция для получения профессии игрока
+  const getPlayerProfession = (player) => {
+    console.log('💼 [RoomSetup] getPlayerProfession вызван с игроком:', player);
+    if (player.profession && player.profession !== 'none') {
+      const profession = PROFESSIONS.find(p => p.name === player.profession);
+      console.log('💼 [RoomSetup] Найдена профессия:', profession);
+      return profession;
+    }
+    console.log('💼 [RoomSetup] Профессия не найдена, возвращаем null');
+    return null;
+  };
+  
+  // Функции для работы с активами игрока
+  const handlePlayerAssetsClick = (player) => {
+    console.log('💼 [RoomSetup] handlePlayerAssetsClick вызван с игроком:', player);
+    console.log('💼 [RoomSetup] Текущее состояние showPlayerAssets:', showPlayerAssets);
+    console.log('💼 [RoomSetup] Текущее состояние selectedPlayer:', selectedPlayer);
+    setSelectedPlayer(player);
+    setShowPlayerAssets(true);
+    console.log('💼 [RoomSetup] Состояние обновлено: selectedPlayer =', player, 'showPlayerAssets = true');
+  };
+  
+  const closePlayerAssets = () => {
+    console.log('💼 [RoomSetup] closePlayerAssets вызван');
+    setShowPlayerAssets(false);
+    setSelectedPlayer(null);
+    console.log('💼 [RoomSetup] Состояние обновлено: showPlayerAssets = false, selectedPlayer = null');
   };
 
   const handleDreamSelect = (dream) => {
@@ -452,13 +529,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   };
 
   // Данные для профессий и мечт
-  const professions = [
-    { id: 1, name: 'Дворник', salary: 2000, expenses: 200, description: 'Уборка улиц и дворов' },
-    { id: 2, name: 'Курьер', salary: 2500, expenses: 300, description: 'Доставка товаров и документов' },
-    { id: 3, name: 'Водитель', salary: 3000, expenses: 400, description: 'Перевозка пассажиров' },
-    { id: 4, name: 'Продавец', salary: 3500, expenses: 500, description: 'Продажа товаров' },
-    { id: 5, name: 'Офисный работник', salary: 4000, expenses: 600, description: 'Работа в офисе' }
-  ];
+  const professions = PROFESSIONS;
 
   const dreams = [
     { id: 1, name: 'Путешествие по миру', cost: 50000, description: 'Посетить все континенты' },
@@ -468,6 +539,16 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
     { id: 5, name: 'Благотворительность', cost: 75000, description: 'Помогать другим людям' }
   ];
 
+  console.log('🎨 [RoomSetup] Рендерим компонент');
+  console.log('🎨 [RoomSetup] Текущее состояние:', { 
+    playerName, 
+    selectedPlayer, 
+    showPlayerCard, 
+    showPlayerAssets, 
+    showBankModal,
+    players: players.length 
+  });
+  
   return (
     <Container maxWidth="lg">
       <Box
@@ -497,6 +578,17 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
+              {/* Отладочная информация - название файла */}
+              <Typography variant="body2" sx={{ 
+                color: '#ff4444',
+                fontWeight: 'bold',
+                mb: 1,
+                fontFamily: 'monospace',
+                fontSize: '0.8rem'
+              }}>
+                🐛 DEBUG: RoomSetup.js (кнопки заменены)
+              </Typography>
+              
               <Typography variant="h4" sx={{ color: '#333', fontWeight: 'bold' }}>
                 🏠 Настройки комнаты
               </Typography>
@@ -516,6 +608,161 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                   {isConnected ? 'Подключено' : 'Переподключение...'}
                 </Typography>
               </Box>
+            </Box>
+            
+            {/* Подсказка о кликабельности */}
+            <Box sx={{ 
+              mb: 3, 
+              p: 2, 
+              bgcolor: 'rgba(156, 39, 176, 0.1)', 
+              borderRadius: 2, 
+              border: '1px solid #9c27b0',
+              textAlign: 'center'
+            }}>
+              <Typography variant="body2" sx={{ color: '#9c27b0', fontWeight: 'bold', mb: 2 }}>
+                💡 Все карточки игроков, банк и активы кликабельны! Нажмите на любой элемент для просмотра деталей.
+              </Typography>
+              
+              {/* Тестовые кнопки для отладки */}
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    console.log('🧪 [RoomSetup] Тестовая кнопка карточки игрока нажата');
+                    handlePlayerClick({
+                      username: 'Тестовый игрок',
+                      profession: 'none',
+                      ready: true,
+                      socketId: 'test'
+                    });
+                  }}
+                  sx={{ borderColor: '#9c27b0', color: '#9c27b0' }}
+                >
+                  🧪 Тест карточки игрока
+                </Button>
+                
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    console.log('🧪 [RoomSetup] Тестовая кнопка активов нажата');
+                    handlePlayerAssetsClick({
+                      username: 'Тестовый игрок',
+                      profession: 'none',
+                      ready: true,
+                      socketId: 'test'
+                    });
+                  }}
+                  sx={{ borderColor: '#9c27b0', color: '#9c27b0' }}
+                >
+                  🧪 Тест активов
+                </Button>
+                
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    console.log('🧪 [RoomSetup] Тестовая кнопка банка нажата');
+                    handleBankClick();
+                  }}
+                  sx={{ borderColor: '#9c27b0', color: '#9c27b0' }}
+                >
+                  🧪 Тест банка
+                </Button>
+              </Box>
+            </Box>
+
+            {/* Карточка текущего игрока */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                👤 Текущий игрок
+              </Typography>
+              <Button
+                variant="contained"
+                fullWidth
+                size="large"
+                onClick={() => {
+                  console.log('👤 [RoomSetup] Кнопка карточки игрока нажата');
+                  handlePlayerClick({
+                    username: playerName,
+                    profession: selectedProfession?.name || 'none',
+                    ready: isReady,
+                    socketId: 'current'
+                  });
+                }}
+                sx={{
+                  p: 3,
+                  background: 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)',
+                  color: 'white',
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #388e3c 0%, #2e7d32 100%)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: 6
+                  }
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <Avatar
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      bgcolor: '#4caf50',
+                      fontSize: '32px',
+                      fontWeight: 'bold',
+                      border: '3px solid #2e7d32'
+                    }}
+                  >
+                    {playerName.charAt(0).toUpperCase()}
+                  </Avatar>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#2e7d32', mb: 1 }}>
+                      {playerName}
+                    </Typography>
+                    {selectedProfession ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <Typography variant="h6" sx={{ color: '#ff9800' }}>
+                          💼
+                        </Typography>
+                        <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
+                          {selectedProfession.name}
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Typography variant="h6" sx={{ color: '#ff9800', mb: 1 }}>
+                        ⚠️ Профессия не выбрана
+                      </Typography>
+                    )}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Chip 
+                        label={isReady ? '✅ Готов к игре' : '⏳ Не готов'} 
+                        size="medium" 
+                        sx={{ 
+                          bgcolor: isReady ? '#4caf50' : '#ff9800', 
+                          color: 'white',
+                          fontWeight: 'bold'
+                        }}
+                      />
+                      <Typography variant="body2" sx={{ color: '#666', fontStyle: 'italic' }}>
+                        Нажмите для просмотра карточки
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="h3" sx={{ color: '#4caf50' }}>
+                      👆
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#666', textAlign: 'center' }}>
+                      Кликните
+                    </Typography>
+                  </Box>
+                </Box>
+              </Button>
             </Box>
 
             {/* Имя комнаты */}
@@ -633,47 +880,61 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
               <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
                 💼 Профессия (можно изменять)
               </Typography>
-              <Grid container spacing={2}>
-                {professions.map((profession) => (
-                  <Grid item xs={12} sm={6} md={4} key={profession.id}>
-                    <Card
-                      sx={{
-                        cursor: 'pointer',
-                        border: selectedProfession?.id === profession.id ? '2px solid #4caf50' : '1px solid #ddd',
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          transform: 'translateY(-2px)',
-                          boxShadow: 3
-                        }
-                      }}
-                      onClick={() => handleProfessionSelect(profession)}
-                    >
-                      <CardContent>
-                        <Typography variant="h6" sx={{ mb: 1, color: '#333' }}>
-                          {profession.name}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
-                          💰 Зарплата: {profession.salary}₽
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
-                          💸 Расходы: {profession.expenses}₽
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#666', fontSize: '0.9rem' }}>
-                          {profession.description}
-                        </Typography>
-                        {selectedProfession?.id === profession.id && (
-                          <Chip
-                            label="Выбрано"
-                            color="success"
-                            size="small"
-                            sx={{ mt: 1 }}
-                          />
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
+              
+              {/* Фильтры */}
+              <Box sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <Select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    displayEmpty
+                  >
+                    <MenuItem value="all">Все категории</MenuItem>
+                    <MenuItem value="service">Сервис</MenuItem>
+                    <MenuItem value="sales">Продажи</MenuItem>
+                    <MenuItem value="transport">Транспорт</MenuItem>
+                    <MenuItem value="education">Образование</MenuItem>
+                    <MenuItem value="healthcare">Здравоохранение</MenuItem>
+                    <MenuItem value="engineering">Инженерия</MenuItem>
+                    <MenuItem value="legal">Юриспруденция</MenuItem>
+                    <MenuItem value="business">Бизнес</MenuItem>
+                    <MenuItem value="technology">Технологии</MenuItem>
+                    <MenuItem value="creative">Творчество</MenuItem>
+                    <MenuItem value="finance">Финансы</MenuItem>
+                    <MenuItem value="aviation">Авиация</MenuItem>
+                    <MenuItem value="architecture">Архитектура</MenuItem>
+                  </Select>
+                </FormControl>
+                
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <Select
+                    value={difficultyFilter}
+                    onChange={(e) => setDifficultyFilter(e.target.value)}
+                    displayEmpty
+                  >
+                    <MenuItem value="all">Все уровни</MenuItem>
+                    <MenuItem value="easy">Легкий</MenuItem>
+                    <MenuItem value="medium">Средний</MenuItem>
+                    <MenuItem value="hard">Сложный</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+                                              <Grid container spacing={2}>
+                  {professions
+                    .filter(profession => 
+                      (categoryFilter === 'all' || profession.category === categoryFilter) &&
+                      (difficultyFilter === 'all' || profession.difficulty === difficultyFilter)
+                    )
+                    .map((profession) => (
+                      <Grid item xs={12} sm={6} md={4} key={profession.id}>
+                        <ProfessionCard
+                          profession={profession}
+                          isSelected={selectedProfession?.id === profession.id}
+                          onClick={() => handleProfessionSelect(profession)}
+                        />
+                      </Grid>
+                    ))}
+                </Grid>
             </Box>
 
             {/* Выбор мечты */}
@@ -737,10 +998,10 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
               </Button>
             </Box>
 
-            {/* Список игроков */}
+            {/* Очередность игроков */}
             <Box sx={{ mb: 3 }}>
               <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                👥 Игроки в комнате ({players.length})
+                🎯 Очередность игроков ({players.length})
                 {players.length === 0 && (
                   <Typography variant="body2" sx={{ color: '#ff9800', ml: 2, fontSize: '0.9rem' }}>
                     ⚠️ Загрузка списка игроков...
@@ -748,26 +1009,134 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                 )}
               </Typography>
               <Grid container spacing={2}>
-                {players.map((player) => (
+                {players.map((player, index) => (
                   <Grid item xs={12} sm={6} md={4} key={player.socketId}>
-                    <Card sx={{ p: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar sx={{ bgcolor: player.ready ? '#4caf50' : '#ff9800' }}>
-                          {player.username.charAt(0).toUpperCase()}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                            {player.username}
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      size="large"
+                      onClick={() => {
+                        console.log('👥 [RoomSetup] Кнопка игрока нажата:', player.username);
+                        handlePlayerClick(player);
+                      }}
+                      sx={{
+                        p: 2,
+                        background: index === 0 
+                          ? 'linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%)'
+                          : 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+                        color: 'white',
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontSize: '1rem',
+                        fontWeight: 'bold',
+                        transition: 'all 0.3s ease',
+                        border: index === 0 ? '3px solid #9c27b0' : '1px solid #1976d2',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: 6,
+                          background: index === 0 
+                            ? 'linear-gradient(135deg, #7b1fa2 0%, #6a1b9a 100%)'
+                            : 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)'
+                        }
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="h6" sx={{ 
+                            color: 'white',
+                            fontWeight: 'bold',
+                            fontSize: '1.2rem'
+                          }}>
+                            {index + 1}.
                           </Typography>
-                          <Typography variant="body2" sx={{ color: '#666' }}>
-                            {player.ready ? '✅ Готов' : '⏳ Не готов'}
-                          </Typography>
+                          <Avatar sx={{ 
+                            bgcolor: 'rgba(255, 255, 255, 0.2)',
+                            width: 48,
+                            height: 48,
+                            fontSize: '18px',
+                            fontWeight: 'bold',
+                            border: '2px solid rgba(255, 255, 255, 0.3)'
+                          }}>
+                            {player.username.charAt(0).toUpperCase()}
+                          </Avatar>
                         </Box>
-                      </Box>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
+                        <Box sx={{ flex: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'white' }}>
+                              {player.username}
+                            </Typography>
+                            {index === 0 && (
+                              <Chip 
+                                label="ХОД" 
+                                size="small" 
+                                sx={{ 
+                                  bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                                  color: 'white',
+                                  fontWeight: 'bold',
+                                  fontSize: '0.7rem',
+                                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                                }}
+                              />
+                            )}
+                          </Box>
+                          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)', mb: 1 }}>
+                            {player.ready ? '✅ Готов к игре' : '⏳ Не готов'}
+                          </Typography>
+                          {player.profession && player.profession !== 'none' ? (
+                            <Chip 
+                              label={player.profession} 
+                              size="small" 
+                              sx={{ 
+                                bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                                color: 'white',
+                                fontWeight: 'bold',
+                                border: '1px solid rgba(255, 255, 255, 0.3)'
+                              }}
+                            />
+                          ) : (
+                            <Chip 
+                              label="Профессия не выбрана" 
+                              size="small" 
+                              sx={{ 
+                                bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                                color: 'white',
+                                fontWeight: 'bold',
+                                border: '1px solid rgba(255, 255, 255, 0.3)'
+                              }}
+                            />
+                          )}
+                        </Box>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          <Typography variant="h4" sx={{ color: 'rgba(255, 255, 255, 0.8)' }} title="Нажмите для просмотра карточки">
+                            👆
+                          </Typography>
+                          <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePlayerAssetsClick(player);
+                              }}
+                              sx={{
+                                minWidth: 'auto',
+                                p: 0.5,
+                                borderColor: '#4caf50',
+                                color: '#4caf50',
+                                fontSize: '0.7rem',
+                                '&:hover': {
+                                  bgcolor: 'rgba(76, 175, 80, 0.1)'
+                                }
+                              }}
+                              title="Просмотреть активы"
+                            >
+                              💼
+                            </Button>
+                          </Box>
+                        </Box>
+                      </Button>
+                    </Grid>
+                  ))}
+                </Grid>
             </Box>
 
             {/* Банк */}
@@ -775,69 +1144,108 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
               <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
                 🏦 Банк
               </Typography>
-              <Card sx={{ p: 3, background: 'linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%)' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Button
+                variant="contained"
+                fullWidth
+                size="large"
+                onClick={() => {
+                  console.log('🏦 [RoomSetup] Кнопка банка нажата');
+                  handleBankClick();
+                }}
+                sx={{
+                  p: 3,
+                  background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+                  color: 'white',
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: 6
+                  }
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                   <Box>
-                    <Typography variant="h5" sx={{ color: '#2e7d32', fontWeight: 'bold', mb: 1 }}>
+                    <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold', mb: 1 }}>
                       💰 Текущий баланс: ${bankBalance}
                     </Typography>
                     {selectedProfession && (
-                      <Typography variant="body2" sx={{ color: '#666' }}>
-                        💼 Профессия: {selectedProfession.name} | 💸 Расходы: ${selectedProfession.expenses}/мес
+                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
+                        💼 Профессия: {selectedProfession.name} | 💰 Зарплата: ${selectedProfession.salary}/мес | 💸 Расходы: ${selectedProfession.totalExpenses}/мес
                       </Typography>
                     )}
                   </Box>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleBankClick}
-                    sx={{
-                      background: 'linear-gradient(45deg, #1976d2 30%, #1565c0 90%)',
-                      borderRadius: 2,
-                      px: 3,
-                      '&:hover': {
-                        background: 'linear-gradient(45deg, #1565c0 30%, #1976d2 90%)'
-                      }
-                    }}
-                  >
-                    🏦 Банковские операции
-                  </Button>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="h3" sx={{ color: 'white' }}>
+                      🏛️
+                    </Typography>
+                    <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                      Нажмите для операций
+                    </Typography>
+                  </Box>
                 </Box>
-              </Card>
+              </Button>
             </Box>
 
             {/* Активы */}
             <Box sx={{ mb: 3 }}>
               <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                💼 Активы
+                💼 Мои активы
               </Typography>
-              <Card sx={{ p: 3, background: 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Button
+                variant="contained"
+                fullWidth
+                size="large"
+                onClick={() => {
+                  console.log('💼 [RoomSetup] Кнопка активов нажата');
+                  console.log('💼 [RoomSetup] Данные для handlePlayerAssetsClick:', {
+                    username: playerName,
+                    profession: selectedProfession?.name || 'none'
+                  });
+                  handlePlayerAssetsClick({
+                    username: playerName,
+                    profession: selectedProfession?.name || 'none'
+                  });
+                }}
+                sx={{
+                  p: 3,
+                  background: 'linear-gradient(135deg, #f57c00 0%, #ef6c00 100%)',
+                  color: 'white',
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #ef6c00 0%, #e65100 100%)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: 6
+                  }
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                   <Box>
-                    <Typography variant="h5" sx={{ color: '#f57c00', fontWeight: 'bold', mb: 1 }}>
+                    <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold', mb: 1 }}>
                       💰 Общая стоимость активов: ${getTotalAssetsValue()}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#666' }}>
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
                       📊 Количество активов: {assets.length} карточек
                     </Typography>
                   </Box>
-                  <Button
-                    variant="contained"
-                    color="warning"
-                    onClick={handleAssetsClick}
-                    sx={{
-                      background: 'linear-gradient(45deg, #f57c00 30%, #ef6c00 90%)',
-                      borderRadius: 2,
-                      px: 3,
-                      '&:hover': {
-                        background: 'linear-gradient(45deg, #ef6c00 30%, #f57c00 90%)'
-                      }
-                    }}
-                  >
-                    💼 Каталог активов
-                  </Button>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="h3" sx={{ color: 'white' }}>
+                      📋
+                    </Typography>
+                    <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                      Нажмите для просмотра
+                    </Typography>
+                  </Box>
                 </Box>
-              </Card>
+              </Button>
             </Box>
 
             {/* Кнопка запуска игры */}
@@ -896,6 +1304,22 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
           </Paper>
         </motion.div>
       </Box>
+
+      {/* Модальное окно карточки игрока */}
+      <PlayerProfessionCard
+        player={selectedPlayer}
+        profession={selectedPlayer ? getPlayerProfession(selectedPlayer) : null}
+        isOpen={showPlayerCard}
+        onClose={closePlayerCard}
+      />
+
+      {/* Модальное окно активов игрока */}
+      <PlayerAssetsModal
+        player={selectedPlayer}
+        profession={selectedPlayer ? getPlayerProfession(selectedPlayer) : null}
+        isOpen={showPlayerAssets}
+        onClose={closePlayerAssets}
+      />
 
       {/* Модальное окно банка */}
       {showBankModal && (
@@ -1219,8 +1643,207 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
           </Paper>
         </Box>
       )}
+
+      {/* Модальное окно карточки игрока */}
+      <PlayerProfessionCard
+        player={selectedPlayer}
+        profession={selectedPlayer ? getPlayerProfession(selectedPlayer) : null}
+        isOpen={showPlayerCard}
+        onClose={closePlayerCard}
+      />
+
+      {/* Модальное окно активов игрока */}
+      <PlayerAssetsModal
+        player={selectedPlayer}
+        profession={selectedPlayer ? getPlayerProfession(selectedPlayer) : null}
+        isOpen={showPlayerAssets}
+        onClose={closePlayerAssets}
+      />
+
+      {/* Модальное окно банка */}
+      {showBankModal && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            bgcolor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }}
+          onClick={(e) => {
+            console.log('🏦 [RoomSetup] Клик по фону модального окна');
+            closeBankModal();
+          }}
+        >
+          <Paper
+            elevation={24}
+            sx={{
+              p: 4,
+              maxWidth: 600,
+              width: '90%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              borderRadius: 3,
+              background: 'rgba(255, 255, 255, 0.98)',
+              backdropFilter: 'blur(20px)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Заголовок */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+              <Typography variant="h4" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+                🏦 Банковские операции
+              </Typography>
+              <Button
+                onClick={() => {
+                  console.log('🏦 [RoomSetup] Нажата кнопка закрытия');
+                  closeBankModal();
+                }}
+                sx={{ minWidth: 'auto', p: 1 }}
+              >
+                ✕
+              </Button>
+            </Box>
+
+            {/* Текущий баланс */}
+            <Box sx={{ mb: 3, p: 2, bgcolor: '#f0f8ff', borderRadius: 2, border: '1px solid #e3f2fd' }}>
+              <Typography variant="h5" sx={{ color: '#2e7d32', fontWeight: 'bold', textAlign: 'center' }}>
+                💰 Текущий баланс: ${bankBalance}
+              </Typography>
+            </Box>
+
+            {/* Форма перевода */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                💸 Перевод средств
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <Typography variant="body2" sx={{ mb: 1, color: '#666' }}>
+                      Получатель
+                    </Typography>
+                    <Select
+                      value={selectedRecipient}
+                      onChange={(e) => {
+                        console.log('🏦 [RoomSetup] Выбран получатель:', e.target.value);
+                        setSelectedRecipient(e.target.value);
+                      }}
+                      displayEmpty
+                      sx={{ minHeight: 56 }}
+                    >
+                      <MenuItem value="" disabled>
+                        Выберите игрока
+                      </MenuItem>
+                      {players
+                        .filter(player => player.username !== playerName)
+                        .map((player) => {
+                          console.log('🏦 [RoomSetup] Игрок для выбора:', player);
+                          return (
+                            <MenuItem key={player.socketId || player.id} value={player.username}>
+                              {player.username}
+                            </MenuItem>
+                          );
+                        })}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Сумма перевода"
+                    type="number"
+                    value={transferAmount}
+                    onChange={(e) => {
+                      console.log('🏦 [RoomSetup] Введена сумма:', e.target.value);
+                      setTransferAmount(e.target.value);
+                    }}
+                    placeholder="Введите сумму"
+                    sx={{ minHeight: 56 }}
+                  />
+                </Grid>
+              </Grid>
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={() => {
+                  console.log('🏦 [RoomSetup] Нажата кнопка "Выполнить перевод"');
+                  handleTransfer();
+                }}
+                disabled={!transferAmount || !selectedRecipient}
+                sx={{
+                  mt: 2,
+                  background: 'linear-gradient(45deg, #2e7d32 30%, #1b5e20 90%)',
+                  borderRadius: 2,
+                  py: 1.5,
+                  '&:hover': {
+                    background: 'linear-gradient(45deg, #1b5e20 30%, #2e7d32 90%)'
+                  },
+                  '&:disabled': {
+                    background: '#ccc'
+                  }
+                }}
+              >
+                💸 Выполнить перевод
+              </Button>
+            </Box>
+
+            {/* История переводов */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                📋 История переводов
+              </Typography>
+              {transferHistory.length === 0 ? (
+                <Box sx={{ p: 3, textAlign: 'center', color: '#666', bgcolor: '#f5f5f5', borderRadius: 2 }}>
+                  <Typography variant="body2">
+                    История переводов пуста
+                  </Typography>
+                </Box>
+              ) : (
+                <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
+                  {transferHistory.map((transfer) => (
+                    <Card key={transfer.id} sx={{ mb: 1, p: 2, bgcolor: '#f8f9fa' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                            {transfer.from} → {transfer.to}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: '#666' }}>
+                            {transfer.date}
+                          </Typography>
+                        </Box>
+                        <Typography variant="h6" sx={{ color: '#d32f2f', fontWeight: 'bold' }}>
+                          -${transfer.amount}
+                        </Typography>
+                      </Box>
+                    </Card>
+                  ))}
+                </Box>
+              )}
+            </Box>
+
+            {/* Уведомления */}
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+            {success && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                {success}
+              </Alert>
+            )}
+          </Paper>
+        </Box>
+      )}
     </Container>
   );
 };
 
 export default RoomSetup;
+

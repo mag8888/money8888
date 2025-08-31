@@ -1,3 +1,10 @@
+// 🚨 ВНИМАНИЕ! ЭТОТ ФАЙЛ ОТРЕДАКТИРОВАН! 🚨
+// 🎯 Тестовая кнопка добавлена в GameBoard.js
+// 📅 Дата редактирования: СЕЙЧАС
+// 👤 Редактор: AI Assistant
+// 🔍 ФАЙЛ ОТКРЫТ В CURSOR - ПРОВЕРЬТЕ ЭТО!
+// 📁 Путь: client/src/components/GameBoard.js
+
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Avatar, Button } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -68,6 +75,7 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
     getCellInfo: typeof getCellInfo,
     getNeighborCells: typeof getNeighborCells 
   });
+  console.log('🎮 [GameBoard] Компонент обновлен - все карточки заменены на Button в StylishControlPanel');
   
   // Проверяем BOARD_CONFIG
   console.log('🎮 [GameBoard] BOARD_CONFIG загружен:', BOARD_CONFIG);
@@ -423,15 +431,34 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
       
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         {players.map((player) => (
-          <Box
+          <Button
             key={player.id}
+            variant="contained"
+            size="large"
+            onClick={() => {
+              console.log('👥 [GameBoard] Кнопка игрока нажата:', player.username);
+              // Здесь можно добавить логику для открытия карточки игрока
+            }}
             sx={{
               p: 2,
-              border: '2px solid',
-              borderColor: player.id === currentTurn ? '#4CAF50' : '#ddd',
+              background: player.id === currentTurn 
+                ? 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)'
+                : 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+              color: 'white',
               borderRadius: 2,
-              bgcolor: player.id === currentTurn ? '#E8F5E8' : 'background.paper',
-              minWidth: 150
+              textTransform: 'none',
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              transition: 'all 0.3s ease',
+              border: `2px solid ${player.id === currentTurn ? '#4caf50' : '#1976d2'}`,
+              minWidth: 150,
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: 6,
+                background: player.id === currentTurn 
+                  ? 'linear-gradient(135deg, #388e3c 0%, #2e7d32 100%)'
+                  : 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)'
+              }
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -463,7 +490,7 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
                 💭 {player.dream.name}
               </Typography>
             )}
-          </Box>
+          </Button>
         ))}
       </Box>
     </Box>
@@ -471,68 +498,7 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
 
   console.log('🎮 [GameBoard] Рендеринг, gameStarted:', gameStarted, 'gamePhase:', gamePhase);
   
-  // Убираем экран ожидания - сразу показываем игровое поле
-  // if (!gameStarted) {
-  //   return (
-  //     <Box sx={{ p: 3, textAlign: 'center' }}>
-  //       <Typography variant="h5" gutterBottom>
-  //         ⏳ Ожидание начала игры...
-  //       </Typography>
-  //       <Typography variant="body1" color="text.secondary">
-  //         Хост должен запустить игру
-  //       </Typography>
-  //       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-  //         Debug: gameStarted = {gameStarted.toString()}, gamePhase = {gamePhase}
-  //       </Typography>
-  //     </Box>
-  //   );
-  // }
 
-  // Убираем экран определения очередности - сразу показываем игровое поле
-  // if (gamePhase === 'determining_order') {
-  //   return (
-  //     <Box sx={{ p: 3, textAlign: 'center' }}>
-  //       <Typography variant="h4" gutterBottom>
-  //         🎲 Определение очередности
-  //       </Typography>
-  //       <Typography variant="h6" color="primary" gutterBottom>
-  //         Бросайте кубики для определения порядка ходов!
-  //       </Typography>
-  //       
-  //       <Box sx={{ mt: 4 }}>
-  //         <Typography variant="h5" gutterBottom>
-  //           👥 Игроки в комнате:
-  //         </Typography>
-  //         {players.map((player) => (
-  //           <Box key={player.id} sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: 2 }}>
-  //             <Typography variant="h6">
-  //               {player.username}
-  //             </Typography>
-  //             {player.profession && (
-  //               <Typography variant="body1" color="primary">
-  //                 💼 {player.profession.name}
-  //               </Typography>
-  //             )}
-  //             {player.dream && (
-  //               <Typography variant="body2" color="secondary">
-  //                 💭 {player.dream.name}
-  //               </Typography>
-  //               )}
-  //               {player.diceRoll ? (
-  //                 <Typography variant="h5" color="success">
-  //                   🎲 Результат: {player.diceRoll}
-  //                 </Typography>
-  //               ) : (
-  //                 <Typography variant="body1" color="text.secondary">
-  //                   ⏳ Ожидание броска...
-  //                 </Typography>
-  //               )}
-  //             </Box>
-  //           ))}
-  //         </Box>
-  //       </Box>
-  //     );
-  //   }
 
   return (
     <Box sx={{ 
@@ -555,6 +521,28 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
         }}
       />
       
+      {/* Тестовая кнопка для проверки */}
+      <Box sx={{ position: 'relative', zIndex: 1000, textAlign: 'center', py: 2 }}>
+        <Button
+          variant="contained"
+          size="large"
+          onClick={() => {
+            console.log('🧪 [GameBoard] Тестовая кнопка нажата!');
+            alert('Компонент GameBoard работает! Кнопки заменены на Button.');
+          }}
+          sx={{ 
+            bgcolor: '#ff5722', 
+            color: 'white',
+            fontSize: '1.2rem',
+            py: 2,
+            px: 4,
+            '&:hover': { bgcolor: '#d84315' }
+          }}
+        >
+          🧪 ТЕСТ КНОПОК GAMEBOARD - НАЖМИТЕ МЕНЯ!
+        </Button>
+      </Box>
+      
       {/* Заголовок */}
       <motion.div
         initial={{ y: -50, opacity: 0 }}
@@ -569,6 +557,17 @@ const GameBoard = ({ roomId, playerData, onExit }) => {
           backdropFilter: 'blur(20px)',
           borderBottom: `1px solid ${CASHFLOW_THEME.colors.board.border}`
         }}>
+          {/* Отладочная информация - название файла */}
+          <Typography variant="body2" sx={{ 
+            color: '#ff4444',
+            fontWeight: 'bold',
+            mb: 1,
+            fontFamily: 'monospace',
+            fontSize: '0.8rem'
+          }}>
+            🐛 DEBUG: GameBoard.js (отредактирован)
+          </Typography>
+          
           <Typography variant="h2" sx={{ 
             color: '#FFFFFF',
             fontWeight: 'bold',

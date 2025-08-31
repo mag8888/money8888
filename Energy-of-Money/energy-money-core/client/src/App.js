@@ -114,7 +114,11 @@ function AppRouter() {
                 boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
               }}>
                 <button
-                  onClick={() => navigate('/room/lobby/setup')}
+                  onClick={() => {
+                    alert('Кнопка "Поле 1" нажата!');
+                    console.log('🎯 [App] Нажата кнопка "Поле 1"');
+                    navigate('/room/lobby/setup');
+                  }}
                   style={{
                     padding: '15px 30px',
                     fontSize: '18px',

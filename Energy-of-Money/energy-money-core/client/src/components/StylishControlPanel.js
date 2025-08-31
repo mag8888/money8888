@@ -153,6 +153,19 @@ const StylishControlPanel = ({
                 opacity: 0.3
               }}
             />
+            {/* Отладочная информация - название файла */}
+            <Typography variant="body2" sx={{ 
+              color: '#ff4444',
+              fontWeight: 'bold',
+              mb: 1,
+              fontFamily: 'monospace',
+              fontSize: '0.7rem',
+              position: 'relative',
+              zIndex: 1
+            }}>
+              🐛 DEBUG: StylishControlPanel.js
+            </Typography>
+            
             <Typography variant="h5" sx={{ 
               color: '#FFFFFF', 
               fontWeight: 'bold',
@@ -238,18 +251,35 @@ const StylishControlPanel = ({
                       whileHover={{ scale: 1.02 }}
                       style={{ marginBottom: '12px' }}
                     >
-                      <Box sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        p: 2,
-                        bgcolor: isActive 
-                          ? 'rgba(99, 102, 241, 0.2)' 
-                          : 'rgba(255,255,255,0.05)',
-                        borderRadius: '12px',
-                        border: `2px solid ${isActive ? CASHFLOW_THEME.colors.primary.main : 'transparent'}`,
-                        position: 'relative',
-                        overflow: 'hidden'
-                      }}>
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        size="large"
+                        onClick={() => {
+                          console.log('👥 [StylishControlPanel] Кнопка игрока нажата:', player.username);
+                          // Здесь можно добавить логику для открытия карточки игрока
+                        }}
+                        sx={{
+                          p: 2,
+                          background: isActive 
+                            ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
+                            : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                          color: 'white',
+                          borderRadius: '12px',
+                          textTransform: 'none',
+                          fontSize: '1rem',
+                          fontWeight: 'bold',
+                          transition: 'all 0.3s ease',
+                          border: `2px solid ${isActive ? '#6366f1' : '#3b82f6'}`,
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: 6,
+                            background: isActive 
+                              ? 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)'
+                              : 'linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%)'
+                          }
+                        }}
+                      >
                         {/* Номер игрока */}
                         <Box sx={{
                           width: 32,
@@ -326,7 +356,7 @@ const StylishControlPanel = ({
                             }} />
                           </motion.div>
                         )}
-                      </Box>
+                      </Button>
                     </motion.div>
                   );
                 })}
@@ -396,21 +426,39 @@ const StylishControlPanel = ({
                     Банк
                   </Typography>
                   
-                  <Box sx={{
-                    p: 3,
-                    bgcolor: 'rgba(16, 185, 129, 0.2)',
-                    borderRadius: '16px',
-                    border: `2px solid ${CASHFLOW_THEME.colors.success.main}`,
-                    textAlign: 'center'
-                  }}>
-                    <Typography variant="h3" sx={{ 
-                      color: CASHFLOW_THEME.colors.success.main,
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    size="large"
+                    onClick={() => {
+                      console.log('🏦 [StylishControlPanel] Кнопка банка нажата');
+                      // Здесь можно добавить логику для открытия модального окна банка
+                    }}
+                    sx={{
+                      p: 3,
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: 'white',
+                      borderRadius: '16px',
+                      textTransform: 'none',
+                      fontSize: '1.2rem',
                       fontWeight: 'bold',
-                      textShadow: '0 2px 10px rgba(16, 185, 129, 0.5)'
+                      transition: 'all 0.3s ease',
+                      border: `2px solid #10b981`,
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: 6,
+                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+                      }
+                    }}
+                  >
+                    <Typography variant="h3" sx={{ 
+                      color: 'white',
+                      fontWeight: 'bold',
+                      textShadow: '0 2px 10px rgba(255, 255, 255, 0.3)'
                     }}>
                       ${(playerData?.balance || 0).toLocaleString()}
                     </Typography>
-                  </Box>
+                  </Button>
                 </Box>
 
                 {/* Активы */}
@@ -426,56 +474,107 @@ const StylishControlPanel = ({
                   </Typography>
                   
                   <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-                    <Box sx={{
-                      p: 2,
-                      bgcolor: 'rgba(139, 92, 246, 0.2)',
-                      borderRadius: '12px',
-                      border: `1px solid ${CASHFLOW_THEME.colors.cells.doodad.border}`,
-                      textAlign: 'center'
-                    }}>
+                    <Button
+                      variant="contained"
+                      size="large"
+                      onClick={() => {
+                        console.log('💼 [StylishControlPanel] Кнопка бизнесов нажата');
+                        // Здесь можно добавить логику для просмотра бизнесов
+                      }}
+                      sx={{
+                        p: 2,
+                        background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                        color: 'white',
+                        borderRadius: '12px',
+                        textTransform: 'none',
+                        fontSize: '1rem',
+                        fontWeight: 'bold',
+                        transition: 'all 0.3s ease',
+                        border: `1px solid #8b5cf6`,
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: 6,
+                          background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)'
+                        }
+                      }}
+                    >
                       <BusinessIcon sx={{ 
-                        color: CASHFLOW_THEME.colors.cells.doodad.main,
+                        color: 'white',
                         fontSize: '24px',
                         mb: 1
                       }} />
-                      <Typography variant="body2" sx={{ color: '#FFFFFF' }}>
+                      <Typography variant="body2" sx={{ color: 'white' }}>
                         Бизнесы: 0
                       </Typography>
-                    </Box>
+                    </Button>
                     
-                    <Box sx={{
-                      p: 2,
-                      bgcolor: 'rgba(6, 182, 212, 0.2)',
-                      borderRadius: '12px',
-                      border: `1px solid ${CASHFLOW_THEME.colors.cells.market.border}`,
-                      textAlign: 'center'
-                    }}>
+                    <Button
+                      variant="contained"
+                      size="large"
+                      onClick={() => {
+                        console.log('🏠 [StylishControlPanel] Кнопка недвижимости нажата');
+                        // Здесь можно добавить логику для просмотра недвижимости
+                      }}
+                      sx={{
+                        p: 2,
+                        background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+                        color: 'white',
+                        borderRadius: '12px',
+                        textTransform: 'none',
+                        fontSize: '1rem',
+                        fontWeight: 'bold',
+                        transition: 'all 0.3s ease',
+                        border: `1px solid #06b6d4`,
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: 6,
+                          background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)'
+                        }
+                      }}
+                    >
                       <HomeIcon sx={{ 
-                        color: CASHFLOW_THEME.colors.cells.market.main,
+                        color: 'white',
                         fontSize: '24px',
                         mb: 1
                       }} />
-                      <Typography variant="body2" sx={{ color: '#FFFFFF' }}>
+                      <Typography variant="body2" sx={{ color: 'white' }}>
                         Недвижимость: 0
                       </Typography>
-                    </Box>
+                    </Button>
                     
-                    <Box sx={{
-                      p: 2,
-                      bgcolor: 'rgba(16, 185, 129, 0.2)',
-                      borderRadius: '12px',
-                      border: `1px solid ${CASHFLOW_THEME.colors.cells.opportunity.border}`,
-                      textAlign: 'center'
-                    }}>
+                    <Button
+                      variant="contained"
+                      size="large"
+                      onClick={() => {
+                        console.log('📈 [StylishControlPanel] Кнопка акций нажата');
+                        // Здесь можно добавить логику для просмотра акций
+                      }}
+                      sx={{
+                        p: 2,
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        color: 'white',
+                        borderRadius: '12px',
+                        textTransform: 'none',
+                        fontSize: '1rem',
+                        fontWeight: 'bold',
+                        transition: 'all 0.3s ease',
+                        border: `1px solid #10b981`,
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: 6,
+                          background: 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+                        }
+                      }}
+                    >
                       <StockIcon sx={{ 
-                        color: CASHFLOW_THEME.colors.cells.opportunity.main,
+                        color: 'white',
                         fontSize: '24px',
                         mb: 1
                       }} />
-                      <Typography variant="body2" sx={{ color: '#FFFFFF' }}>
+                      <Typography variant="body2" sx={{ color: 'white' }}>
                         Акции: 0
                       </Typography>
-                    </Box>
+                    </Button>
                   </Box>
                 </Box>
               </Box>
