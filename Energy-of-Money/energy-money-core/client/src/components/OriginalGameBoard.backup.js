@@ -229,72 +229,14 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   // Функция инициализации колоды сделок
   const initializeDealDeck = () => {
     const smallDeals = [
-      // Tesla акции (обычные - продажа только в свой ход)
-      { id: 15, type: 'small', name: 'Tesla акции ($10)', cost: 10, income: 0, description: 'Tesla акции (диапазон цены $10-$40) - стоимость: $10, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 16, type: 'small', name: 'Tesla акции ($20)', cost: 20, income: 0, description: 'Tesla акции (диапазон цены $10-$40) - стоимость: $20, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 17, type: 'small', name: 'Tesla акции ($30)', cost: 30, income: 0, description: 'Tesla акции (диапазон цены $10-$40) - стоимость: $30, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 18, type: 'small', name: 'Tesla акции ($40)', cost: 40, income: 0, description: 'Tesla акции (диапазон цены $10-$40) - стоимость: $40, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 19, type: 'small', name: 'Tesla акции ($50)', cost: 50, income: 0, description: 'Tesla акции (диапазон цены $10-$40) - стоимость: $50, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      // Microsoft акции (обычные - продажа только в свой ход)
-      { id: 20, type: 'small', name: 'Microsoft акции ($10)', cost: 10, income: 0, description: 'Microsoft акции (диапазон цены $10-$40) - стоимость: $10, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 21, type: 'small', name: 'Microsoft акции ($20)', cost: 20, income: 0, description: 'Microsoft акции (диапазон цены $10-$40) - стоимость: $20, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 22, type: 'small', name: 'Microsoft акции ($20)', cost: 20, income: 0, description: 'Microsoft акции (диапазон цены $10-$40) - стоимость: $20, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 23, type: 'small', name: 'Microsoft акции ($30)', cost: 30, income: 0, description: 'Microsoft акции (диапазон цены $10-$40) - стоимость: $30, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 24, type: 'small', name: 'Microsoft акции ($30)', cost: 30, income: 0, description: 'Microsoft акции (диапазон цены $10-$40) - стоимость: $30, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 25, type: 'small', name: 'Microsoft акции ($40)', cost: 40, income: 0, description: 'Microsoft акции (диапазон цены $10-$40) - стоимость: $40, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 26, type: 'small', name: 'Microsoft акции ($50)', cost: 50, income: 0, description: 'Microsoft акции (диапазон цены $10-$40) - стоимость: $50, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      // Nvidia акции (обычные - продажа только в свой ход)
-      { id: 27, type: 'small', name: 'Nvidia акции ($10)', cost: 10, income: 0, description: 'Nvidia акции (диапазон цены $10-$40) - стоимость: $10, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 28, type: 'small', name: 'Nvidia акции ($20)', cost: 20, income: 0, description: 'Nvidia акции (диапазон цены $10-$40) - стоимость: $20, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 29, type: 'small', name: 'Nvidia акции ($20)', cost: 20, income: 0, description: 'Nvidia акции (диапазон цены $10-$40) - стоимость: $20, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 30, type: 'small', name: 'Nvidia акции ($30)', cost: 30, income: 0, description: 'Nvidia акции (диапазон цены $10-$40) - стоимость: $30, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 31, type: 'small', name: 'Nvidia акции ($30)', cost: 30, income: 0, description: 'Nvidia акции (диапазон цены $10-$40) - стоимость: $30, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 32, type: 'small', name: 'Nvidia акции ($40)', cost: 40, income: 0, description: 'Nvidia акции (диапазон цены $10-$40) - стоимость: $40, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 33, type: 'small', name: 'Nvidia акции ($50)', cost: 50, income: 0, description: 'Nvidia акции (диапазон цены $10-$40) - стоимость: $50, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      // Apple акции (обычные - продажа только в свой ход)
-      { id: 34, type: 'small', name: 'Apple акции ($10)', cost: 10, income: 0, description: 'Apple акции (диапазон цены $10-$40) - стоимость: $10, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 35, type: 'small', name: 'Apple акции ($20)', cost: 20, income: 0, description: 'Apple акции (диапазон цены $10-$40) - стоимость: $20, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 36, type: 'small', name: 'Apple акции ($20)', cost: 20, income: 0, description: 'Apple акции (диапазон цены $10-$40) - стоимость: $20, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 37, type: 'small', name: 'Apple акции ($30)', cost: 30, income: 0, description: 'Apple акции (диапазон цены $10-$40) - стоимость: $30, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 38, type: 'small', name: 'Apple акции ($30)', cost: 30, income: 0, description: 'Apple акции (диапазон цены $10-$40) - стоимость: $30, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 39, type: 'small', name: 'Apple акции ($40)', cost: 40, income: 0, description: 'Apple акции (диапазон цены $10-$40) - стоимость: $40, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      { id: 40, type: 'small', name: 'Apple акции ($50)', cost: 50, income: 0, description: 'Apple акции (диапазон цены $10-$40) - стоимость: $50, доход: нет. Максимум: 100000. Продажа только в свой ход.', maxQuantity: 100000, isDividendStock: false },
-      // BTC (биткоин - продажа только в свой ход)
-      { id: 41, type: 'small', name: 'BTC ($1000)', cost: 1000, income: 100, description: 'Биткоин высокорисковый актив с колебанием цен 1000-100 000$. Максимум: 1000. Продажа только в свой ход.', maxQuantity: 1000, isDividendStock: false },
-      { id: 42, type: 'small', name: 'BTC ($5000)', cost: 5000, income: 500, description: 'Биткоин высокорисковый актив с колебанием цен 1000-100 000$. Максимум: 1000. Продажа только в свой ход.', maxQuantity: 1000, isDividendStock: false },
-      { id: 43, type: 'small', name: 'BTC ($10000)', cost: 10000, income: 1000, description: 'Биткоин высокорисковый актив с колебанием цен 1000-100 000$. Максимум: 1000. Продажа только в свой ход.', maxQuantity: 1000, isDividendStock: false },
-      { id: 44, type: 'small', name: 'BTC ($20000)', cost: 20000, income: 2000, description: 'Биткоин высокорисковый актив с колебанием цен 1000-100 000$. Максимум: 1000. Продажа только в свой ход.', maxQuantity: 1000, isDividendStock: false },
-      { id: 45, type: 'small', name: 'BTC ($1000)', cost: 1000, income: 100, description: 'Биткоин высокорисковый актив с колебанием цен 1000-100 000$. Максимум: 1000. Продажа только в ход, когда карточка выходит.', maxQuantity: 1000, isDividendStock: false },
-      { id: 46, type: 'small', name: 'BTC ($5000)', cost: 5000, income: 500, description: 'Биткоин высокорисковый актив с колебанием цен 1000-100 000$. Максимум: 1000. Продажа только в ход, когда карточка выходит.', maxQuantity: 1000, isDividendStock: false },
-      { id: 47, type: 'small', name: 'BTC ($10000)', cost: 10000, income: 1000, description: 'Биткоин высокорисковый актив с колебанием цен 1000-100 000$. Максимум: 1000. Продажа только в ход, когда карточка выходит.', maxQuantity: 1000, isDividendStock: false },
-      { id: 48, type: 'small', name: 'BTC ($20000)', cost: 20000, income: 2000, description: 'Биткоин высокорисковый актив с колебанием цен 1000-100 000$. Максимум: 1000. Продажа только в ход, когда карточка выходит.', maxQuantity: 1000, isDividendStock: false },
-      { id: 49, type: 'small', name: 'BTC ($50000)', cost: 50000, income: 5000, description: 'Биткоин высокорисковый актив с колебанием цен 1000-100 000$. Максимум: 1000. Продажа только в ход, когда карточка выходит.', maxQuantity: 1000, isDividendStock: false },
-      { id: 50, type: 'small', name: 'BTC ($100000)', cost: 100000, income: 10000, description: 'Биткоин высокорисковый актив с колебанием цен 1000-100 000$. Максимум: 1000. Продажа только в ход, когда карточка выходит.', maxQuantity: 1000, isDividendStock: false },
-      // Дивидендные акции (можно продавать в любое время) - по 2 карточки каждой
-      { id: 39, type: 'small', name: 'AT&T привилегированные акции (T)', cost: 5000, income: 30, description: 'Привилегированные акции дают доход AT&T. Дивиденды: $30/мес. Продажа в любое время.', maxQuantity: 1000, isDividendStock: true, dividendYield: 30 },
-      { id: 40, type: 'small', name: 'AT&T привилегированные акции (T)', cost: 5000, income: 30, description: 'Привилегированные акции дают доход AT&T. Дивиденды: $30/мес. Продажа в любое время.', maxQuantity: 1000, isDividendStock: true, dividendYield: 30 },
-      { id: 41, type: 'small', name: 'Procter & Gamble привилегированные акции (PG)', cost: 2000, income: 10, description: 'Привилегированные акции дают доход Procter & Gamble. Дивиденды: $10/мес. Продажа в любое время.', maxQuantity: 1000, isDividendStock: true, dividendYield: 10 },
-      { id: 42, type: 'small', name: 'Procter & Gamble привилегированные акции (PG)', cost: 2000, income: 10, description: 'Привилегированные акции дают доход Procter & Gamble. Дивиденды: $10/мес. Продажа в любое время.', maxQuantity: 1000, isDividendStock: true, dividendYield: 10 },
-      // Новые карточки малых сделок
-      { id: 51, type: 'small', name: 'Комната в пригороде', cost: 3000, income: 250, description: 'Комната в пригороде для сдачи в аренду' },
-      { id: 52, type: 'small', name: 'Комната в пригороде', cost: 3000, income: 250, description: 'Комната в пригороде для сдачи в аренду' },
-      { id: 53, type: 'small', name: 'Комната в пригороде', cost: 3000, income: 250, description: 'Комната в пригороде для сдачи в аренду' },
-      { id: 54, type: 'small', name: 'Комната в пригороде', cost: 3000, income: 250, description: 'Комната в пригороде для сдачи в аренду' },
-      { id: 55, type: 'small', name: 'Комната в пригороде', cost: 3000, income: 250, description: 'Комната в пригороде для сдачи в аренду' },
-      { id: 56, type: 'small', name: 'Студия маникюра на 1 место', cost: 4900, income: 200, description: 'Студия маникюра на 1 рабочее место' },
-      { id: 57, type: 'small', name: 'Студия маникюра на 1 место', cost: 4900, income: 200, description: 'Студия маникюра на 1 рабочее место' },
-      { id: 58, type: 'small', name: 'Кофейня', cost: 4900, income: 100, description: 'Небольшая кофейня' },
-      { id: 59, type: 'small', name: 'Кофейня', cost: 4900, income: 100, description: 'Небольшая кофейня' },
-      { id: 60, type: 'small', name: 'Партнёрство в автомастерской', cost: 4500, income: 350, description: 'Партнёрство в автомастерской' },
-      { id: 61, type: 'small', name: 'Партнёрство в автомастерской', cost: 4500, income: 350, description: 'Партнёрство в автомастерской' },
-      { id: 62, type: 'small', name: 'Друг просит в займ', cost: 5000, income: 0, description: 'Друг просит в займ - благотворительность' },
-      { id: 63, type: 'small', name: 'Приют для кошек', cost: 5000, income: 0, description: 'Пожертвование в приют для кошек' },
-      { id: 64, type: 'small', name: 'Накормить бездомных', cost: 5000, income: 0, description: 'Благотворительность - накормить бездомных' },
-      { id: 65, type: 'small', name: 'Участок земли 20га', cost: 5000, income: 0, description: 'Участок земли 20 га - инвестиция в недвижимость' },
-      { id: 66, type: 'small', name: 'Крыша протекла', cost: 5000, income: 0, description: 'Крыша протекла — возможность обновить крышу (если у игрока есть недвижимость)', isExpense: true },
-      { id: 67, type: 'small', name: 'Покупка дрона для съёмок', cost: 3000, income: 50, description: 'Покупка дрона для съёмок - дополнительный доход' },
-      { id: 68, type: 'small', name: 'Флипинг студии', cost: 5000, income: 50, description: 'Флипинг студии - перепродажа недвижимости' },
-      { id: 69, type: 'small', name: 'Прорыв канализации', cost: 2000, income: 0, description: 'Прорыв канализации (у вас есть возможность починить канализацию)', isExpense: true }
+      { id: 1, type: 'small', name: 'Кофейня', cost: 5000, income: 200, description: 'Небольшая кофейня в спальном районе' },
+      { id: 2, type: 'small', name: 'Автомойка', cost: 8000, income: 400, description: 'Автомойка самообслуживания' },
+      { id: 3, type: 'small', name: 'Пекарня', cost: 12000, income: 600, description: 'Домашняя пекарня' },
+      { id: 4, type: 'small', name: 'Салон красоты', cost: 15000, income: 800, description: 'Салон красоты' },
+      { id: 5, type: 'small', name: 'Магазин одежды', cost: 20000, income: 1000, description: 'Бутик одежды' },
+      { id: 6, type: 'small', name: 'Спортзал', cost: 25000, income: 1200, description: 'Небольшой спортзал' },
+      { id: 7, type: 'small', name: 'Стоматология', cost: 30000, income: 1500, description: 'Стоматологический кабинет' },
+      { id: 8, type: 'small', name: 'Юридическая контора', cost: 35000, income: 1800, description: 'Юридические услуги' }
     ];
 
     const bigDeals = [
@@ -616,64 +558,46 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       // Покупаем карточку
       setPlayerMoney(prev => prev - currentDealCard.cost);
       
-      // Карточки с расходами не добавляются в активы
-      if (currentDealCard.isExpense) {
-        // Просто тратим деньги, актив не создается
+      // Проверяем, есть ли уже такой актив у игрока
+      const existingAssetIndex = assets.findIndex(asset => 
+        asset.name === currentDealCard.name && asset.type === 'deal'
+      );
+      
+      if (existingAssetIndex !== -1) {
+        // Если актив уже есть, увеличиваем количество
+        setAssets(prev => prev.map((asset, index) => 
+          index === existingAssetIndex 
+            ? { ...asset, quantity: asset.quantity + 1 }
+            : asset
+        ));
       } else {
-        // Проверяем, есть ли уже такой актив у игрока
-        const existingAssetIndex = assets.findIndex(asset => 
-          asset.name === currentDealCard.name && asset.type === 'deal'
-        );
+        // Если актива нет, создаем новый
+        const newAsset = {
+          id: Date.now(),
+          type: 'deal',
+          name: currentDealCard.name,
+          icon: currentDealCard.type === 'small' ? '🏪' : '🏢',
+          value: currentDealCard.cost,
+          cost: currentDealCard.cost,
+          income: currentDealCard.income,
+          color: currentDealCard.type === 'small' ? '#10B981' : '#8B5CF6',
+          description: currentDealCard.description,
+          quantity: 1,
+          isDividendStock: currentDealCard.isDividendStock || false,
+          dividendYield: currentDealCard.dividendYield || 0,
+          maxQuantity: currentDealCard.maxQuantity || 1
+        };
         
-        if (existingAssetIndex !== -1) {
-          // Если актив уже есть, увеличиваем количество
-          setAssets(prev => prev.map((asset, index) => 
-            index === existingAssetIndex 
-              ? { ...asset, quantity: asset.quantity + 1 }
-              : asset
-          ));
-        } else {
-          // Если актива нет, создаем новый
-          const newAsset = {
-            id: Date.now(),
-            type: 'deal',
-            name: currentDealCard.name,
-            icon: currentDealCard.income === 0 ? '💝' : currentDealCard.type === 'small' ? '🏪' : '🏢',
-            value: currentDealCard.cost,
-            cost: currentDealCard.cost,
-            income: currentDealCard.income,
-            color: currentDealCard.income === 0 ? '#F59E0B' : currentDealCard.type === 'small' ? '#10B981' : '#8B5CF6',
-            description: currentDealCard.description,
-            quantity: 1,
-            isDividendStock: currentDealCard.isDividendStock || false,
-            dividendYield: currentDealCard.dividendYield || 0,
-            maxQuantity: currentDealCard.maxQuantity || 1
-          };
-          
-          setAssets(prev => [...prev, newAsset]);
-        }
-      }
-      
-      // Определяем тип сообщения в зависимости от типа карточки
-      const isCharity = currentDealCard.income === 0 && !currentDealCard.isExpense;
-      const isExpense = currentDealCard.isExpense;
-      
-      let message;
-      if (isExpense) {
-        message = `🔧 ${player.name} потратил $${currentDealCard.cost.toLocaleString()} на ${currentDealCard.name}`;
-      } else if (isCharity) {
-        message = `💝 ${player.name} пожертвовал $${currentDealCard.cost.toLocaleString()} на ${currentDealCard.name}`;
-      } else {
-        message = `✅ ${player.name} купил ${currentDealCard.name} за $${currentDealCard.cost.toLocaleString()}`;
+        setAssets(prev => [...prev, newAsset]);
       }
       
       setToast({
         open: true,
-        message: message,
-        severity: isExpense ? 'warning' : isCharity ? 'info' : 'success'
+        message: `✅ ${player.name} купил ${currentDealCard.name} за $${currentDealCard.cost.toLocaleString()}`,
+        severity: 'success'
       });
       
-      console.log(`✅ [OriginalGameBoard] Игрок ${player.name} ${isExpense ? 'потратил на' : isCharity ? 'пожертвовал на' : 'купил'} ${currentDealCard.name}`);
+      console.log(`✅ [OriginalGameBoard] Игрок ${player.name} купил ${currentDealCard.name}`);
     } else {
       setToast({
         open: true,
@@ -738,17 +662,14 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         id: Date.now(),
         type: 'deal',
         name: currentDealCard.name,
-        icon: currentDealCard.income === 0 ? '💝' : currentDealCard.type === 'small' ? '🏪' : '🏢',
+        icon: currentDealCard.type === 'small' ? '🏪' : '🏢',
         value: currentDealCard.cost,
         cost: currentDealCard.cost,
         income: currentDealCard.income,
-        color: currentDealCard.income === 0 ? '#F59E0B' : currentDealCard.type === 'small' ? '#10B981' : '#8B5CF6',
+        color: currentDealCard.type === 'small' ? '#10B981' : '#8B5CF6',
         description: currentDealCard.description,
         receivedFrom: currentPlayerData.name, // От кого получена
-        quantity: 1,
-        isDividendStock: currentDealCard.isDividendStock || false,
-        dividendYield: currentDealCard.dividendYield || 0,
-        maxQuantity: currentDealCard.maxQuantity || 1
+        quantity: 1
       };
       
       setAssets(prev => [...prev, newAsset]);
@@ -917,56 +838,6 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   // Функция для быстрого погашения части кредита
   const handleQuickPayoff = (amount) => {
     handlePayOffCredit(amount);
-  };
-
-  // Функция для продажи активов
-  const handleSellAsset = (asset, isCurrentPlayerTurn = false) => {
-    // Благотворительные карточки и карточки с расходами нельзя продать
-    if (asset.income === 0 || asset.isExpense) {
-      const reason = asset.isExpense ? 'карточка с расходами' : 'благотворительность';
-      setToast({
-        open: true,
-        message: `❌ ${asset.name} нельзя продать - это ${reason}`,
-        severity: 'error'
-      });
-      return;
-    }
-    
-    // Проверяем ограничения продажи
-    if (!asset.isDividendStock && !isCurrentPlayerTurn) {
-      setToast({
-        open: true,
-        message: `❌ ${asset.name} можно продать только в свой ход`,
-        severity: 'error'
-      });
-      return;
-    }
-    
-    // Продаем одну единицу актива
-    if (asset.quantity > 1) {
-      // Если у игрока больше одной единицы, уменьшаем количество
-      setAssets(prev => prev.map(a => 
-        a.id === asset.id 
-          ? { ...a, quantity: a.quantity - 1 }
-          : a
-      ));
-    } else {
-      // Если это последняя единица, удаляем актив
-      setAssets(prev => prev.filter(a => a.id !== asset.id));
-    }
-    
-    // Добавляем деньги игроку (продаем по текущей цене)
-    setPlayerMoney(prev => prev + asset.cost);
-    
-    const stockType = asset.isDividendStock ? 'дивидендные акции' : 'обычные акции';
-    
-    setToast({
-      open: true,
-      message: `💰 Продано: ${asset.name} (${stockType}) за $${asset.cost.toLocaleString()}`,
-      severity: 'success'
-    });
-    
-    console.log(`💰 [OriginalGameBoard] Продан актив: ${asset.name} за $${asset.cost.toLocaleString()}`);
   };
 
 
@@ -1648,30 +1519,30 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 position: 'absolute',
                 top: '50%',
                 left: '50%',
-                transform: 'translate(-50%, -50%) translate(-180px, -180px)', // Позиция между кругами
-                width: '80px',
-                height: '100px',
+                transform: 'translate(-50%, -50%) translate(-200px, -200px)', // Позиция между кругами
+                width: '100px',
+                height: '120px',
                 background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                borderRadius: '16px',
-                border: '2px solid #EF4444',
+                borderRadius: '20px',
+                border: '3px solid #EF4444',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 8px 25px rgba(16, 185, 129, 0.4), 0 0 15px rgba(239, 68, 68, 0.3)',
+                boxShadow: '0 12px 35px rgba(16, 185, 129, 0.4), 0 0 20px rgba(239, 68, 68, 0.3)',
                 zIndex: 3,
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 '&:hover': {
-                  transform: 'translate(-50%, -50%) translate(-180px, -180px) scale(1.05)',
-                  boxShadow: '0 15px 40px rgba(16, 185, 129, 0.5), 0 0 25px rgba(239, 68, 68, 0.4)'
+                  transform: 'translate(-50%, -50%) translate(-200px, -200px) scale(1.05)',
+                  boxShadow: '0 20px 50px rgba(16, 185, 129, 0.5), 0 0 30px rgba(239, 68, 68, 0.4)'
                 }
               }}
             >
               <Typography variant="h4" sx={{ 
                 color: 'white', 
                 mb: 1,
-                fontSize: '20px'
+                fontSize: '24px'
               }}>
                 💰
               </Typography>
@@ -1679,7 +1550,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 color: 'white', 
                 fontWeight: 'bold',
                 textAlign: 'center',
-                fontSize: '10px',
+                fontSize: '11px',
                 lineHeight: 1.2,
                 textShadow: '0 1px 2px rgba(0,0,0,0.5)'
               }}>
@@ -1699,30 +1570,30 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 position: 'absolute',
                 top: '50%',
                 left: '50%',
-                transform: 'translate(-50%, -50%) translate(180px, -180px)', // Позиция между кругами
-                width: '80px',
-                height: '100px',
+                transform: 'translate(-50%, -50%) translate(200px, -200px)', // Позиция между кругами
+                width: '100px',
+                height: '120px',
                 background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
-                borderRadius: '16px',
-                border: '2px solid #EF4444',
+                borderRadius: '20px',
+                border: '3px solid #EF4444',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 8px 25px rgba(59, 130, 246, 0.4), 0 0 15px rgba(239, 68, 68, 0.3)',
+                boxShadow: '0 12px 35px rgba(59, 130, 246, 0.4), 0 0 20px rgba(239, 68, 68, 0.3)',
                 zIndex: 3,
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 '&:hover': {
-                  transform: 'translate(-50%, -50%) translate(180px, -180px) scale(1.05)',
-                  boxShadow: '0 15px 40px rgba(59, 130, 246, 0.5), 0 0 25px rgba(239, 68, 68, 0.4)'
+                  transform: 'translate(-50%, -50%) translate(200px, -200px) scale(1.05)',
+                  boxShadow: '0 20px 50px rgba(59, 130, 246, 0.5), 0 0 30px rgba(239, 68, 68, 0.4)'
                 }
               }}
             >
               <Typography variant="h4" sx={{ 
                 color: 'white', 
                 mb: 1,
-                fontSize: '20px'
+                fontSize: '24px'
               }}>
                 💼
               </Typography>
@@ -1730,7 +1601,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 color: 'white', 
                 fontWeight: 'bold',
                 textAlign: 'center',
-                fontSize: '10px',
+                fontSize: '11px',
                 lineHeight: 1.2,
                 textShadow: '0 1px 2px rgba(0,0,0,0.5)'
               }}>
@@ -1750,30 +1621,30 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 position: 'absolute',
                 top: '50%',
                 left: '50%',
-                transform: 'translate(-50%, -50%) translate(180px, 180px)', // Позиция между кругами
-                width: '80px',
-                height: '100px',
+                transform: 'translate(-50%, -50%) translate(200px, 200px)', // Позиция между кругами
+                width: '100px',
+                height: '120px',
                 background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-                borderRadius: '16px',
-                border: '2px solid #EF4444',
+                borderRadius: '20px',
+                border: '3px solid #EF4444',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 8px 25px rgba(245, 158, 11, 0.4), 0 0 15px rgba(239, 68, 68, 0.3)',
+                boxShadow: '0 12px 35px rgba(245, 158, 11, 0.4), 0 0 20px rgba(239, 68, 68, 0.3)',
                 zIndex: 3,
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 '&:hover': {
-                  transform: 'translate(-50%, -50%) translate(180px, 180px) scale(1.05)',
-                  boxShadow: '0 15px 40px rgba(245, 158, 11, 0.5), 0 0 25px rgba(239, 68, 68, 0.4)'
+                  transform: 'translate(-50%, -50%) translate(200px, 200px) scale(1.05)',
+                  boxShadow: '0 20px 50px rgba(245, 158, 11, 0.5), 0 0 30px rgba(239, 68, 68, 0.4)'
                 }
               }}
             >
               <Typography variant="h4" sx={{ 
                 color: 'white', 
                 mb: 1,
-                fontSize: '20px'
+                fontSize: '24px'
               }}>
                 📈
               </Typography>
@@ -1781,7 +1652,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 color: 'white', 
                 fontWeight: 'bold',
                 textAlign: 'center',
-                fontSize: '10px',
+                fontSize: '11px',
                 lineHeight: 1.2,
                 textShadow: '0 1px 2px rgba(0,0,0,0.5)'
               }}>
@@ -1801,30 +1672,30 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 position: 'absolute',
                 top: '50%',
                 left: '50%',
-                transform: 'translate(-50%, -50%) translate(-180px, 180px)', // Позиция между кругами
-                width: '80px',
-                height: '100px',
+                transform: 'translate(-50%, -50%) translate(-200px, 200px)', // Позиция между кругами
+                width: '100px',
+                height: '120px',
                 background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-                borderRadius: '16px',
-                border: '2px solid #EF4444',
+                borderRadius: '20px',
+                border: '3px solid #EF4444',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 8px 25px rgba(239, 68, 68, 0.4), 0 0 15px rgba(239, 68, 68, 0.3)',
+                boxShadow: '0 12px 35px rgba(239, 68, 68, 0.4), 0 0 20px rgba(239, 68, 68, 0.3)',
                 zIndex: 3,
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 '&:hover': {
-                  transform: 'translate(-50%, -50%) translate(-180px, 180px) scale(1.05)',
-                  boxShadow: '0 15px 40px rgba(239, 68, 68, 0.5), 0 0 25px rgba(239, 68, 68, 0.4)'
+                  transform: 'translate(-50%, -50%) translate(-200px, 200px) scale(1.05)',
+                  boxShadow: '0 20px 50px rgba(239, 68, 68, 0.5), 0 0 30px rgba(239, 68, 68, 0.4)'
                 }
               }}
             >
               <Typography variant="h4" sx={{ 
                 color: 'white', 
                 mb: 1,
-                fontSize: '20px'
+                fontSize: '24px'
               }}>
                 💸
               </Typography>
@@ -1832,7 +1703,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 color: 'white', 
                 fontWeight: 'bold',
                 textAlign: 'center',
-                fontSize: '10px',
+                fontSize: '11px',
                 lineHeight: 1.2,
                 textShadow: '0 1px 2px rgba(0,0,0,0.5)'
               }}>
@@ -3161,19 +3032,6 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         <Typography variant="body2" sx={{ color: '#94A3B8' }}>
                           {asset.description}
                         </Typography>
-                        {asset.isDividendStock && (
-                          <Chip 
-                            label="💎 Дивидендные"
-                            size="small"
-                            sx={{
-                              backgroundColor: '#10B981',
-                              color: 'white',
-                              fontWeight: 'bold',
-                              fontSize: '0.7rem',
-                              mt: 0.5
-                            }}
-                          />
-                        )}
                       </Box>
                     </Box>
                     
@@ -3201,10 +3059,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         border: '1px solid rgba(59, 130, 246, 0.3)'
                       }}>
                         <Typography variant="body2" sx={{ color: '#94A3B8', mb: 1 }}>
-                          {asset.isExpense ? '🔧 Расходы' : asset.income === 0 ? '💝 Благотворительность' : asset.isDividendStock ? '💎 Дивиденды/мес' : '📈 Доход/мес'}
+                          📈 Доход/мес
                         </Typography>
-                        <Typography variant="h6" sx={{ color: asset.isExpense ? '#EF4444' : asset.income === 0 ? '#F59E0B' : '#3B82F6', fontWeight: 'bold' }}>
-                          {asset.isExpense ? 'Только траты' : asset.income === 0 ? 'Без дохода' : `$${(asset.isDividendStock ? asset.dividendYield : asset.income).toLocaleString()}`}
+                        <Typography variant="h6" sx={{ color: '#3B82F6', fontWeight: 'bold' }}>
+                          ${asset.income.toLocaleString()}
                         </Typography>
                       </Box>
                     </Box>
@@ -3225,8 +3083,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       </Typography>
                     </Box>
                     
-                    {/* Кнопки действий с активом */}
-                    <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'center' }}>
+                    {/* Кнопка передачи актива */}
+                    <Box sx={{ mt: 2, textAlign: 'center' }}>
                       <Button
                         variant="outlined"
                         onClick={() => handleTransferAsset(asset)}
@@ -3240,27 +3098,6 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         }}
                       >
                         🔄 передать
-                      </Button>
-                      
-                      <Button
-                        variant="outlined"
-                        onClick={() => handleSellAsset(asset, players[currentPlayer]?.username === player?.username)}
-                        disabled={asset.income === 0 || asset.isExpense || (!asset.isDividendStock && players[currentPlayer]?.username !== player?.username)}
-                        sx={{
-                          borderColor: asset.isExpense ? '#EF4444' : asset.income === 0 ? '#6B7280' : asset.isDividendStock ? '#10B981' : '#F59E0B',
-                          color: asset.isExpense ? '#EF4444' : asset.income === 0 ? '#6B7280' : asset.isDividendStock ? '#10B981' : '#F59E0B',
-                          '&:hover': {
-                            borderColor: asset.isExpense ? '#DC2626' : asset.income === 0 ? '#6B7280' : asset.isDividendStock ? '#059669' : '#D97706',
-                            backgroundColor: asset.isExpense ? 'rgba(239, 68, 68, 0.1)' : asset.income === 0 ? 'rgba(107, 114, 128, 0.1)' : asset.isDividendStock ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)'
-                          },
-                          '&:disabled': {
-                            borderColor: '#6B7280',
-                            color: '#6B7280'
-                          }
-                        }}
-                        title={asset.isExpense ? 'Карточка с расходами - нельзя продать' : asset.income === 0 ? 'Благотворительность - нельзя продать' : asset.isDividendStock ? 'Можно продать в любое время' : 'Можно продать только в свой ход'}
-                      >
-                        💰 продать
                       </Button>
                     </Box>
                   </Box>
