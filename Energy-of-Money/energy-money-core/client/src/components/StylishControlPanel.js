@@ -15,14 +15,13 @@ import {
   AccountBalance as BankIcon,
   AttachMoney as MoneyIcon,
   Business as BusinessIcon,
-  Home as HomeIcon,
-  TrendingUp as StockIcon,
   Timer as TimerIcon,
   Star as StarIcon,
   EmojiEvents as TrophyIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CASHFLOW_THEME, COMPONENT_STYLES } from '../styles/cashflow-theme';
+import FullProfessionCard from './FullProfessionCard';
 
 // 🎨 Стильная панель управления Cashflow
 const StylishControlPanel = ({
@@ -36,6 +35,8 @@ const StylishControlPanel = ({
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [activeSection, setActiveSection] = useState('players');
+  const [showProfessionCard, setShowProfessionCard] = useState(false);
+  const [selectedProfessionId, setSelectedProfessionId] = useState(null);
 
   // Анимация появления
   const containerVariants = {
@@ -473,107 +474,71 @@ const StylishControlPanel = ({
                     Активы
                   </Typography>
                   
-                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {/* Основная карточка - Бизнесы */}
                     <Button
                       variant="contained"
                       size="large"
                       onClick={() => {
                         console.log('💼 [StylishControlPanel] Кнопка бизнесов нажата');
-                        // Здесь можно добавить логику для просмотра бизнесов
+                        setSelectedProfessionId('engineer'); // Показываем карточку инженера как пример
+                        setShowProfessionCard(true);
                       }}
                       sx={{
-                        p: 2,
+                        p: 3,
                         background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
                         color: 'white',
-                        borderRadius: '12px',
+                        borderRadius: '16px',
                         textTransform: 'none',
-                        fontSize: '1rem',
+                        fontSize: '1.2rem',
                         fontWeight: 'bold',
                         transition: 'all 0.3s ease',
-                        border: `1px solid #8b5cf6`,
+                        border: `2px solid #8b5cf6`,
+                        minHeight: '120px',
                         '&:hover': {
-                          transform: 'translateY(-2px)',
-                          boxShadow: 6,
+                          transform: 'translateY(-3px)',
+                          boxShadow: 8,
                           background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)'
                         }
                       }}
                     >
                       <BusinessIcon sx={{ 
                         color: 'white',
-                        fontSize: '24px',
-                        mb: 1
+                        fontSize: '32px',
+                        mb: 2
                       }} />
-                      <Typography variant="body2" sx={{ color: 'white' }}>
+                      <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
                         Бизнесы: 0
                       </Typography>
                     </Button>
                     
+                    {/* Кнопка "еще" */}
                     <Button
-                      variant="contained"
-                      size="large"
+                      variant="outlined"
+                      size="medium"
                       onClick={() => {
-                        console.log('🏠 [StylishControlPanel] Кнопка недвижимости нажата');
-                        // Здесь можно добавить логику для просмотра недвижимости
+                        console.log('📋 [StylishControlPanel] Кнопка "еще" нажата');
+                        // Показываем список доступных профессий
+                        setSelectedProfessionId('teacher');
+                        setShowProfessionCard(true);
                       }}
                       sx={{
                         p: 2,
-                        background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-                        color: 'white',
+                        color: '#8b5cf6',
+                        borderColor: '#8b5cf6',
                         borderRadius: '12px',
                         textTransform: 'none',
                         fontSize: '1rem',
-                        fontWeight: 'bold',
+                        fontWeight: '500',
                         transition: 'all 0.3s ease',
-                        border: `1px solid #06b6d4`,
                         '&:hover': {
-                          transform: 'translateY(-2px)',
-                          boxShadow: 6,
-                          background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)'
+                          backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                          borderColor: '#7c3aed',
+                          transform: 'translateY(-1px)'
                         }
                       }}
                     >
-                      <HomeIcon sx={{ 
-                        color: 'white',
-                        fontSize: '24px',
-                        mb: 1
-                      }} />
-                      <Typography variant="body2" sx={{ color: 'white' }}>
-                        Недвижимость: 0
-                      </Typography>
-                    </Button>
-                    
-                    <Button
-                      variant="contained"
-                      size="large"
-                      onClick={() => {
-                        console.log('📈 [StylishControlPanel] Кнопка акций нажата');
-                        // Здесь можно добавить логику для просмотра акций
-                      }}
-                      sx={{
-                        p: 2,
-                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                        color: 'white',
-                        borderRadius: '12px',
-                        textTransform: 'none',
-                        fontSize: '1rem',
-                        fontWeight: 'bold',
-                        transition: 'all 0.3s ease',
-                        border: `1px solid #10b981`,
-                        '&:hover': {
-                          transform: 'translateY(-2px)',
-                          boxShadow: 6,
-                          background: 'linear-gradient(135deg, #059669 0%, #047857 100%)'
-                        }
-                      }}
-                    >
-                      <StockIcon sx={{ 
-                        color: 'white',
-                        fontSize: '24px',
-                        mb: 1
-                      }} />
-                      <Typography variant="body2" sx={{ color: 'white' }}>
-                        Акции: 0
-                      </Typography>
+                      +4 еще...
                     </Button>
                   </Box>
                 </Box>
@@ -682,6 +647,13 @@ const StylishControlPanel = ({
           )}
         </AnimatePresence>
       </Box>
+      
+      {/* Полная карточка профессии */}
+      <FullProfessionCard
+        open={showProfessionCard}
+        onClose={() => setShowProfessionCard(false)}
+        professionId={selectedProfessionId}
+      />
     </motion.div>
   );
 };
