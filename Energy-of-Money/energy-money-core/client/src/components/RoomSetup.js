@@ -27,6 +27,7 @@ import { PROFESSIONS } from '../data/professions';
 import ProfessionCard from './ProfessionCard';
 import PlayerProfessionCard from './PlayerProfessionCard';
 import PlayerAssetsModal from './PlayerAssetsModal';
+import ProfessionDetailsModal from './ProfessionDetailsModal';
 
 const RoomSetup = ({ playerData, onRoomSetup }) => {
   const { roomId } = useParams();
@@ -46,6 +47,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   const [isPublic, setIsPublic] = useState(true);
   const [roomPassword, setRoomPassword] = useState('');
   const [professionType, setProfessionType] = useState('individual');
+  const [sharedProfession, setSharedProfession] = useState(null); // Общая профессия для всех игроков
   
   // Фильтры для профессий
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -57,6 +59,10 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   
   // Состояние для модального окна активов игрока
   const [showPlayerAssets, setShowPlayerAssets] = useState(false);
+  
+  // Модальное окно с подробной информацией о профессии
+  const [showProfessionDetails, setShowProfessionDetails] = useState(false);
+  const [selectedProfessionForDetails, setSelectedProfessionForDetails] = useState(null);
   
   // Выбор профессии и мечты
   const [selectedProfession, setSelectedProfession] = useState(null);
@@ -263,6 +269,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
       setIsPublic(data.isPublic !== false);
       setRoomPassword(data.password || '');
       setProfessionType(data.professionType || 'individual');
+      setSharedProfession(data.sharedProfession || null);
       
       // Если в roomData есть информация об игроках, обновляем состояние
       if (data.currentPlayers && Array.isArray(data.currentPlayers)) {
@@ -280,7 +287,11 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
         }
       }
       
-      if (data.hostProfession && data.hostProfession !== 'none') {
+      // Устанавливаем профессию в зависимости от типа
+      if (data.professionType === 'shared' && data.sharedProfession) {
+        setSelectedProfession(data.sharedProfession);
+        console.log('💼 [RoomSetup] Установлена общая профессия из roomData:', data.sharedProfession);
+      } else if (data.hostProfession && data.hostProfession !== 'none') {
         setSelectedProfession(data.hostProfession);
         console.log('💼 [RoomSetup] Установлена профессия хоста из roomData:', data.hostProfession);
       }
@@ -295,7 +306,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
       if (data.status === 'determining_order') {
         setSuccess('Игра запущена! Определение очередности...');
         setTimeout(() => {
-          navigate(`/room/${roomId}/game`);
+          navigate(`/room/${roomId}/original`);
         }, 2000);
       }
     });
@@ -308,7 +319,11 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
         console.log('🏠 [RoomSetup] Установлено имя созданной комнаты:', data.displayName);
       }
       
-      if (data.hostProfession && data.hostProfession !== 'none') {
+      // Устанавливаем профессию в зависимости от типа
+      if (data.professionType === 'shared' && data.sharedProfession) {
+        setSelectedProfession(data.sharedProfession);
+        console.log('💼 [RoomSetup] Установлена общая профессия:', data.sharedProfession);
+      } else if (data.hostProfession && data.hostProfession !== 'none') {
         setSelectedProfession(data.hostProfession);
         console.log('💼 [RoomSetup] Установлена профессия хоста:', data.hostProfession);
       }
@@ -330,7 +345,11 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
         console.log('👤 [RoomSetup] Текущий игрок найден:', currentPlayer);
         setIsReady(currentPlayer.ready || false);
         
-        if (currentPlayer.profession && currentPlayer.profession !== 'none') {
+        // Устанавливаем профессию в зависимости от типа
+        if (professionType === 'shared' && sharedProfession) {
+          setSelectedProfession(sharedProfession);
+          console.log('💼 [RoomSetup] Установлена общая профессия из данных игрока:', sharedProfession);
+        } else if (currentPlayer.profession && currentPlayer.profession !== 'none') {
           setSelectedProfession(currentPlayer.profession);
           console.log('💼 [RoomSetup] Установлена профессия из данных игрока:', currentPlayer.profession);
         }
@@ -383,7 +402,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
       console.log('🎮 [RoomSetup] Игра запущена:', data);
       setSuccess('Игра запущена! Переходим к игровому полю...');
       setTimeout(() => {
-        navigate(`/room/${roomId}/game`);
+        navigate(`/room/${roomId}/original`);
       }, 2000);
     });
 
@@ -392,7 +411,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
       console.log('🎲 [RoomSetup] Началось определение очередности:', data);
       setSuccess('Определение очередности! Переходим к игровому полю...');
       setTimeout(() => {
-        navigate(`/room/${roomId}/game`);
+        navigate(`/room/${roomId}/original`);
       }, 2000);
     });
 
@@ -460,9 +479,27 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   };
 
   const handleProfessionSelect = (profession) => {
+    // Не позволяем менять профессию при общем типе
+    if (professionType === 'shared') {
+      setError('Нельзя изменить профессию при выборе "одна профессия на всех"');
+      return;
+    }
+    
     setSelectedProfession(profession);
     socket.emit('updateProfession', roomId, profession);
     setSuccess(`Профессия выбрана: ${profession.name}! 💰 Зарплата: $${profession.salary}`);
+  };
+
+  // Обработчик для открытия модального окна с подробной информацией о профессии
+  const handleProfessionDetails = (profession) => {
+    setSelectedProfessionForDetails(profession);
+    setShowProfessionDetails(true);
+  };
+
+  // Обработчик для закрытия модального окна
+  const handleCloseProfessionDetails = () => {
+    setShowProfessionDetails(false);
+    setSelectedProfessionForDetails(null);
   };
   
   // Функции для работы с карточкой игрока
@@ -538,7 +575,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
     
     // Немедленно переходим к игровому полю
     setTimeout(() => {
-      navigate(`/room/${roomId}/game`);
+      navigate(`/room/${roomId}/original`);
     }, 1000); // Задержка 1 секунда для показа сообщения
   };
 
@@ -893,63 +930,95 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
             {/* Выбор профессии */}
             <Box sx={{ mb: 3 }}>
               <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                💼 Профессия (можно изменять)
+                💼 Профессия {professionType === 'shared' ? '(общая для всех)' : '(можно изменять)'}
               </Typography>
               
-              {/* Фильтры */}
-              <Box sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                <FormControl size="small" sx={{ minWidth: 120 }}>
-                  <Select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    displayEmpty
-                  >
-                    <MenuItem value="all">Все категории</MenuItem>
-                    <MenuItem value="service">Сервис</MenuItem>
-                    <MenuItem value="sales">Продажи</MenuItem>
-                    <MenuItem value="transport">Транспорт</MenuItem>
-                    <MenuItem value="education">Образование</MenuItem>
-                    <MenuItem value="healthcare">Здравоохранение</MenuItem>
-                    <MenuItem value="engineering">Инженерия</MenuItem>
-                    <MenuItem value="legal">Юриспруденция</MenuItem>
-                    <MenuItem value="business">Бизнес</MenuItem>
-                    <MenuItem value="technology">Технологии</MenuItem>
-                    <MenuItem value="creative">Творчество</MenuItem>
-                    <MenuItem value="finance">Финансы</MenuItem>
-                    <MenuItem value="aviation">Авиация</MenuItem>
-                    <MenuItem value="architecture">Архитектура</MenuItem>
-                  </Select>
-                </FormControl>
-                
-                <FormControl size="small" sx={{ minWidth: 120 }}>
-                  <Select
-                    value={difficultyFilter}
-                    onChange={(e) => setDifficultyFilter(e.target.value)}
-                    displayEmpty
-                  >
-                    <MenuItem value="all">Все уровни</MenuItem>
-                    <MenuItem value="easy">Легкий</MenuItem>
-                    <MenuItem value="medium">Средний</MenuItem>
-                    <MenuItem value="hard">Сложный</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
-                                              <Grid container spacing={2}>
-                  {professions
-                    .filter(profession => 
-                      (categoryFilter === 'all' || profession.category === categoryFilter) &&
-                      (difficultyFilter === 'all' || profession.difficulty === difficultyFilter)
-                    )
-                    .map((profession) => (
-                      <Grid item xs={12} sm={6} md={4} key={profession.id}>
-                        <ProfessionCard
-                          profession={profession}
-                          isSelected={selectedProfession?.id === profession.id}
-                          onClick={() => handleProfessionSelect(profession)}
-                        />
-                      </Grid>
-                    ))}
-                </Grid>
+              {professionType === 'shared' && sharedProfession ? (
+                // Показываем только общую профессию
+                <Box sx={{ 
+                  p: 3, 
+                  bgcolor: '#e8f5e8', 
+                  borderRadius: 2, 
+                  border: '2px solid #4caf50',
+                  textAlign: 'center'
+                }}>
+                  <Typography variant="h6" sx={{ color: '#2e7d32', fontWeight: 'bold', mb: 2 }}>
+                    🎯 Общая профессия для всех игроков
+                  </Typography>
+                  <Grid container justifyContent="center">
+                    <Grid item xs={12} sm={6} md={4}>
+                      <ProfessionCard
+                        profession={sharedProfession}
+                        isSelected={true}
+                        onClick={() => {}} // Нельзя изменить
+                        onDetailsClick={handleProfessionDetails}
+                      />
+                    </Grid>
+                  </Grid>
+                  <Typography variant="body2" sx={{ color: '#666', mt: 2, fontStyle: 'italic' }}>
+                    ⚠️ При выборе "одна профессия на всех" все игроки используют эту профессию
+                  </Typography>
+                </Box>
+              ) : (
+                // Показываем все профессии для выбора
+                <>
+                  {/* Фильтры */}
+                  <Box sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                      <Select
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        displayEmpty
+                      >
+                        <MenuItem value="all">Все категории</MenuItem>
+                        <MenuItem value="service">Сервис</MenuItem>
+                        <MenuItem value="sales">Продажи</MenuItem>
+                        <MenuItem value="transport">Транспорт</MenuItem>
+                        <MenuItem value="education">Образование</MenuItem>
+                        <MenuItem value="healthcare">Здравоохранение</MenuItem>
+                        <MenuItem value="engineering">Инженерия</MenuItem>
+                        <MenuItem value="legal">Юриспруденция</MenuItem>
+                        <MenuItem value="business">Бизнес</MenuItem>
+                        <MenuItem value="technology">Технологии</MenuItem>
+                        <MenuItem value="creative">Творчество</MenuItem>
+                        <MenuItem value="finance">Финансы</MenuItem>
+                        <MenuItem value="aviation">Авиация</MenuItem>
+                        <MenuItem value="architecture">Архитектура</MenuItem>
+                      </Select>
+                    </FormControl>
+                    
+                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                      <Select
+                        value={difficultyFilter}
+                        onChange={(e) => setDifficultyFilter(e.target.value)}
+                        displayEmpty
+                      >
+                        <MenuItem value="all">Все уровни</MenuItem>
+                        <MenuItem value="easy">Легкий</MenuItem>
+                        <MenuItem value="medium">Средний</MenuItem>
+                        <MenuItem value="hard">Сложный</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Box>
+                  <Grid container spacing={2}>
+                    {professions
+                      .filter(profession => 
+                        (categoryFilter === 'all' || profession.category === categoryFilter) &&
+                        (difficultyFilter === 'all' || profession.difficulty === difficultyFilter)
+                      )
+                      .map((profession) => (
+                        <Grid item xs={12} sm={6} md={4} key={profession.id}>
+                          <ProfessionCard
+                            profession={profession}
+                            isSelected={selectedProfession?.id === profession.id}
+                            onClick={() => handleProfessionSelect(profession)}
+                            onDetailsClick={handleProfessionDetails}
+                          />
+                        </Grid>
+                      ))}
+                  </Grid>
+                </>
+              )}
             </Box>
 
             {/* Выбор мечты */}
@@ -1191,6 +1260,9 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                     {selectedProfession && (
                       <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
                         💼 Профессия: {selectedProfession.name} | 💰 Зарплата: ${selectedProfession.salary}/мес | 💸 Расходы: ${selectedProfession.totalExpenses}/мес
+                        {professionType === 'shared' && (
+                          <span style={{ color: '#ffeb3b', fontWeight: 'bold' }}> | 🔒 Общая для всех</span>
+                        )}
                       </Typography>
                     )}
                   </Box>
@@ -1857,6 +1929,13 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
           </Paper>
         </Box>
       )}
+
+      {/* Модальное окно с подробной информацией о профессии */}
+      <ProfessionDetailsModal
+        open={showProfessionDetails}
+        profession={selectedProfessionForDetails}
+        onClose={handleCloseProfessionDetails}
+      />
     </Container>
   );
 };

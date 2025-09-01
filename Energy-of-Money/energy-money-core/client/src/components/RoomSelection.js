@@ -30,12 +30,16 @@ import {
 } from '@mui/icons-material';
 import { MenuItem } from '@mui/material';
 import socket, { connectSocket } from '../socket';
+import { PROFESSIONS } from '../data/professions';
+import ProfessionDetailsModal from './ProfessionDetailsModal';
+import ProfessionCard from './ProfessionCard';
 
 const RoomSelection = ({ playerData, onRoomSelect, 
   onLogout }) => {
   const [roomName, setRoomName] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
   const [maxPlayers, setMaxPlayers] = useState(2); // Количество игроков (диапазон 1-10)
+  const [gameDuration, setGameDuration] = useState(180); // Время игры в минутах (по умолчанию 3 часа)
   const [professionType, setProfessionType] = useState('individual'); // 'individual' или 'shared'
   const [selectedProfession, setSelectedProfession] = useState(null);
   const [selectedDream, setSelectedDream] = useState(null);
@@ -44,18 +48,14 @@ const RoomSelection = ({ playerData, onRoomSelect,
   const [roomsLoading, setRoomsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showProfessionDetails, setShowProfessionDetails] = useState(false);
+  const [selectedProfessionForDetails, setSelectedProfessionForDetails] = useState(null);
 
   // Ref для поля названия комнаты
   const roomNameInputRef = useRef(null);
 
-  // Массив профессий для выбора
-  const professions = [
-    { id: 1, name: 'Дворник', salary: 2000, expenses: 200, balance: 2000, description: 'Уборка улиц и дворов', icon: '🧹' },
-    { id: 2, name: 'Курьер', salary: 2500, expenses: 300, balance: 2500, description: 'Доставка товаров и документов', icon: '📦' },
-    { id: 3, name: 'Водитель', salary: 3000, expenses: 400, balance: 3000, description: 'Управление транспортными средствами', icon: '🚗' },
-    { id: 4, name: 'Продавец', salary: 3500, expenses: 500, balance: 3500, description: 'Продажа товаров и услуг', icon: '🛒' },
-    { id: 5, name: 'Официант', salary: 4000, expenses: 600, balance: 4000, description: 'Обслуживание в ресторане', icon: '🍽️' }
-  ];
+  // Используем стандартные профессии из data/professions.js
+  const professions = PROFESSIONS;
 
   // Массив мечт для выбора
   const dreams = [
@@ -188,6 +188,18 @@ const RoomSelection = ({ playerData, onRoomSelect,
     setError('');
   };
 
+  // Обработчик для открытия модального окна с подробной информацией о профессии
+  const handleProfessionDetails = (profession) => {
+    setSelectedProfessionForDetails(profession);
+    setShowProfessionDetails(true);
+  };
+
+  // Обработчик для закрытия модального окна
+  const handleCloseProfessionDetails = () => {
+    setShowProfessionDetails(false);
+    setSelectedProfessionForDetails(null);
+  };
+
   const handleCreateRoom = () => {
     if (!roomName.trim()) {
       setError('Введите название комнаты!');
@@ -232,7 +244,8 @@ const RoomSelection = ({ playerData, onRoomSelect,
       professionType,
       profession: selectedProfession,
       dream: selectedDream,
-      maxPlayers
+      maxPlayers,
+      gameDuration
     });
     
     // Создаем комнату на сервере (без roomId - сервер сам сгенерирует)
@@ -242,7 +255,9 @@ const RoomSelection = ({ playerData, onRoomSelect,
       professionType,
       profession: selectedProfession,
       dream: selectedDream,
-      maxPlayers
+      maxPlayers,
+      gameDuration,
+      sharedProfession: professionType === 'shared' ? selectedProfession : null // Добавляем общую профессию для всех
     });
     
     setError('');
@@ -712,7 +727,7 @@ const RoomSelection = ({ playerData, onRoomSelect,
                   ✨ Создание новой комнаты
           </Typography>
 
-                {/* Название, пароль и количество игроков */}
+                {/* Название, пароль, количество игроков и время игры */}
                 <Box sx={{ mb: 4 }}>
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={6}>
@@ -741,7 +756,7 @@ const RoomSelection = ({ playerData, onRoomSelect,
             }}
           />
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid item xs={12} md={2}>
           <TextField
             fullWidth
                         label="Пароль (необязательно)"
@@ -771,14 +786,14 @@ const RoomSelection = ({ playerData, onRoomSelect,
             }}
           />
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid item xs={12} md={2}>
           <TextField
             fullWidth
             select
             label="Количество игроков"
             value={maxPlayers}
             onChange={(e) => setMaxPlayers(Number(e.target.value))}
-            helperText="От 1 до 10 игроков (по умолчанию: 2)"
+            helperText="От 1 до 10 игроков"
             sx={{
               '& .MuiOutlinedInput-root': {
                 borderRadius: 3,
@@ -795,6 +810,41 @@ const RoomSelection = ({ playerData, onRoomSelect,
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
               <MenuItem key={num} value={num}>
                 {num === 1 ? '1 игрок' : `${num} игроков`}
+              </MenuItem>
+            ))}
+          </TextField>
+                    </Grid>
+                    <Grid item xs={12} md={2}>
+          <TextField
+            fullWidth
+            select
+            label="Время игры"
+            value={gameDuration}
+            onChange={(e) => setGameDuration(Number(e.target.value))}
+            helperText="Длительность игры"
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 3,
+                fontSize: '1.1rem',
+                '&.Mui-focused': {
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#667eea',
+                    borderWidth: 2
+                  }
+                }
+              }
+            }}
+          >
+            {[
+              { value: 60, label: '1 час' },
+              { value: 120, label: '2 часа' },
+              { value: 180, label: '3 часа' },
+              { value: 240, label: '4 часа' },
+              { value: 300, label: '5 часов' },
+              { value: 360, label: '6 часов' }
+            ].map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
               </MenuItem>
             ))}
           </TextField>
@@ -921,45 +971,13 @@ const RoomSelection = ({ playerData, onRoomSelect,
                    
             <Grid container spacing={2}>
                      {professions.map((profession) => (
-                       <Grid item xs={12} sm={6} key={profession.id}>
-                         <Card
+                       <Grid item xs={12} sm={6} md={4} key={profession.id}>
+                         <ProfessionCard
+                           profession={profession}
+                           isSelected={selectedProfession?.id === profession.id}
                            onClick={() => setSelectedProfession(profession)}
-                           sx={{
-                        cursor: 'pointer',
-                             border: selectedProfession?.id === profession.id ? '3px solid #667eea' : '1px solid #ddd',
-                             transition: 'all 0.3s ease',
-                        '&:hover': {
-                          transform: 'translateY(-2px)',
-                               boxShadow: 3
-                        }
-                      }}
-                      >
-                        <CardContent sx={{ p: 2, textAlign: 'center' }}>
-                             <Typography variant="h3" sx={{ mb: 1 }}>
-                               {profession.icon}
-                          </Typography>
-                             <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                               {profession.name}
-                            </Typography>
-                             <Typography variant="body2" sx={{ color: '#666', mb: 2 }}>
-                               {profession.description}
-                              </Typography>
-                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                               <Chip 
-                                 label={`💰 $${profession.salary.toLocaleString()}`} 
-                                 size="small" 
-                                 color="success" 
-                                 sx={{ fontWeight: 'bold' }}
-                               />
-                               <Chip 
-                                 label={`💸 $${profession.expenses.toLocaleString()}`} 
-                                 size="small" 
-                                 color="error" 
-                                 sx={{ fontWeight: 'bold' }}
-                               />
-                          </Box>
-                           </CardContent>
-                         </Card>
+                           onDetailsClick={handleProfessionDetails}
+                         />
                        </Grid>
                      ))}
                    </Grid>
@@ -1250,6 +1268,13 @@ const RoomSelection = ({ playerData, onRoomSelect,
       >
         <SettingsIcon sx={{ fontSize: 28 }} />
       </Fab>
+
+      {/* Модальное окно с подробной информацией о профессии */}
+      <ProfessionDetailsModal
+        open={showProfessionDetails}
+        profession={selectedProfessionForDetails}
+        onClose={handleCloseProfessionDetails}
+      />
     </Box>
   );
 };

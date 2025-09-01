@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-rout
 import Registration from './components/Registration';
 import RoomSelection from './components/RoomSelection';
 import RoomSetup from './components/RoomSetup';
-import GameBoard from './components/GameBoard';
 import OriginalGameBoard from './components/OriginalGameBoard';
 import ErrorBoundary from './components/ErrorBoundary';
 import socket from './socket';
@@ -66,18 +65,7 @@ function AppRouter() {
 
   const handleSetupComplete = ({ roomId }) => {
     if (!roomId) return;
-    navigate(`/room/${roomId}/game`);
-  };
-
-  const GamePage = () => {
-    const { roomId } = useParams();
-    return (
-      <GameBoard 
-        roomId={roomId}
-        playerData={playerData}
-        onExit={() => navigate('/')}
-      />
-    );
+    navigate(`/room/${roomId}/original`);
   };
 
   const OriginalGamePage = () => {
@@ -143,7 +131,7 @@ function AppRouter() {
                   🎯 Поле 1
                 </button>
                 <button
-                  onClick={() => navigate('/room/lobby/game')}
+                  onClick={() => navigate('/room/lobby/original')}
                   style={{
                     padding: '15px 30px',
                     fontSize: '18px',
@@ -165,7 +153,7 @@ function AppRouter() {
                     e.target.style.boxShadow = '0 5px 15px rgba(0,0,0,0.2)';
                   }}
                 >
-                  🎮 Поле 2
+                  🎮 Поле 2 (Оригинал)
                 </button>
                 <button
                   onClick={() => navigate('/room/lobby/original')}
@@ -207,16 +195,6 @@ function AppRouter() {
         element={
           playerData ? (
             <RoomSetup playerData={playerData} onRoomSetup={handleSetupComplete} />
-          ) : (
-            <Registration onRegister={handleRegister} />
-          )
-        } 
-      />
-      <Route 
-        path="/room/:roomId/game" 
-        element={
-          playerData ? (
-            <GamePage />
           ) : (
             <Registration onRegister={handleRegister} />
           )

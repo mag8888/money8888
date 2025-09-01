@@ -248,3 +248,4 @@ const MarketCardModal = ({
 };
 
 export default MarketCardModal;
+

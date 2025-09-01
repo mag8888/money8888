@@ -4,6 +4,29 @@ import socket from '../socket';
 export const useSocketEvents = (roomId, updateGameState, updateBankState, updateProfessionState, updateFreedomState, updateExitState) => {
   const eventHandlers = useRef(new Map());
 
+  // Обработчик начала перерыва
+  const handleBreakStarted = useCallback((data) => {
+    console.log('☕ [Socket] Break started:', data);
+    updateGameState(prevState => ({
+      ...prevState,
+      isOnBreak: true,
+      breakEndTime: data.breakEndTime,
+      breakDuration: data.duration
+    }));
+  }, [updateGameState]);
+
+  // Обработчик окончания перерыва
+  const handleBreakEnded = useCallback((data) => {
+    console.log('🎮 [Socket] Break ended:', data);
+    updateGameState(prevState => ({
+      ...prevState,
+      isOnBreak: false,
+      breakEndTime: null,
+      breakDuration: null,
+      nextBreakTime: data.nextBreakTime
+    }));
+  }, [updateGameState]);
+
   // Регистрация обработчика события
   const registerEventHandler = useCallback((event, handler) => {
     if (eventHandlers.current.has(event)) {
@@ -501,6 +524,8 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
     registerEventHandler('playerUpdated', handlePlayerUpdated);
     registerEventHandler('playerPositionUpdated', handlePlayerPositionUpdated);
     registerEventHandler('orderDeterminationStarted', handleOrderDeterminationStarted);
+    registerEventHandler('breakStarted', handleBreakStarted);
+    registerEventHandler('breakEnded', handleBreakEnded);
 
     // Очистка при размонтировании
     return () => {
@@ -528,7 +553,9 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
     handleTurnTimerUpdate,
     handlePlayerUpdated,
     handlePlayerPositionUpdated,
-    handleOrderDeterminationStarted
+    handleOrderDeterminationStarted,
+    handleBreakStarted,
+    handleBreakEnded
   ]);
 
   return {

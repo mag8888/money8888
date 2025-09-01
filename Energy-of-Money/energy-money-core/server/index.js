@@ -29,6 +29,11 @@ const users = new Map(); // userId -> userData
 const usernameToUserId = new Map(); // username -> userId
 const rooms = new Map(); // roomId -> roomData
 
+// Система перерывов
+const breakTimers = new Map(); // roomId -> breakTimer
+const BREAK_INTERVAL = 50 * 60 * 1000; // 50 минут в миллисекундах
+const BREAK_DURATION = 10 * 60 * 1000; // 10 минут в миллисекундах
+
 // Функция для генерации уникального User ID
 const generateUserId = () => {
   const timestamp = Date.now().toString(36);
@@ -98,11 +103,150 @@ const updateUserSocketId = (userId, socketId) => {
   if (user) {
     user.socketId = socketId;
     user.lastSeen = Date.now();
-    users.set(userId, user);
-    console.log(`✅ [SERVER] Updated socketId for user ${user.username}: ${socketId}`);
-  } else {
-    console.log(`❌ [SERVER] User not found for userId: ${userId}`);
   }
+};
+
+// Функция для запуска системы перерывов в комнате
+const startBreakSystem = (roomId) => {
+  console.log(`⏰ [SERVER] Starting break system for room: ${roomId}`);
+  
+  const room = rooms.get(roomId);
+  if (!room) {
+    console.log(`❌ [SERVER] Room not found for break system: ${roomId}`);
+    return;
+  }
+  
+  // Устанавливаем время начала игры
+  room.gameStartTime = Date.now();
+  room.gameEndTime = room.gameStartTime + (room.gameDuration * 60 * 1000); // Конвертируем минуты в миллисекунды
+  room.nextBreakTime = room.gameStartTime + BREAK_INTERVAL;
+  
+  // Проверяем, есть ли время для перерыва
+  if (room.nextBreakTime >= room.gameEndTime) {
+    console.log(`⏰ [SERVER] Game duration too short for breaks, skipping break system for room: ${roomId}`);
+    return;
+  }
+  
+  // Запускаем таймер для первого перерыва
+  const breakTimer = setTimeout(() => {
+    startBreak(roomId);
+  }, BREAK_INTERVAL);
+  
+  breakTimers.set(roomId, breakTimer);
+  
+  console.log(`⏰ [SERVER] Break system started for room ${roomId}. Next break at: ${new Date(room.nextBreakTime).toLocaleString()}`);
+};
+
+// Функция для начала перерыва
+const startBreak = (roomId) => {
+  console.log(`☕ [SERVER] Starting break for room: ${roomId}`);
+  
+  const room = rooms.get(roomId);
+  if (!room) {
+    console.log(`❌ [SERVER] Room not found for break: ${roomId}`);
+    return;
+  }
+  
+  // Устанавливаем статус перерыва
+  room.isOnBreak = true;
+  room.breakStartTime = Date.now();
+  room.breakEndTime = room.breakStartTime + BREAK_DURATION;
+  
+  // Уведомляем всех игроков о начале перерыва
+  io.to(roomId).emit('breakStarted', {
+    breakEndTime: room.breakEndTime,
+    duration: BREAK_DURATION
+  });
+  
+  console.log(`☕ [SERVER] Break started for room ${roomId}. End time: ${new Date(room.breakEndTime).toLocaleString()}`);
+  
+  // Запускаем таймер для окончания перерыва
+  const breakEndTimer = setTimeout(() => {
+    endBreak(roomId);
+  }, BREAK_DURATION);
+  
+  // Проверяем, не превышает ли время окончания перерыва время окончания игры
+  if (room.breakEndTime > room.gameEndTime) {
+    console.log(`⏰ [SERVER] Break would exceed game end time, adjusting break duration for room: ${roomId}`);
+    const adjustedDuration = room.gameEndTime - room.breakStartTime;
+    clearTimeout(breakEndTimer);
+    setTimeout(() => {
+      endBreak(roomId);
+    }, adjustedDuration);
+  }
+  
+  // Сохраняем таймер окончания перерыва
+  breakTimers.set(`${roomId}_breakEnd`, breakEndTimer);
+};
+
+// Функция для окончания перерыва
+const endBreak = (roomId) => {
+  console.log(`🎮 [SERVER] Ending break for room: ${roomId}`);
+  
+  const room = rooms.get(roomId);
+  if (!room) {
+    console.log(`❌ [SERVER] Room not found for break end: ${roomId}`);
+    return;
+  }
+  
+  // Убираем статус перерыва
+  room.isOnBreak = false;
+  room.breakStartTime = null;
+  room.breakEndTime = null;
+  
+  // Устанавливаем время следующего перерыва
+  const now = Date.now();
+  room.nextBreakTime = now + BREAK_INTERVAL;
+  
+  // Проверяем, не превышает ли следующий перерыв время окончания игры
+  if (room.nextBreakTime > room.gameEndTime) {
+    console.log(`⏰ [SERVER] Next break would exceed game end time, stopping break system for room: ${roomId}`);
+    stopBreakSystem(roomId);
+    return;
+  }
+  
+  // Уведомляем всех игроков об окончании перерыва
+  io.to(roomId).emit('breakEnded', {
+    nextBreakTime: room.nextBreakTime
+  });
+  
+  console.log(`🎮 [SERVER] Break ended for room ${roomId}. Next break at: ${new Date(room.nextBreakTime).toLocaleString()}`);
+  
+  // Запускаем таймер для следующего перерыва
+  const nextBreakTimer = setTimeout(() => {
+    startBreak(roomId);
+  }, BREAK_INTERVAL);
+  
+  breakTimers.set(roomId, nextBreakTimer);
+};
+
+// Функция для остановки системы перерывов
+const stopBreakSystem = (roomId) => {
+  console.log(`⏹️ [SERVER] Stopping break system for room: ${roomId}`);
+  
+  // Очищаем таймеры
+  const breakTimer = breakTimers.get(roomId);
+  if (breakTimer) {
+    clearTimeout(breakTimer);
+    breakTimers.delete(roomId);
+  }
+  
+  const breakEndTimer = breakTimers.get(`${roomId}_breakEnd`);
+  if (breakEndTimer) {
+    clearTimeout(breakEndTimer);
+    breakTimers.delete(`${roomId}_breakEnd`);
+  }
+  
+  // Сбрасываем статус перерыва в комнате
+  const room = rooms.get(roomId);
+  if (room) {
+    room.isOnBreak = false;
+    room.breakStartTime = null;
+    room.breakEndTime = null;
+    room.nextBreakTime = null;
+  }
+  
+  console.log(`⏹️ [SERVER] Break system stopped for room: ${roomId}`);
 };
 
 // Создаем дефолтную комнату
@@ -112,6 +256,7 @@ const createDefaultRoom = () => {
     roomId: roomId,
     displayName: 'Лобби',
     maxPlayers: 1,
+    gameDuration: 180, // 3 часа по умолчанию
     currentPlayers: [],
     status: 'waiting',
     password: '',
@@ -165,6 +310,7 @@ const getRoomsList = () => {
       roomId: room.roomId,
       displayName: room.displayName,
       maxPlayers: room.maxPlayers,
+      gameDuration: room.gameDuration || 180, // Время игры в минутах
       currentPlayers: room.currentPlayers,
       status: room.status,
       hostId: room.hostId,
@@ -304,7 +450,7 @@ io.on('connection', (socket) => {
     console.log('🏠 [SERVER] createRoom requested:', roomData);
     
     try {
-      const { name, password, professionType, profession, maxPlayers } = roomData;
+      const { name, password, professionType, profession, maxPlayers, gameDuration, sharedProfession } = roomData;
       
       // Генерируем уникальный ID комнаты
       const uniqueRoomId = `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -327,18 +473,30 @@ io.on('connection', (socket) => {
         return;
       }
 
+      // Проверяем время игры (60-360 минут)
+      const validGameDuration = gameDuration && gameDuration >= 60 && gameDuration <= 360 ? gameDuration : 180;
+      if (gameDuration && (gameDuration < 60 || gameDuration > 360)) {
+        socket.emit('roomCreationError', { 
+          success: false, 
+          error: 'Время игры должно быть от 1 до 6 часов!' 
+        });
+        return;
+      }
+
       // Создаем новую комнату
       const newRoom = {
         roomId: uniqueRoomId,
         displayName: name.trim(),
         maxPlayers: maxPlayers || 2, // Используем переданное значение или по умолчанию 2 (диапазон 1-10)
+        gameDuration: validGameDuration, // Время игры в минутах
         currentPlayers: [],
         status: 'waiting',
         password: password || '',
         hostId: socket.id,
         createdAt: Date.now(),
         professionType: professionType || 'individual',
-        hostProfession: profession || null
+        hostProfession: profession || null,
+        sharedProfession: sharedProfession || null // Общая профессия для всех игроков
       };
       
       // Добавляем комнату в список
@@ -517,6 +675,9 @@ io.on('connection', (socket) => {
       room.status = 'playing';
       console.log('🚀 [SERVER] Game started in room:', { roomId, status: room.status });
       
+      // Запускаем систему перерывов
+      startBreakSystem(roomId);
+      
       // Отправляем событие запуска игры всем игрокам в комнате
       io.to(roomId).emit('gameStarted', {
         success: true,
@@ -559,6 +720,47 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('❌ [SERVER] Error getting game state:', error);
       socket.emit('error', { message: 'Ошибка получения состояния игры' });
+    }
+  });
+
+  // Завершение игры
+  socket.on('endGame', (roomId) => {
+    console.log('🏁 [SERVER] End game requested:', { roomId });
+    
+    try {
+      const room = rooms.get(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Комната не найдена' });
+        return;
+      }
+      
+      // Проверяем, что игрок является хостом комнаты
+      if (room.hostId !== socket.id) {
+        socket.emit('error', { message: 'Только хост может завершить игру' });
+        return;
+      }
+      
+      // Останавливаем систему перерывов
+      stopBreakSystem(roomId);
+      
+      // Меняем статус комнаты на "finished"
+      room.status = 'finished';
+      console.log('🏁 [SERVER] Game ended in room:', { roomId, status: room.status });
+      
+      // Отправляем событие завершения игры всем игрокам в комнате
+      io.to(roomId).emit('gameEnded', {
+        success: true,
+        roomId: roomId,
+        status: room.status
+      });
+      
+      // Отправляем обновленный список комнат всем
+      const roomsList = getRoomsList();
+      io.emit('roomsList', roomsList);
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error ending game:', error);
+      socket.emit('error', { message: 'Ошибка завершения игры' });
     }
   });
 
@@ -858,6 +1060,12 @@ io.on('connection', (socket) => {
           username: removedPlayer.username,
           socketId: socket.id 
         });
+        
+        // Если отключившийся игрок был хостом, останавливаем систему перерывов
+        if (room.hostId === socket.id) {
+          console.log(`🔌 [SERVER] Host disconnected, stopping break system for room: ${roomId}`);
+          stopBreakSystem(roomId);
+        }
         
         // Отправляем обновленный список игроков
         io.to(roomId).emit('playersUpdate', room.currentPlayers);

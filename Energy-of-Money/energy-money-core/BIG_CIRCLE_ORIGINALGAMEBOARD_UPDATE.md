@@ -133,3 +133,4 @@
 ## 📁 Файлы изменений
 
 - `client/src/components/OriginalGameBoard.js` - обновлен массив `outerCells`
+

@@ -6,11 +6,12 @@ import {
   CardContent,
   Chip,
   Grid,
-  Divider
+  Divider,
+  Button
 } from '@mui/material';
 import { motion } from 'framer-motion';
 
-const ProfessionCard = ({ profession, isSelected, onClick }) => {
+const ProfessionCard = ({ profession, isSelected, onClick, onDetailsClick }) => {
   if (!profession) return null;
 
   const getDifficultyColor = (difficulty) => {
@@ -60,42 +61,42 @@ const ProfessionCard = ({ profession, isSelected, onClick }) => {
         }}
         onClick={onClick}
       >
-        <CardContent sx={{ p: 3 }}>
+        <CardContent sx={{ p: 2 }}>
           {/* Заголовок с иконкой */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-            <Typography variant="h3" sx={{ color: getCategoryColor(profession.category) }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+            <Typography variant="h4" sx={{ color: getCategoryColor(profession.category) }}>
               {profession.icon}
             </Typography>
             <Box>
-              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#333', mb: 0.5 }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#333', mb: 0.5, fontSize: '1rem' }}>
                 {profession.name}
               </Typography>
-              <Typography variant="body2" sx={{ color: '#666', fontStyle: 'italic' }}>
+              <Typography variant="caption" sx={{ color: '#666', fontStyle: 'italic', fontSize: '0.75rem' }}>
                 {profession.description}
               </Typography>
             </Box>
           </Box>
 
-          <Divider sx={{ my: 2 }} />
+          <Divider sx={{ my: 1.5 }} />
 
           {/* Финансовая информация */}
-          <Grid container spacing={2} sx={{ mb: 2 }}>
+          <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
             <Grid item xs={6}>
-              <Box sx={{ textAlign: 'center', p: 1, bgcolor: '#f0f8ff', borderRadius: 1 }}>
-                <Typography variant="h6" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>
+              <Box sx={{ textAlign: 'center', p: 0.5, bgcolor: '#f0f8ff', borderRadius: 1 }}>
+                <Typography variant="subtitle2" sx={{ color: '#2e7d32', fontWeight: 'bold', fontSize: '0.9rem' }}>
                   ${profession.salary}
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#666' }}>
+                <Typography variant="caption" sx={{ color: '#666', fontSize: '0.7rem' }}>
                   Зарплата
                 </Typography>
               </Box>
             </Grid>
             <Grid item xs={6}>
-              <Box sx={{ textAlign: 'center', p: 1, bgcolor: '#fff3e0', borderRadius: 1 }}>
-                <Typography variant="h6" sx={{ color: '#f57c00', fontWeight: 'bold' }}>
+              <Box sx={{ textAlign: 'center', p: 0.5, bgcolor: '#fff3e0', borderRadius: 1 }}>
+                <Typography variant="subtitle2" sx={{ color: '#f57c00', fontWeight: 'bold', fontSize: '0.9rem' }}>
                   ${profession.totalExpenses}
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#666' }}>
+                <Typography variant="caption" sx={{ color: '#666', fontSize: '0.7rem' }}>
                   Расходы
                 </Typography>
               </Box>
@@ -105,36 +106,38 @@ const ProfessionCard = ({ profession, isSelected, onClick }) => {
           {/* Денежный поток */}
           <Box sx={{ 
             textAlign: 'center', 
-            p: 2, 
+            p: 1.5, 
             bgcolor: profession.cashFlow >= 0 ? '#e8f5e8' : '#ffebee',
             borderRadius: 2,
-            mb: 2,
+            mb: 1.5,
             border: `2px solid ${profession.cashFlow >= 0 ? '#4caf50' : '#f44336'}`
           }}>
-            <Typography variant="h4" sx={{ 
+            <Typography variant="h5" sx={{ 
               color: profession.cashFlow >= 0 ? '#2e7d32' : '#d32f2f', 
-              fontWeight: 'bold' 
+              fontWeight: 'bold',
+              fontSize: '1.1rem'
             }}>
               ${profession.cashFlow}
             </Typography>
-            <Typography variant="body2" sx={{ 
+            <Typography variant="caption" sx={{ 
               color: profession.cashFlow >= 0 ? '#2e7d32' : '#d32f2f',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              fontSize: '0.8rem'
             }}>
               Денежный поток
             </Typography>
           </Box>
 
           {/* Детали расходов */}
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
+          <Box sx={{ mb: 1.5 }}>
+            <Typography variant="caption" sx={{ color: '#666', mb: 0.5, display: 'block', fontSize: '0.7rem' }}>
               <strong>Налоги:</strong> ${profession.taxAmount} ({Math.round(profession.taxRate * 100)}%)
             </Typography>
-            <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
+            <Typography variant="caption" sx={{ color: '#666', mb: 0.5, display: 'block', fontSize: '0.7rem' }}>
               <strong>Прочие расходы:</strong> ${profession.otherExpenses}
             </Typography>
             {profession.creditAuto > 0 && (
-              <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
+              <Typography variant="caption" sx={{ color: '#666', mb: 0.5, display: 'block', fontSize: '0.7rem' }}>
                 <strong>Кредит на авто:</strong> ${profession.creditAuto}
               </Typography>
             )}
@@ -142,17 +145,17 @@ const ProfessionCard = ({ profession, isSelected, onClick }) => {
 
           {/* Пассивный доход и дивиденды */}
           {(profession.passiveIncome > 0 || profession.dividends > 0) && (
-            <Box sx={{ mb: 2, p: 2, bgcolor: '#e8f5e8', borderRadius: 2 }}>
-              <Typography variant="body2" sx={{ color: '#2e7d32', fontWeight: 'bold', mb: 1 }}>
+            <Box sx={{ mb: 1.5, p: 1.5, bgcolor: '#e8f5e8', borderRadius: 2 }}>
+              <Typography variant="caption" sx={{ color: '#2e7d32', fontWeight: 'bold', mb: 0.5, fontSize: '0.8rem' }}>
                 💰 Пассивный доход
               </Typography>
               {profession.passiveIncome > 0 && (
-                <Typography variant="body2" sx={{ color: '#666' }}>
+                <Typography variant="caption" sx={{ color: '#666', fontSize: '0.7rem' }}>
                   Бизнес: ${profession.passiveIncome}
                 </Typography>
               )}
               {profession.dividends > 0 && (
-                <Typography variant="body2" sx={{ color: '#666' }}>
+                <Typography variant="caption" sx={{ color: '#666', fontSize: '0.7rem' }}>
                   Дивиденды: ${profession.dividends}
                 </Typography>
               )}
@@ -160,7 +163,7 @@ const ProfessionCard = ({ profession, isSelected, onClick }) => {
           )}
 
           {/* Теги категории и сложности */}
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1.5 }}>
             <Chip
               label={profession.category}
               size="small"
@@ -168,7 +171,9 @@ const ProfessionCard = ({ profession, isSelected, onClick }) => {
                 bgcolor: getCategoryColor(profession.category),
                 color: 'white',
                 fontWeight: 'bold',
-                textTransform: 'capitalize'
+                textTransform: 'capitalize',
+                fontSize: '0.6rem',
+                height: '20px'
               }}
             />
             <Chip
@@ -178,20 +183,50 @@ const ProfessionCard = ({ profession, isSelected, onClick }) => {
               sx={{ 
                 bgcolor: getDifficultyColor(profession.difficulty),
                 color: 'white',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                fontSize: '0.6rem',
+                height: '20px'
               }}
             />
+          </Box>
+
+          {/* Кнопка подробнее */}
+          <Box sx={{ mt: 1.5 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              fullWidth
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onDetailsClick) onDetailsClick(profession);
+              }}
+              sx={{
+                borderRadius: 1,
+                fontSize: '0.7rem',
+                py: 0.5,
+                borderColor: getCategoryColor(profession.category),
+                color: getCategoryColor(profession.category),
+                '&:hover': {
+                  borderColor: getCategoryColor(profession.category),
+                  backgroundColor: `${getCategoryColor(profession.category)}10`
+                }
+              }}
+            >
+              📋 Подробнее
+            </Button>
           </Box>
 
           {/* Статус выбора */}
           {isSelected && (
             <Box sx={{ 
               textAlign: 'center', 
-              p: 1, 
+              p: 0.5, 
               bgcolor: '#4caf50', 
               color: 'white',
               borderRadius: 2,
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              fontSize: '0.8rem',
+              mt: 1
             }}>
               ✅ ВЫБРАНО
             </Box>

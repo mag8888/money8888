@@ -341,3 +341,4 @@ export class ExpenseDeckManager {
     console.log('🔄 [ExpenseDeckManager] Колода перемешана заново');
   }
 }
+

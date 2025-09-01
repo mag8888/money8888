@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import FullProfessionCard from './FullProfessionCard';
 import MarketCardModal from './MarketCardModal';
 import ExpenseCardModal from './ExpenseCardModal';
+import BreakModal from './BreakModal';
 import { MarketDeckManager, checkPlayerHasMatchingAsset } from '../data/marketCards';
 import { ExpenseDeckManager } from '../data/expenseCards';
 import { 
@@ -162,7 +163,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [canRollDice, setCanRollDice] = useState(true);
   const [diceRolled, setDiceRolled] = useState(false);
   
-  // Состояние игроков и их фишек - начинают с 1-й клетки
+  // Состояние игроков и их фишек - начинают с 1-й клетки (малый круг)
   const [players, setPlayers] = useState([
     { id: 1, name: 'MAG', position: 1, color: '#EF4444', profession: 'Инженер' },
     { id: 2, name: 'Алексей', position: 1, color: '#3B82F6', profession: 'Менеджер' },
@@ -234,7 +235,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [showConfetti, setShowConfetti] = useState(false); // Анимация конфети
 
   // Состояние для большого круга
-  const [isOnBigCircle, setIsOnBigCircle] = useState(false); // Находится ли игрок на большом круге
+  const [isOnBigCircle, setIsOnBigCircle] = useState(true); // Всегда на большом круге
   const [bigCirclePassiveIncome, setBigCirclePassiveIncome] = useState(0); // Пассивный доход на большом круге
   const [bigCircleBalance, setBigCircleBalance] = useState(0); // Баланс на большом круге
   const [bigCircleBusinesses, setBigCircleBusinesses] = useState([]); // Купленные бизнесы на большом круге
@@ -251,6 +252,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [playerRankings, setPlayerRankings] = useState([]); // Рейтинг игроков
   const [showRankingsModal, setShowRankingsModal] = useState(false); // Модал рейтинга
 
+  // Состояние для системы перерывов
+  const [isOnBreak, setIsOnBreak] = useState(false); // Игра на перерыве
+  const [breakEndTime, setBreakEndTime] = useState(null); // Время окончания перерыва
+  const [breakDuration, setBreakDuration] = useState(null); // Длительность перерыва
+  const [nextBreakTime, setNextBreakTime] = useState(null); // Время следующего перерыва
+
   // Состояние для системы сделок
   const [dealDeck, setDealDeck] = useState([]); // Основная колода сделок
   const [discardPile, setDiscardPile] = useState([]); // Отбой
@@ -265,7 +272,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [creditModalFromDeal, setCreditModalFromDeal] = useState(false); // Открыт ли модал кредитов из сделки
   const [showAssetTransferModal, setShowAssetTransferModal] = useState(false); // Модал передачи активов
   const [selectedAssetForTransfer, setSelectedAssetForTransfer] = useState(null); // Выбранный актив для передачи
-  const [showBigCircleTransitionModal, setShowBigCircleTransitionModal] = useState(false); // Модал перехода на большой круг
+
   
   // Состояние для карточек "другу нужны деньги"
   const [friendMoneyCardsUsed, setFriendMoneyCardsUsed] = useState(0); // Количество использованных карточек "другу нужны деньги"
@@ -548,64 +555,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     setCustomPayoffAmount(''); // Очищаем поле погашения кредита
   };
   
-  // Функция проверки условий для перехода на большой круг
-  const checkBigCircleConditions = (player) => {
-    // 1. Пассивный доход должен в 2 раза превышать расходы
-    const passiveIncome = getTotalAssetsIncome();
-    const expenses = getPlayerExpenses(player.profession);
-    const incomeCondition = passiveIncome >= expenses * 2;
-    
-    // 2. Погасить ипотеку
-    const hasMortgage = player.liabilities && player.liabilities.some(liability => liability.type === 'mortgage');
-    const mortgageCondition = !hasMortgage;
-    
-    // 3. Погасить кредит если брал
-    const hasCredit = playerCredit > 0;
-    const creditCondition = !hasCredit;
-    
-    return {
-      incomeCondition,
-      mortgageCondition,
-      creditCondition,
-      canTransition: incomeCondition && mortgageCondition && creditCondition
-    };
-  };
 
-  // Функция перехода на большой круг
-  const transitionToBigCircle = () => {
-    const player = players[currentPlayer];
-    
-    // 0. Обнуляем весь кеш и все карточки идут в отбой
-    setPlayerMoney(0);
-    setAssets([]);
-    setDealDeck([]);
-    setDiscardPile([]);
-    setPlayerCredit(0);
-    
-    // 1. Пассивный доход увеличивается в 10 раз
-    const originalPassiveIncome = getTotalAssetsIncome();
-    const newPassiveIncome = originalPassiveIncome * 10;
-    setBigCirclePassiveIncome(newPassiveIncome);
-    
-    // 2. При старте игроку начисляется пассивный доход на баланс
-    setBigCircleBalance(newPassiveIncome);
-    
-    // 3. Устанавливаем флаг нахождения на большом круге
-    setIsOnBigCircle(true);
-    
-    // 4. Перемещаем игрока на позицию 25 (начало большого круга)
-    const updatedPlayers = [...players];
-    updatedPlayers[currentPlayer].position = 25;
-    setPlayers(updatedPlayers);
-    
-    setToast({
-      open: true,
-      message: `🎉 ${player.name} перешел на большой круг! Пассивный доход: $${newPassiveIncome.toLocaleString()}/ход`,
-      severity: 'success'
-    });
-    
-    console.log(`🎉 [OriginalGameBoard] Игрок ${player.name} перешел на большой круг с пассивным доходом $${newPassiveIncome}`);
-  };
 
   // Функция начисления дохода при прохождении денег на большом круге
   const handleBigCircleMoneyPass = () => {
@@ -770,7 +720,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         name: player.name,
         color: player.color,
         position: player.position,
-        isOnBigCircle: player.position >= 25,
+        isOnBigCircle: true, // Всегда на большом круге
         passiveIncome: isOnBigCircle ? bigCirclePassiveIncome : getTotalAssetsIncome(),
         balance: isOnBigCircle ? bigCircleBalance : playerMoney,
         businessCount: bigCircleBusinesses.filter(b => b.owner === player.id).length,
@@ -965,26 +915,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         setIsMoving(false);
         setMovingPlayerId(null);
         
-        // Проверяем условия для перехода на большой круг (только если не на большом круге)
-        if (!isOnBigCircle && player.position <= 24) {
-          const conditions = checkBigCircleConditions(player);
-          
-          if (conditions.canTransition) {
-            setToast({
-              open: true,
-              message: `🎉 ${player.name} выполнил все условия! Может перейти на большой круг!`,
-              severity: 'success'
-            });
-            
-            // Показываем модал выбора перехода
-            setShowBigCircleTransitionModal(true);
-          }
-        }
+        // Игроки всегда на большом круге
         
         // Обрабатываем логику клетки
         handleCellAction(player.position);
         
-        console.log(`🎯 Игрок ${player.name} переместился на позицию ${player.position} ${isOnBigCircle ? '(большой круг)' : '(малый круг)'}`);
+        console.log(`🎯 Игрок ${player.name} переместился на позицию ${player.position} (большой круг)`);
       }
     };
     
@@ -996,69 +932,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const handleCellAction = (position) => {
     const player = players[currentPlayer];
     
-    if (isOnBigCircle) {
-      // Логика большого круга
+    // Всегда логика большого круга
       handleBigCircleCellAction(position);
-    } else {
-      // Логика малого круга
-      handleSmallCircleCellAction(position);
-    }
   };
 
-  // Функция обработки действий клетки на малом круге
-  const handleSmallCircleCellAction = (position) => {
-    const player = players[currentPlayer];
-    
-    // Клетки зарплаты (6, 14, 22)
-    if ([6, 14, 22].includes(position)) {
-      const salary = getPlayerSalary(player.profession);
-      setPlayerMoney(prev => prev + salary);
-      
-      setToast({
-        open: true,
-        message: `💰 PAYDAY! ${player.name} получил зарплату $${salary.toLocaleString()}`,
-        severity: 'success'
-      });
-      
-      console.log(`💰 [OriginalGameBoard] Игрок ${player.name} получил зарплату $${salary}`);
-      
-      // Автоматически предлагаем погасить кредит, если он есть
-      if (playerCredit > 0) {
-        setTimeout(() => {
-          setToast({
-            open: true,
-            message: `💳 У вас есть кредит $${playerCredit.toLocaleString()}. Рекомендуется погасить!`,
-            severity: 'warning'
-          });
-        }, 2000);
-      }
-    }
-    
-    // Клетка ребенка (12)
-    if (position === 12) {
-      setShowChildModal(true);
-    }
-    
-    // Клетки сделок (1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23)
-    if ([1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23].includes(position)) {
-      setShowDealTypeModal(true);
-    }
-    
-    // Клетки рынка (8, 16, 24)
-    if ([8, 16, 24].includes(position)) {
-      handleMarketAction();
-    }
 
-    // Клетки расходов (2, 10, 18)
-    if ([2, 10, 18].includes(position)) {
-      handleExpenseAction();
-    }
-    
-    // Клетки благотворительности (4, 32)
-    if ([4, 32].includes(position)) {
-      handleCharityAction();
-    }
-  };
 
   // Функция обработки действий клетки на большом круге
   const handleBigCircleCellAction = (position) => {
@@ -2821,10 +2699,55 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             </Box>
           </Box>
 
+          {/* Логотип в центре */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '200px',
+              height: '200px',
+              zIndex: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style={{
+              width: '100%',
+              height: '100%',
+              filter: 'drop-shadow(0 8px 25px rgba(0,0,0,0.3))'
+            }}>
+              {/* Фоновый круг */}
+              <circle cx="100" cy="100" r="90" fill="url(#gradient)" stroke="rgba(255,255,255,0.3)" strokeWidth="4"/>
+              
+              {/* Градиент */}
+              <defs>
+                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style={{stopColor:"#3B82F6",stopOpacity:1}} />
+                  <stop offset="25%" style={{stopColor:"#10B981",stopOpacity:1}} />
+                  <stop offset="50%" style={{stopColor:"#F59E0B",stopOpacity:1}} />
+                  <stop offset="75%" style={{stopColor:"#EF4444",stopOpacity:1}} />
+                  <stop offset="100%" style={{stopColor:"#8B5CF6",stopOpacity:1}} />
+                </linearGradient>
+              </defs>
+              
+              {/* Текст E */}
+              <text x="100" y="70" fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" textAnchor="middle" fill="white">E</text>
+              
+              {/* Текст M */}
+              <text x="100" y="130" fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" textAnchor="middle" fill="white">M</text>
+              
+              {/* Символ доллара в центре */}
+              <text x="100" y="100" fontFamily="Arial, sans-serif" fontSize="32" fontWeight="bold" textAnchor="middle" fill="white">$</text>
+            </svg>
+          </Box>
+
           {/* 24 внутренние клетки по кругу */}
           {originalBoard.slice(0, 24).map((cell, i) => {
             const angle = (i * 360) / 24;
-            const radius = 172.5; // Увеличил на 15% с 150px до 172.5px
+            const radius = 172.5; // радиус малого круга
             const x = Math.cos((angle - 90) * Math.PI / 180) * radius;
             const y = Math.sin((angle - 90) * Math.PI / 180) * radius;
             
@@ -2841,14 +2764,14 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     top: '50%',
                     left: '50%',
                     transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-                    width: '46px', // Увеличил на 15% с 40px до 46px
-                    height: '46px', // Увеличил на 15% с 40px до 46px
+                    width: '46px',
+                    height: '46px',
                     background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
-                    borderRadius: '14px', // Увеличил радиус скругления для больших клеток
+                    borderRadius: '14px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '14px', // Увеличил размер шрифта для больших клеток
+                    fontSize: '14px',
                     fontWeight: 'bold',
                     color: 'white',
                     cursor: 'pointer',
@@ -2864,97 +2787,14 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                   }}
                   title={cell.description}
                 >
-                  {/* Иконка клетки */}
                   <Typography variant="h6" sx={{ fontSize: '20px' }}>
                     {cell.icon}
                   </Typography>
-                  
-                  {/* Номер клетки в левом углу */}
                   <Typography
                     sx={{
-                      position: 'absolute',
-                      top: '2px',
-                      left: '4px',
-                      fontSize: '10px',
-                      fontWeight: 'bold',
-                      color: 'white',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-                      zIndex: 2
-                    }}
-                  >
-                    {cell.id <= 24 ? cell.id : cell.id - 24}
-                  </Typography>
-                </Box>
-              </motion.div>
-            );
-          })}
-
-          {/* 52 внешние клетки большого круга */}
-          {isOnBigCircle && originalBoard.slice(24, 76).map((cell, i) => {
-            const angle = (i * 360) / 52;
-            const radius = 300; // Радиус большого круга
-            const x = Math.cos((angle - 90) * Math.PI / 180) * radius;
-            const y = Math.sin((angle - 90) * Math.PI / 180) * radius;
-            
-            // Проверяем, есть ли владелец у клетки
-            const cellOwner = bigCircleCells[cell.id];
-            const borderColor = cellOwner ? cellOwner.ownerColor : 'rgba(255, 255, 255, 0.3)';
-            const borderWidth = cellOwner ? '3px' : '2px';
-            
-            return (
-              <motion.div
-                key={cell.id}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: i * 0.02, duration: 0.3 }}
-              >
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-                    width: '40px',
-                    height: '40px',
-                    background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
-                    borderRadius: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    color: 'white',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    border: `${borderWidth} solid ${borderColor}`,
-                    boxShadow: cellOwner 
-                      ? `0 8px 25px rgba(0,0,0,0.3), 0 0 15px ${borderColor}40`
-                      : '0 8px 25px rgba(0,0,0,0.3)',
-                    zIndex: 1,
-                    '&:hover': {
-                      transform: `translate(-50%, -50%) translate(${x}px, ${y}px) scale(1.2)`,
-                      boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
-                      zIndex: 3
-                    }
-                  }}
-                  title={`${cell.description}${cellOwner ? ` (Владелец: ${cellOwner.ownerName})` : ''}`}
-                >
-                  {/* Иконка клетки */}
-                  <Typography variant="h6" sx={{ fontSize: '16px' }}>
-                    {cell.icon}
-                  </Typography>
-                  
-                  {/* Номер клетки в левом углу */}
-                  <Typography
-                    sx={{
-                      position: 'absolute',
-                      top: '1px',
-                      left: '3px',
-                      fontSize: '8px',
-                      fontWeight: 'bold',
-                      color: 'white',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-                      zIndex: 2
+                      position: 'absolute', top: '2px', left: '4px',
+                      fontSize: '10px', fontWeight: 'bold', color: 'white',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.8)', zIndex: 2
                     }}
                   >
                     {cell.id}
@@ -2963,6 +2803,111 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               </motion.div>
             );
           })}
+
+          {/* 52 внешние клетки по периметру 700x700 */}
+          {(() => {
+            const outerCells = originalBoard.slice(24);
+            const cells = [];
+            const outerSquareSize = 700;
+            const cellSize = 40;
+
+            // Верхний ряд (14 клеток)
+            for (let i = 0; i < 14; i++) {
+              const cell = outerCells[i];
+              const spacing = (outerSquareSize - (14 * cellSize)) / 13;
+              const x = 50 + (i * (cellSize + spacing));
+              cells.push(
+                <Box key={`top-${cell.id}`}
+                  sx={{ position: 'absolute', top: '50px', left: `${x}px`, width: `${cellSize}px`, height: `${cellSize}px`,
+                    background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
+                    borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', fontSize: '14px', fontWeight: 'bold', border: '2px solid rgba(255,255,255,0.3)',
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)'
+                  }}
+                  title={`${cell.name} — ${cell.description}`}
+                >
+                  {cell.icon}
+                  <Typography sx={{ position: 'absolute', top: '2px', left: '4px', fontSize: '10px', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                    {cell.id}
+                  </Typography>
+                </Box>
+              );
+            }
+
+            // Правый столбец (12 клеток)
+            for (let i = 0; i < 12; i++) {
+              const cell = outerCells[14 + i];
+              const y = 50 + (i + 1) * (cellSize + 11);
+              cells.push(
+                <Box key={`right-${cell.id}`}
+                  sx={{ position: 'absolute', top: `${y}px`, right: '50px', width: `${cellSize}px`, height: `${cellSize}px`,
+                    background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
+                    borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', fontSize: '14px', fontWeight: 'bold', border: '2px solid rgba(255,255,255,0.3)',
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)'
+                  }}
+                  title={`${cell.name} — ${cell.description}`}
+                >
+                  {cell.icon}
+                  <Typography sx={{ position: 'absolute', top: '2px', left: '4px', fontSize: '10px', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                    {cell.id}
+                  </Typography>
+                </Box>
+              );
+            }
+
+            // Нижний ряд (14 клеток) — справа налево
+            for (let i = 0; i < 14; i++) {
+              const cell = outerCells[39 - i];
+              const spacing = (outerSquareSize - (14 * cellSize)) / 13;
+              const x = 50 + (i * (cellSize + spacing));
+              cells.push(
+                <Box key={`bottom-${cell.id}`}
+                  sx={{ position: 'absolute', bottom: '50px', left: `${x}px`, width: `${cellSize}px`, height: `${cellSize}px`,
+                    background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
+                    borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', fontSize: '14px', fontWeight: 'bold', border: '2px solid rgba(255,255,255,0.3)',
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)'
+                  }}
+                  title={`${cell.name} — ${cell.description}`}
+                >
+                    {cell.icon}
+                  <Typography sx={{ position: 'absolute', top: '2px', left: '4px', fontSize: '10px', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                    {cell.id}
+                  </Typography>
+                </Box>
+              );
+            }
+
+            // Левый столбец (12 клеток) — снизу вверх
+            for (let i = 0; i < 12; i++) {
+              const cell = outerCells[51 - i];
+              const y = 50 + (i + 1) * (cellSize + 11);
+              cells.push(
+                <Box key={`left-${cell.id}`}
+                  sx={{ position: 'absolute', top: `${y}px`, left: '50px', width: `${cellSize}px`, height: `${cellSize}px`,
+                    background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
+                    borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', fontSize: '14px', fontWeight: 'bold', border: '2px solid rgba(255,255,255,0.3)',
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)'
+                  }}
+                  title={`${cell.name} — ${cell.description}`}
+                >
+                  {cell.icon}
+                  <Typography sx={{ position: 'absolute', top: '2px', left: '4px', fontSize: '10px', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                    {cell.id}
+                  </Typography>
+                </Box>
+              );
+            }
+
+            return cells;
+          })()}
+
+          {/* Визуальная рамка квадрата */}
+          <Box sx={{ position: 'absolute', top: '50px', left: '50px', width: '700px', height: '700px',
+            border: '2px dashed rgba(139, 92, 246, 0.6)', borderRadius: 0, pointerEvents: 'none', zIndex: 0 }}
+          />
 
           {/* 4 угловые карточки между малым и большим кругом */}
           {/* Верхний левый угол - Большая сделка */}
@@ -3391,299 +3336,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           })()}
 
           {/* 52 внешние клетки внутри периметра 700x700 - исправленное распределение */}
-          {(() => {
-            const outerCells = originalBoard.slice(24);
-            const cells = [];
-            
-            // Размер внешнего квадрата
-            const outerSquareSize = 700;
-            const cellSize = 40; // Увеличил на 15% с 35px до 40px
-            
-            // Верхний ряд (14 клеток) - равномерно распределяем по всей ширине
-            // Клетки 25-38 (индексы 0-13)
-            for (let i = 0; i < 14; i++) {
-              const cell = outerCells[i];
-              const spacing = (outerSquareSize - (14 * cellSize)) / 13; // Равномерные промежутки
-              const x = 50 + (i * (cellSize + spacing));
-              cells.push(
-                <motion.div
-                  key={cell.id}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: (i + 24) * 0.02, duration: 0.4 }}
-                >
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: '50px',
-                      left: `${x}px`,
-                      width: `${cellSize}px`,
-                      height: `${cellSize}px`,
-                      background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '10px',
-                      fontWeight: 'bold',
-                      color: 'white',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      border: '2px solid rgba(255, 255, 255, 0.3)',
-                      boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-                      zIndex: 1,
-                      '&:hover': {
-                        transform: 'scale(1.2)',
-                        boxShadow: '0 12px 30px rgba(0,0,0,0.4)',
-                        zIndex: 3
-                      }
-                    }}
-                    title={cell.description}
-                  >
-                    {/* Иконка клетки */}
-                    <Typography variant="h6" sx={{ fontSize: '16px', mb: 0.5 }}>
-                      {cell.icon}
-                    </Typography>
-                    
-                    {/* ID клетки в левом углу */}
-                    <Typography
-                      sx={{
-                        position: 'absolute',
-                        top: '2px',
-                        left: '4px',
-                        fontSize: '8px',
-                        fontWeight: 'bold',
-                        color: 'white',
-                        textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-                        zIndex: 2
-                      }}
-                    >
-                      {cell.id}
-                    </Typography>
+          {/* Визуальная сетка квадрата удалена, оставляем только круг отрисовки */}
                   </Box>
-                </motion.div>
-              );
-            }
-            
-            // Правый столбец (12 клеток) - фиксированное расстояние 11px
-            // Клетки 15-26 (индексы 14-25)
-            for (let i = 0; i < 12; i++) {
-              const cellIndex = 14 + i;
-              const cell = outerCells[cellIndex];
-              const spacing = 11; // Фиксированное расстояние 11px
-              const y = 50 + (i + 1) * (cellSize + spacing);
-              cells.push(
-                <motion.div
-                  key={cell.id}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: (i + 38) * 0.02, duration: 0.4 }}
-                >
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: `${y}px`,
-                      right: '50px',
-                      width: `${cellSize}px`,
-                      height: `${cellSize}px`,
-                      background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '10px',
-                      fontWeight: 'bold',
-                      color: 'white',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      border: '2px solid rgba(255, 255, 255, 0.3)',
-                      boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-                      zIndex: 1,
-                      '&:hover': {
-                        transform: 'scale(1.2)',
-                        boxShadow: '0 12px 30px rgba(0,0,0,0.4)',
-                        zIndex: 3
-                      }
-                    }}
-                    title={cell.description}
-                  >
-                    {/* Иконка клетки */}
-                    <Typography variant="h6" sx={{ fontSize: '16px', mb: 0.5 }}>
-                      {cell.icon}
-                    </Typography>
-                    
-                    {/* ID клетки в левом углу */}
-                    <Typography
-                      sx={{
-                        position: 'absolute',
-                        top: '2px',
-                        left: '4px',
-                        fontSize: '8px',
-                        fontWeight: 'bold',
-                        color: 'white',
-                        textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-                        zIndex: 2
-                      }}
-                    >
-                      {cell.id}
-                    </Typography>
-                  </Box>
-                </motion.div>
-              );
-            }
-            
-            // Нижний ряд (14 клеток) - равномерно распределяем по всей ширине
-            // Клетки 27-40 (индексы 26-39) - справа налево
-            for (let i = 0; i < 14; i++) {
-              const cellIndex = 39 - i; // Идем справа налево: 39, 38, 37, ..., 26
-              const cell = outerCells[cellIndex];
-              const spacing = (outerSquareSize - (14 * cellSize)) / 13; // Равномерные промежутки
-              const x = 50 + (i * (cellSize + spacing));
-              cells.push(
-                <motion.div
-                  key={cell.id}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: (i + 50) * 0.02, duration: 0.4 }}
-                >
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      bottom: '50px',
-                      left: `${x}px`,
-                      width: `${cellSize}px`,
-                      height: `${cellSize}px`,
-                      background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '10px',
-                      fontWeight: 'bold',
-                      color: 'white',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      border: '2px solid rgba(255, 255, 255, 0.3)',
-                      boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-                      zIndex: 1,
-                      '&:hover': {
-                        transform: 'scale(1.2)',
-                        boxShadow: '0 12px 30px rgba(0,0,0,0.4)',
-                        zIndex: 3
-                      }
-                    }}
-                    title={cell.description}
-                  >
-                    {/* Иконка клетки */}
-                    <Typography variant="h6" sx={{ fontSize: '16px', mb: 0.5 }}>
-                      {cell.icon}
-                    </Typography>
-                    
-                    {/* ID клетки в левом углу */}
-                    <Typography
-                      sx={{
-                        position: 'absolute',
-                        top: '2px',
-                        left: '4px',
-                        fontSize: '8px',
-                        fontWeight: 'bold',
-                        color: 'white',
-                        textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-                        zIndex: 2
-                      }}
-                    >
-                      {cell.id}
-                    </Typography>
-                  </Box>
-                </motion.div>
-              );
-            }
-            
-            // Левый столбец (12 клеток) - фиксированное расстояние 11px
-            // Клетки 41-52 (индексы 40-51) - снизу вверх
-            for (let i = 0; i < 12; i++) {
-              const cellIndex = 51 - i; // Идем снизу вверх: 51, 50, 49, ..., 40
-              const cell = outerCells[cellIndex];
-              const spacing = 11; // Фиксированное расстояние 11px
-              const y = 50 + (i + 1) * (cellSize + spacing);
-              cells.push(
-                <motion.div
-                  key={cell.id}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: (i + 64) * 0.02, duration: 0.4 }}
-                >
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: `${y}px`,
-                      left: '50px',
-                      width: `${cellSize}px`,
-                      height: `${cellSize}px`,
-                      background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '10px',
-                      fontWeight: 'bold',
-                      color: 'white',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      border: '2px solid rgba(255, 255, 255, 0.3)',
-                      boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-                      zIndex: 1,
-                      '&:hover': {
-                        transform: 'scale(1.2)',
-                        boxShadow: '0 12px 30px rgba(0,0,0,0.4)',
-                        zIndex: 3
-                      }
-                    }}
-                    title={cell.description}
-                  >
-                    {/* Иконка клетки */}
-                    <Typography variant="h6" sx={{ fontSize: '16px', mb: 0.5 }}>
-                      {cell.icon}
-                    </Typography>
-                    
-                    {/* ID клетки в левом углу */}
-                    <Typography
-                      sx={{
-                        position: 'absolute',
-                        top: '2px',
-                        left: '4px',
-                        fontSize: '8px',
-                        fontWeight: 'bold',
-                        color: 'white',
-                        textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-                        zIndex: 2
-                      }}
-                    >
-                      {cell.id}
-                    </Typography>
-                  </Box>
-                </motion.div>
-              );
-            }
-            
-            return cells;
-          })()}
-
-          {/* Визуальная рамка для внешнего квадрата 700x700 */}
-          <Box
-            sx={{
-              position: 'absolute',
-              top: '50px',
-              left: '50px',
-              width: '700px',
-              height: '700px',
-              border: '2px dashed rgba(139, 92, 246, 0.6)',
-              borderRadius: '0',
-              pointerEvents: 'none',
-              zIndex: 0
-            }}
-          />
-        </Box>
       </Box>
 
       {/* Правая панель управления - 6 элементов */}
@@ -6024,134 +5678,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         onTakeCredit={handleExpenseTakeCredit}
       />
 
-      {/* Модальное окно перехода на большой круг */}
-      <Dialog
-        open={showBigCircleTransitionModal}
-        onClose={() => setShowBigCircleTransitionModal(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            background: 'linear-gradient(135deg, #1F2937 0%, #111827 100%)',
-            borderRadius: '20px',
-            border: '2px solid #374151'
-          }
-        }}
-      >
-        <DialogTitle sx={{
-          textAlign: 'center',
-          color: '#FFFFFF',
-          fontSize: '24px',
-          fontWeight: 'bold',
-          borderBottom: '1px solid #374151',
-          pb: 2
-        }}>
-          🎉 Переход на большой круг!
-        </DialogTitle>
-        
-        <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
-          <Typography variant="h6" sx={{ color: '#FFFFFF', mb: 2 }}>
-            Поздравляем! Вы выполнили все условия:
-          </Typography>
-          
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 2, 
-              p: 2, 
-              background: 'rgba(34, 197, 94, 0.1)', 
-              borderRadius: '10px',
-              border: '1px solid rgba(34, 197, 94, 0.3)'
-            }}>
-              <Typography variant="h6" sx={{ color: '#22C55E' }}>✅</Typography>
-              <Typography variant="body1" sx={{ color: '#FFFFFF' }}>
-                Пассивный доход в 2 раза превышает расходы
-              </Typography>
-            </Box>
-            
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 2, 
-              p: 2, 
-              background: 'rgba(34, 197, 94, 0.1)', 
-              borderRadius: '10px',
-              border: '1px solid rgba(34, 197, 94, 0.3)'
-            }}>
-              <Typography variant="h6" sx={{ color: '#22C55E' }}>✅</Typography>
-              <Typography variant="body1" sx={{ color: '#FFFFFF' }}>
-                Ипотека погашена
-              </Typography>
-            </Box>
-            
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 2, 
-              p: 2, 
-              background: 'rgba(34, 197, 94, 0.1)', 
-              borderRadius: '10px',
-              border: '1px solid rgba(34, 197, 94, 0.3)'
-            }}>
-              <Typography variant="h6" sx={{ color: '#22C55E' }}>✅</Typography>
-              <Typography variant="body1" sx={{ color: '#FFFFFF' }}>
-                Кредит погашен
-              </Typography>
-            </Box>
-          </Box>
-          
-          <Typography variant="body1" sx={{ color: '#94A3B8', mb: 3 }}>
-            Теперь вы можете перейти на большой круг и начать играть в Fast Track!
-          </Typography>
-        </DialogContent>
-        
-        <DialogActions sx={{
-          p: 3,
-          borderTop: '1px solid #374151',
-          justifyContent: 'center',
-          gap: 2
-        }}>
-          <Button
-            onClick={() => {
-              setShowBigCircleTransitionModal(false);
-              transitionToBigCircle();
-            }}
-            sx={{
-              background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
-              color: 'white',
-              px: 4,
-              py: 1.5,
-              borderRadius: '10px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)'
-              }
-            }}
-          >
-            🎯 Перейти на большой круг
-          </Button>
-          
-          <Button
-            onClick={() => setShowBigCircleTransitionModal(false)}
-            sx={{
-              background: 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
-              color: 'white',
-              px: 4,
-              py: 1.5,
-              borderRadius: '10px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #4B5563 0%, #374151 100%)'
-              }
-            }}
-          >
-            Остаться на малом круге
-          </Button>
-        </DialogActions>
-      </Dialog>
+
 
       {/* Модальное окно победы */}
       <Dialog
