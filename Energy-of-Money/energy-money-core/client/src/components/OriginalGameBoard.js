@@ -239,6 +239,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [bigCircleBalance, setBigCircleBalance] = useState(0); // Баланс на большом круге
   const [bigCircleBusinesses, setBigCircleBusinesses] = useState([]); // Купленные бизнесы на большом круге
   const [bigCircleCells, setBigCircleCells] = useState({}); // Владельцы клеток на большом круге
+  const [bigCircleDreams, setBigCircleDreams] = useState([]); // Купленные мечты на большом круге
+  const [showVictoryModal, setShowVictoryModal] = useState(false); // Модал победы
+  const [victoryReason, setVictoryReason] = useState(''); // Причина победы
+  
+  // Состояние для рейтинга и времени игры
+  const [gameStartTime, setGameStartTime] = useState(Date.now()); // Время начала игры
+  const [gameDuration, setGameDuration] = useState(3 * 60 * 60 * 1000); // Длительность игры в миллисекундах (по умолчанию 3 часа)
+  const [gameEndTime, setGameEndTime] = useState(Date.now() + (3 * 60 * 60 * 1000)); // Время окончания игры
+  const [isGameFinished, setIsGameFinished] = useState(false); // Игра завершена
+  const [playerRankings, setPlayerRankings] = useState([]); // Рейтинг игроков
+  const [showRankingsModal, setShowRankingsModal] = useState(false); // Модал рейтинга
 
   // Состояние для системы сделок
   const [dealDeck, setDealDeck] = useState([]); // Основная колода сделок
@@ -652,6 +663,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       });
       
       console.log(`✅ [OriginalGameBoard] Игрок ${player.name} купил бизнес ${businessData.name} на большом круге`);
+      
+      // Проверяем условия победы
+      if (checkVictoryConditions(player.id)) {
+        setShowVictoryModal(true);
+        setIsGameFinished(true);
+      }
     } else {
       setToast({
         open: true,
@@ -660,6 +677,172 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       });
     }
   };
+
+  // Функция проверки условий победы
+  const checkVictoryConditions = (playerId) => {
+    const player = players.find(p => p.id === playerId);
+    if (!player || !isOnBigCircle) return false;
+    
+    // Условие 1: 2 бизнеса + мечта
+    const businessCount = bigCircleBusinesses.filter(b => b.owner === playerId).length;
+    const dreamCount = bigCircleDreams.filter(d => d.owner === playerId).length;
+    
+    if (businessCount >= 2 && dreamCount >= 1) {
+      setVictoryReason(`🏆 ${player.name} победил! Купил 2 бизнеса и мечту!`);
+      return true;
+    }
+    
+    // Условие 2: бизнес + пассивный доход +50,000$ к начальному
+    const initialIncome = getTotalAssetsIncome() * 10; // Начальный доход на большом круге
+    const currentIncome = bigCirclePassiveIncome;
+    const incomeIncrease = currentIncome - initialIncome;
+    
+    if (businessCount >= 1 && incomeIncrease >= 50000) {
+      setVictoryReason(`🏆 ${player.name} победил! Купил бизнес и увеличил доход на $${incomeIncrease.toLocaleString()}!`);
+      return true;
+    }
+    
+    return false;
+  };
+
+  // Функция покупки мечты на большом круге
+  const handleBigCircleDreamPurchase = (cellId, dreamData) => {
+    if (!isOnBigCircle) return;
+    
+    const player = players[currentPlayer];
+    const currentBalance = bigCircleBalance;
+    const dreamCost = dreamData.cost;
+    
+    if (currentBalance >= dreamCost) {
+      // Покупаем мечту
+      setBigCircleBalance(prev => prev - dreamCost);
+      
+      // Добавляем мечту к списку
+      const newDream = {
+        id: Date.now(),
+        cellId: cellId,
+        name: dreamData.name,
+        cost: dreamCost,
+        owner: player.id,
+        ownerName: player.name,
+        ownerColor: player.color
+      };
+      
+      setBigCircleDreams(prev => [...prev, newDream]);
+      
+      setToast({
+        open: true,
+        message: `🌟 ${player.name} купил мечту "${dreamData.name}" за $${dreamCost.toLocaleString()}!`,
+        severity: 'success'
+      });
+      
+      console.log(`🌟 [OriginalGameBoard] Игрок ${player.name} купил мечту ${dreamData.name} на большом круге`);
+      
+      // Проверяем условия победы
+      if (checkVictoryConditions(player.id)) {
+        setShowVictoryModal(true);
+        setIsGameFinished(true);
+      }
+    } else {
+      setToast({
+        open: true,
+        message: `❌ Недостаточно денег для покупки мечты "${dreamData.name}". Нужно: $${dreamCost.toLocaleString()}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  // Функция расчета рейтинга
+  const calculateRankings = () => {
+    const rankings = players.map(player => {
+      const playerData = {
+        id: player.id,
+        name: player.name,
+        color: player.color,
+        position: player.position,
+        isOnBigCircle: player.position >= 25,
+        passiveIncome: isOnBigCircle ? bigCirclePassiveIncome : getTotalAssetsIncome(),
+        balance: isOnBigCircle ? bigCircleBalance : playerMoney,
+        businessCount: bigCircleBusinesses.filter(b => b.owner === player.id).length,
+        dreamCount: bigCircleDreams.filter(d => d.owner === player.id).length,
+        hasWon: false,
+        rank: 0,
+        points: 0
+      };
+      
+      // Проверяем, победил ли игрок
+      if (checkVictoryConditions(player.id)) {
+        playerData.hasWon = true;
+      }
+      
+      return playerData;
+    });
+    
+    // Сортируем по приоритету рейтинга
+    rankings.sort((a, b) => {
+      // 1. Победители (купили мечту)
+      if (a.hasWon && !b.hasWon) return -1;
+      if (!a.hasWon && b.hasWon) return 1;
+      
+      // 2. На большом круге с самым высоким пассивным доходом
+      if (a.isOnBigCircle && b.isOnBigCircle) {
+        return b.passiveIncome - a.passiveIncome;
+      }
+      if (a.isOnBigCircle && !b.isOnBigCircle) return -1;
+      if (!a.isOnBigCircle && b.isOnBigCircle) return 1;
+      
+      // 3. На малом круге с самым большим пассивным доходом
+      if (!a.isOnBigCircle && !b.isOnBigCircle) {
+        if (a.passiveIncome !== b.passiveIncome) {
+          return b.passiveIncome - a.passiveIncome;
+        }
+      }
+      
+      // 4. По количеству денег на балансе
+      return b.balance - a.balance;
+    });
+    
+    // Назначаем места и очки
+    const totalPlayers = rankings.length;
+    rankings.forEach((player, index) => {
+      player.rank = index + 1;
+      
+      // Рассчитываем очки по системе рейтинга
+      if (player.hasWon) {
+        // Победитель получает очки равные количеству игроков
+        player.points = totalPlayers;
+      } else {
+        // Остальные получают очки равные количеству обойденных игроков
+        player.points = totalPlayers - player.rank;
+      }
+    });
+    
+    return rankings;
+  };
+
+  // Функция завершения игры
+  const endGame = () => {
+    const rankings = calculateRankings();
+    setPlayerRankings(rankings);
+    setShowRankingsModal(true);
+    setIsGameFinished(true);
+    
+    console.log(`🏁 [OriginalGameBoard] Игра завершена! Рейтинг:`, rankings);
+  };
+
+  // Функция проверки времени игры
+  const checkGameTime = () => {
+    const currentTime = Date.now();
+    if (currentTime >= gameEndTime && !isGameFinished) {
+      endGame();
+    }
+  };
+
+  // Таймер для проверки времени игры
+  useEffect(() => {
+    const interval = setInterval(checkGameTime, 60000); // Проверяем каждую минуту
+    return () => clearInterval(interval);
+  }, [gameEndTime, isGameFinished]);
 
   // Функция перекупки бизнеса на большом круге
   const handleBigCircleBusinessTakeover = (cellId, businessData) => {
@@ -917,11 +1100,32 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     if (dreamCells.includes(position)) {
       const cellData = originalBoard.find(cell => cell.id === position);
       if (cellData && cellData.type === 'dream') {
-        setToast({
-          open: true,
-          message: `🌟 ${cellData.name} - стоимость: $${cellData.cost.toLocaleString()}`,
-          severity: 'info'
-        });
+        const currentOwner = bigCircleCells[position];
+        
+        if (currentOwner) {
+          // Мечта уже куплена
+          if (currentOwner.owner === player.id) {
+            setToast({
+              open: true,
+              message: `🌟 ${cellData.name} уже принадлежит вам!`,
+              severity: 'success'
+            });
+          } else {
+            setToast({
+              open: true,
+              message: `🌟 ${cellData.name} уже куплена игроком ${currentOwner.ownerName}`,
+              severity: 'info'
+            });
+          }
+        } else {
+          // Мечта свободна - предлагаем покупку
+          setToast({
+            open: true,
+            message: `🌟 ${cellData.name} - стоимость: $${cellData.cost.toLocaleString()}`,
+            severity: 'info'
+          });
+          // Здесь можно добавить модал для подтверждения покупки мечты
+        }
       }
     }
     
@@ -2229,9 +2433,46 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               <Typography variant="body2" sx={{ color: 'rgba(34, 197, 94, 0.8)', fontSize: isMobile ? '0.7rem' : '0.8rem' }}>
                 🏢 Бизнесов: {bigCircleBusinesses.length}
               </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(34, 197, 94, 0.8)', fontSize: isMobile ? '0.7rem' : '0.8rem' }}>
+                🌟 Мечт: {bigCircleDreams.length}
+              </Typography>
             </Box>
           </Box>
         )}
+
+        {/* Информация о времени игры */}
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: isMobile ? 2 : 3,
+          mb: isMobile ? 2 : 3,
+          p: isMobile ? 1.5 : 2,
+          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2))',
+          borderRadius: isMobile ? '10px' : '15px',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(59, 130, 246, 0.3)'
+        }}>
+          <Box>
+            <Typography variant={isMobile ? "body1" : "h6"} sx={{ color: '#3B82F6', fontWeight: 'bold' }}>
+              ⏰ Время игры
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'rgba(59, 130, 246, 0.8)', fontSize: isMobile ? '0.8rem' : 'inherit' }}>
+              {(() => {
+                const currentTime = Date.now();
+                const timeLeft = Math.max(0, gameEndTime - currentTime);
+                const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                return `${hours}:${minutes.toString().padStart(2, '0')}`;
+              })()}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="body2" sx={{ color: 'rgba(59, 130, 246, 0.8)', fontSize: isMobile ? '0.7rem' : '0.8rem' }}>
+              {isGameFinished ? '🏁 Игра завершена' : '🎮 Игра активна'}
+            </Typography>
+          </Box>
+        </Box>
 
         {/* Игровое поле */}
         <Box sx={{
@@ -5753,6 +5994,191 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             }}
           >
             Остаться на малом круге
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Модальное окно победы */}
+      <Dialog
+        open={showVictoryModal}
+        onClose={() => setShowVictoryModal(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)',
+            borderRadius: '20px',
+            border: '2px solid #F59E0B',
+            boxShadow: '0 25px 50px rgba(245, 158, 11, 0.3)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          color: '#92400E', 
+          textAlign: 'center',
+          borderBottom: '1px solid #F59E0B',
+          pb: 2
+        }}>
+          🏆 ПОБЕДА!
+        </DialogTitle>
+        
+        <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
+          <Typography variant="h4" sx={{ color: '#92400E', mb: 2, fontWeight: 'bold' }}>
+            🎉 Поздравляем!
+          </Typography>
+          <Typography variant="h6" sx={{ color: '#92400E', mb: 3 }}>
+            {victoryReason}
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#92400E', mb: 3 }}>
+            Вы выполнили условия победы и стали победителем игры!
+          </Typography>
+        </DialogContent>
+        
+        <DialogActions sx={{
+          p: 3,
+          borderTop: '1px solid #F59E0B',
+          justifyContent: 'center'
+        }}>
+          <Button
+            onClick={() => {
+              setShowVictoryModal(false);
+              endGame();
+            }}
+            sx={{
+              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+              }
+            }}
+          >
+            🏁 Завершить игру
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Модальное окно рейтинга */}
+      <Dialog
+        open={showRankingsModal}
+        onClose={() => setShowRankingsModal(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(135deg, #1F2937 0%, #111827 100%)',
+            borderRadius: '20px',
+            border: '2px solid #374151'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          color: '#FFFFFF', 
+          textAlign: 'center',
+          borderBottom: '1px solid #374151',
+          pb: 2
+        }}>
+          🏆 Итоговый рейтинг игры
+        </DialogTitle>
+        
+        <DialogContent sx={{ pt: 3 }}>
+          <Grid container spacing={2}>
+            {playerRankings.map((player, index) => (
+              <Grid item xs={12} key={player.id}>
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  p: 2,
+                  background: index === 0 
+                    ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2))'
+                    : index === 1
+                    ? 'linear-gradient(135deg, rgba(156, 163, 175, 0.2), rgba(107, 114, 128, 0.2))'
+                    : index === 2
+                    ? 'linear-gradient(135deg, rgba(180, 83, 9, 0.2), rgba(146, 64, 14, 0.2))'
+                    : 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '10px',
+                  border: index === 0 
+                    ? '2px solid #F59E0B'
+                    : index === 1
+                    ? '2px solid #9CA3AF'
+                    : index === 2
+                    ? '2px solid #B45309'
+                    : '1px solid #374151'
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Typography variant="h4" sx={{ 
+                      color: index === 0 ? '#F59E0B' : index === 1 ? '#9CA3AF' : index === 2 ? '#B45309' : '#6B7280',
+                      fontWeight: 'bold',
+                      minWidth: '40px'
+                    }}>
+                      #{player.rank}
+                    </Typography>
+                    <Avatar sx={{ 
+                      bgcolor: player.color,
+                      width: 40,
+                      height: 40
+                    }}>
+                      {player.name.charAt(0)}
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" sx={{ color: '#FFFFFF', fontWeight: 'bold' }}>
+                        {player.name}
+                        {player.hasWon && <span style={{ color: '#F59E0B', marginLeft: '8px' }}>👑</span>}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: '#94A3B8' }}>
+                        {player.isOnBigCircle ? '🎯 Большой круг' : '🔄 Малый круг'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="h6" sx={{ color: '#10B981', fontWeight: 'bold' }}>
+                      +{player.points} очков
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#94A3B8' }}>
+                      Доход: ${player.passiveIncome.toLocaleString()}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#94A3B8' }}>
+                      Баланс: ${player.balance.toLocaleString()}
+                    </Typography>
+                    {player.isOnBigCircle && (
+                      <Typography variant="body2" sx={{ color: '#94A3B8' }}>
+                        Бизнесов: {player.businessCount}, Мечт: {player.dreamCount}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+        </DialogContent>
+        
+        <DialogActions sx={{
+          p: 3,
+          borderTop: '1px solid #374151',
+          justifyContent: 'center'
+        }}>
+          <Button
+            onClick={() => setShowRankingsModal(false)}
+            sx={{
+              background: 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #4B5563 0%, #374151 100%)'
+              }
+            }}
+          >
+            Закрыть
           </Button>
         </DialogActions>
       </Dialog>
