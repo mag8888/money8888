@@ -28,7 +28,8 @@ import {
   AccountBalance as BankIcon,
   BakeryDining as BakeryIcon,
   FitnessCenter as GymIcon,
-  Work as CoworkingIcon
+  Work as CoworkingIcon,
+  TrendingUp as StockIcon
 } from '@mui/icons-material';
 
 // Данные для Большого круга (Fast Track) - 51 клетка
@@ -46,7 +47,7 @@ export const FAST_TRACK_CELLS = [
     color: '#FFD700', // Желтый
     icon: <MoneyIcon />
   },
-  // Клетка 2 - МЕЧТА (голубая)
+  // Клетка 2 - МЕЧТА (розовая)
   {
     id: 2,
     name: 'Построить дом мечты для семьи',
@@ -55,7 +56,7 @@ export const FAST_TRACK_CELLS = [
     cost: 100000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <DreamIcon />
   },
   // Клетка 3 - БИЗНЕС (зеленая)
@@ -94,7 +95,7 @@ export const FAST_TRACK_CELLS = [
     color: '#4CAF50', // Зеленый
     icon: <SpaIcon />
   },
-  // Клетка 6 - МЕЧТА (голубая)
+  // Клетка 6 - МЕЧТА (розовая)
   {
     id: 6,
     name: 'Посетить Антарктиду',
@@ -103,7 +104,7 @@ export const FAST_TRACK_CELLS = [
     cost: 150000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <TravelIcon />
   },
   // Клетка 7 - БИЗНЕС (зеленая)
@@ -166,7 +167,7 @@ export const FAST_TRACK_CELLS = [
     color: '#4CAF50', // Зеленый
     icon: <HotelIcon />
   },
-  // Клетка 12 - МЕЧТА (голубая)
+  // Клетка 12 - МЕЧТА (розовая)
   {
     id: 12,
     name: 'Подняться на все высочайшие вершины мира',
@@ -175,7 +176,7 @@ export const FAST_TRACK_CELLS = [
     cost: 500000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <MountainIcon />
   },
   // Клетка 13 - БИЗНЕС (зеленая)
@@ -214,7 +215,7 @@ export const FAST_TRACK_CELLS = [
     color: '#4CAF50', // Зеленый
     icon: <YogaIcon />
   },
-  // Клетка 16 - МЕЧТА (голубая)
+  // Клетка 16 - МЕЧТА (розовая)
   {
     id: 16,
     name: 'Жить год на яхте в Средиземном море',
@@ -223,7 +224,7 @@ export const FAST_TRACK_CELLS = [
     cost: 300000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <TravelIcon />
   },
   // Клетка 17 - БИЗНЕС (зеленая)
@@ -238,7 +239,7 @@ export const FAST_TRACK_CELLS = [
     color: '#4CAF50', // Зеленый
     icon: <BeautyIcon />
   },
-  // Клетка 18 - МЕЧТА (голубая)
+  // Клетка 18 - МЕЧТА (розовая)
   {
     id: 18,
     name: 'Создать фонд поддержки талантов',
@@ -247,7 +248,7 @@ export const FAST_TRACK_CELLS = [
     cost: 300000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <CharityIcon />
   },
   // Клетка 19 - БИЗНЕС (зеленая)
@@ -262,7 +263,7 @@ export const FAST_TRACK_CELLS = [
     color: '#4CAF50', // Зеленый
     icon: <CarWashIcon />
   },
-  // Клетка 20 - МЕЧТА (голубая)
+  // Клетка 20 - МЕЧТА (розовая)
   {
     id: 20,
     name: 'Организовать мировой фестиваль',
@@ -271,7 +272,7 @@ export const FAST_TRACK_CELLS = [
     cost: 200000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <FestivalIcon />
   },
   // Клетка 21 - БИЗНЕС (зеленая)
@@ -310,7 +311,7 @@ export const FAST_TRACK_CELLS = [
     color: '#4CAF50', // Зеленый
     icon: <CarWashIcon />
   },
-  // Клетка 24 - МЕЧТА (голубая)
+  // Клетка 24 - МЕЧТА (розовая)
   {
     id: 24,
     name: 'Туристический комплекс (эко-ранчо)',
@@ -319,7 +320,7 @@ export const FAST_TRACK_CELLS = [
     cost: 1000000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <EcoIcon />
   },
   // Клетка 25 - БИЗНЕС (зеленая)
@@ -334,7 +335,7 @@ export const FAST_TRACK_CELLS = [
     color: '#4CAF50', // Зеленый
     icon: <TravelIcon />
   },
-  // Клетка 26 - МЕЧТА (голубая)
+  // Клетка 26 - МЕЧТА (розовая)
   {
     id: 26,
     name: 'Биржа',
@@ -343,7 +344,7 @@ export const FAST_TRACK_CELLS = [
     cost: 50000,
     monthlyIncome: 500000,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <BankIcon />
   },
   // Клетка 27 - БИЗНЕС (зеленая)
@@ -358,7 +359,7 @@ export const FAST_TRACK_CELLS = [
     color: '#4CAF50', // Зеленый
     icon: <PlaneIcon />
   },
-  // Клетка 28 - МЕЧТА (голубая)
+  // Клетка 28 - МЕЧТА (розовая)
   {
     id: 28,
     name: 'NFT-платформа',
@@ -367,7 +368,7 @@ export const FAST_TRACK_CELLS = [
     cost: 400000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <BusinessIcon />
   },
   // Клетка 29 - БИЗНЕС (зеленая)
@@ -382,31 +383,31 @@ export const FAST_TRACK_CELLS = [
     color: '#4CAF50', // Зеленый
     icon: <BusinessIcon />
   },
-  // Клетка 30 - МЕЧТА (голубая)
+  // Клетка 30 - МЕЧТА (розовая)
   {
     id: 30,
-    name: 'Школа иностранных языков',
-    description: 'Создание школы для изучения иностранных языков.',
+    name: 'Полет на Марс',
+    description: 'Реализация мечты о космическом путешествии на Красную планету.',
     type: 'dream',
-    cost: 20000,
+    cost: 300000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
-    icon: <SchoolIcon />
+    color: '#E91E63', // Розовый
+    icon: <TravelIcon />
   },
-  // Клетка 31 - БИЗНЕС (зеленая)
+  // Клетка 31 - БИРЖА (зеленая)
   {
     id: 31,
-    name: 'Купить коллекцию суперкаров',
-    description: 'Собрание самых престижных и быстрых автомобилей в мире.',
+    name: 'Биржа',
+    description: 'Разово выплачивается 500 000$ если выпало 5 или 6 на кубике. Стоимость 50 000$.',
     type: 'business',
-    cost: 1000000,
+    cost: 50000,
     monthlyIncome: 0,
     category: 'business',
     color: '#4CAF50', // Зеленый
-    icon: <CarWashIcon />
+    icon: <StockIcon />
   },
-  // Клетка 32 - МЕЧТА (голубая)
+  // Клетка 32 - МЕЧТА (розовая)
   {
     id: 32,
     name: 'Создать школу будущего для детей',
@@ -415,7 +416,7 @@ export const FAST_TRACK_CELLS = [
     cost: 300000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <SchoolIcon />
   },
   // Клетка 33 - БИЗНЕС (зеленая)
@@ -442,7 +443,7 @@ export const FAST_TRACK_CELLS = [
     color: '#8B0000', // Бордовый
     icon: <LossIcon />
   },
-  // Клетка 35 - МЕЧТА (голубая)
+  // Клетка 35 - МЕЧТА (розовая)
   {
     id: 35,
     name: 'Кругосветное плавание на паруснике',
@@ -451,7 +452,7 @@ export const FAST_TRACK_CELLS = [
     cost: 200000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <TravelIcon />
   },
   // Клетка 36 - ДЕНЬГИ (желтая)
@@ -466,7 +467,7 @@ export const FAST_TRACK_CELLS = [
     color: '#FFD700', // Желтый
     icon: <MoneyIcon />
   },
-  // Клетка 37 - МЕЧТА (голубая)
+  // Клетка 37 - МЕЧТА (розовая)
   {
     id: 37,
     name: 'Белоснежная Яхта',
@@ -475,7 +476,7 @@ export const FAST_TRACK_CELLS = [
     cost: 300000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <TravelIcon />
   },
   // Клетка 38 - БИЗНЕС (зеленая)
@@ -505,10 +506,10 @@ export const FAST_TRACK_CELLS = [
   // Клетка 40 - ДЕНЬГИ (желтая)
   {
     id: 40,
-    name: 'Кругосветное плавание на паруснике',
-    description: 'Кругосветное путешествие на парусном судне.',
+    name: 'Вам выплачивается доход от ваших инвестиций',
+    description: 'Получение дохода от ранее приобретенных активов.',
     type: 'money',
-    cost: 200000,
+    cost: 0,
     monthlyIncome: 0,
     category: 'money',
     color: '#FFD700', // Желтый
@@ -526,7 +527,7 @@ export const FAST_TRACK_CELLS = [
     color: '#FFD700', // Желтый
     icon: <MoneyIcon />
   },
-  // Клетка 42 - МЕЧТА (голубая)
+  // Клетка 42 - МЕЧТА (розовая)
   {
     id: 42,
     name: 'Белоснежная Яхта',
@@ -535,7 +536,7 @@ export const FAST_TRACK_CELLS = [
     cost: 300000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <TravelIcon />
   },
   // Клетка 43 - БИЗНЕС (зеленая)
@@ -550,7 +551,7 @@ export const FAST_TRACK_CELLS = [
     color: '#4CAF50', // Зеленый
     icon: <BakeryIcon />
   },
-  // Клетка 44 - МЕЧТА (голубая)
+  // Клетка 44 - МЕЧТА (розовая)
   {
     id: 44,
     name: 'Организовать благотворительный фонд',
@@ -559,7 +560,7 @@ export const FAST_TRACK_CELLS = [
     cost: 200000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <CharityIcon />
   },
   // Клетка 45 - БИЗНЕС (зеленая)
@@ -574,7 +575,7 @@ export const FAST_TRACK_CELLS = [
     color: '#4CAF50', // Зеленый
     icon: <SchoolIcon />
   },
-  // Клетка 46 - МЕЧТА (голубая)
+  // Клетка 46 - МЕЧТА (розовая)
   {
     id: 46,
     name: 'Полёт в космос',
@@ -583,7 +584,7 @@ export const FAST_TRACK_CELLS = [
     cost: 250000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <TravelIcon />
   },
   // Клетка 47 - БИЗНЕС (зеленая)
@@ -598,7 +599,7 @@ export const FAST_TRACK_CELLS = [
     color: '#4CAF50', // Зеленый
     icon: <GymIcon />
   },
-  // Клетка 48 - МЕЧТА (голубая)
+  // Клетка 48 - МЕЧТА (розовая)
   {
     id: 48,
     name: 'Кругосветное путешествие',
@@ -607,7 +608,7 @@ export const FAST_TRACK_CELLS = [
     cost: 300000,
     monthlyIncome: 0,
     category: 'dream',
-    color: '#87CEEB', // Голубой
+    color: '#E91E63', // Розовый
     icon: <TravelIcon />
   },
   // Клетка 49 - БИЗНЕС (зеленая)

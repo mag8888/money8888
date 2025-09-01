@@ -691,6 +691,158 @@ io.on('connection', (socket) => {
     }
   });
 
+  // 🏦 Банковские операции
+  socket.on('bankTransfer', (data) => {
+    try {
+      const { roomId, playerId, recipient, amount } = data;
+      console.log('🏦 [SERVER] Bank transfer request:', { roomId, playerId, recipient, amount });
+      
+      const room = rooms.get(roomId);
+      if (!room) {
+        console.log('❌ [SERVER] Room not found for bank transfer:', roomId);
+        return;
+      }
+      
+      const player = room.currentPlayers.find(p => p.id === playerId);
+      if (!player) {
+        console.log('❌ [SERVER] Player not found for bank transfer:', playerId);
+        return;
+      }
+      
+      // Проверяем баланс игрока
+      if (player.balance < amount) {
+        socket.emit('bankTransferError', { message: 'Недостаточно средств' });
+        return;
+      }
+      
+      // Выполняем перевод
+      player.balance -= amount;
+      
+      // Ищем получателя в той же комнате
+      const recipientPlayer = room.currentPlayers.find(p => p.username === recipient);
+      if (recipientPlayer) {
+        recipientPlayer.balance += amount;
+        console.log('✅ [SERVER] Transfer completed between players:', { 
+          from: player.username, 
+          to: recipient, 
+          amount 
+        });
+      }
+      
+      // Отправляем обновление всем игрокам в комнате
+      io.to(roomId).emit('playersUpdate', room.currentPlayers);
+      socket.emit('bankTransferSuccess', { 
+        message: `Перевод $${amount} выполнен успешно`,
+        newBalance: player.balance 
+      });
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error in bank transfer:', error);
+      socket.emit('bankTransferError', { message: 'Ошибка при выполнении перевода' });
+    }
+  });
+
+  socket.on('creditPayment', (data) => {
+    try {
+      const { roomId, playerId, creditType, amount } = data;
+      console.log('🏦 [SERVER] Credit payment request:', { roomId, playerId, creditType, amount });
+      
+      const room = rooms.get(roomId);
+      if (!room) {
+        console.log('❌ [SERVER] Room not found for credit payment:', roomId);
+        return;
+      }
+      
+      const player = room.currentPlayers.find(p => p.id === playerId);
+      if (!player) {
+        console.log('❌ [SERVER] Player not found for credit payment:', playerId);
+        return;
+      }
+      
+      // Проверяем баланс игрока
+      if (player.balance < amount) {
+        socket.emit('creditPaymentError', { message: 'Недостаточно средств' });
+        return;
+      }
+      
+      // Проверяем наличие кредита
+      if (!player.credits || !player.credits[creditType] || player.credits[creditType] < amount) {
+        socket.emit('creditPaymentError', { message: 'Сумма превышает размер кредита' });
+        return;
+      }
+      
+      // Выполняем погашение кредита
+      player.balance -= amount;
+      player.credits[creditType] -= amount;
+      
+      // Если кредит полностью погашен, удаляем его
+      if (player.credits[creditType] <= 0) {
+        delete player.credits[creditType];
+      }
+      
+      console.log('✅ [SERVER] Credit payment completed:', { 
+        player: player.username, 
+        creditType, 
+        amount,
+        remainingCredit: player.credits[creditType] || 0
+      });
+      
+      // Отправляем обновление всем игрокам в комнате
+      io.to(roomId).emit('playersUpdate', room.currentPlayers);
+      socket.emit('creditPaymentSuccess', { 
+        message: `Погашение кредита $${amount} выполнено`,
+        newBalance: player.balance,
+        remainingCredits: player.credits
+      });
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error in credit payment:', error);
+      socket.emit('creditPaymentError', { message: 'Ошибка при погашении кредита' });
+    }
+  });
+
+  socket.on('getTransactionHistory', (data) => {
+    try {
+      const { roomId, playerId } = data;
+      console.log('🏦 [SERVER] Transaction history request:', { roomId, playerId });
+      
+      const room = rooms.get(roomId);
+      if (!room) {
+        console.log('❌ [SERVER] Room not found for transaction history:', roomId);
+        return;
+      }
+      
+      // В реальном приложении здесь была бы база данных
+      // Пока возвращаем тестовые данные
+      const transactions = [
+        {
+          id: 1,
+          from: 'MAG',
+          to: 'Алексей',
+          amount: 100,
+          type: 'transfer',
+          timestamp: '2024-01-15 14:30',
+          status: 'completed'
+        },
+        {
+          id: 2,
+          from: 'Мария',
+          to: 'MAG',
+          amount: 50,
+          type: 'transfer',
+          timestamp: '2024-01-15 13:45',
+          status: 'completed'
+        }
+      ];
+      
+      socket.emit('transactionHistory', transactions);
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error getting transaction history:', error);
+      socket.emit('transactionHistoryError', { message: 'Ошибка при получении истории транзакций' });
+    }
+  });
+
   // Обработчик отключения клиента
   socket.on('disconnect', () => {
     console.log(`🔌 [SERVER] Client disconnected: ${socket.id}`);

@@ -445,6 +445,20 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
     }
   };
 
+  // Обработчик нажатия клавиши Enter для поля пароля
+  const handlePasswordKeyPress = (event) => {
+    if (event.key === 'Enter') {
+      handlePasswordChange();
+    }
+  };
+
+  // Обработчик нажатия клавиши Enter для поля суммы перевода
+  const handleTransferKeyPress = (event) => {
+    if (event.key === 'Enter') {
+      handleTransfer();
+    }
+  };
+
   const handleProfessionSelect = (profession) => {
     setSelectedProfession(profession);
     socket.emit('updateProfession', roomId, profession);
@@ -825,6 +839,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                     fullWidth
                     value={roomPassword}
                     onChange={(e) => setRoomPassword(e.target.value)}
+                    onKeyPress={handlePasswordKeyPress}
                     placeholder="Введите пароль для комнаты"
                     variant="outlined"
                     type="password"
@@ -1409,6 +1424,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                     type="number"
                     value={transferAmount}
                     onChange={(e) => setTransferAmount(e.target.value)}
+                    onKeyPress={handleTransferKeyPress}
                     placeholder="Введите сумму"
                     sx={{ minHeight: 56 }}
                   />

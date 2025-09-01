@@ -1,18 +1,32 @@
 import React, { useState, useEffect, Fragment } from 'react';
-import { Box, Typography, Button, LinearProgress, Avatar, Chip, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, List, ListItem, ListItemText, Divider, Grid } from '@mui/material';
+import { Box, Typography, Button, LinearProgress, Avatar, Chip, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, List, ListItem, ListItemText, Divider, Grid, useMediaQuery, useTheme, IconButton } from '@mui/material';
 import { motion } from 'framer-motion';
 import FullProfessionCard from './FullProfessionCard';
+import MarketCardModal from './MarketCardModal';
+import ExpenseCardModal from './ExpenseCardModal';
+import { MarketDeckManager, checkPlayerHasMatchingAsset } from '../data/marketCards';
+import { ExpenseDeckManager } from '../data/expenseCards';
 import { 
   Timer, 
   ExitToApp,
   AccountBalance,
   Inventory,
-  Group
+  Group,
+  Menu,
+  Close,
+  VolunteerActivism as CharityIcon
 } from '@mui/icons-material';
 
 const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   console.log('🎮 [OriginalGameBoard] Компонент загружен:', { roomId, playerData });
   console.log('🎮 [OriginalGameBoard] Компонент обновлен - добавляем отладочную информацию');
+  
+  // Хуки для адаптивности
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // Состояние мобильного меню
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // CSS стили для анимаций
   useEffect(() => {
@@ -78,60 +92,60 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     // Добавляем внутренние клетки
     cells.push(...innerCells);
     
-    // 52 внешние клетки с детальной раскладкой
+    // 52 внешние клетки с детальной раскладкой (ID 25-76)
     const outerCells = [
       { id: 25, type: 'money', name: 'Доход от инвестиций', color: '#EAB308', icon: '$', description: 'Ваши инвестиции приносят доход', cost: 0, income: 0 },
-      { id: 26, type: 'dream', name: 'Дом мечты', color: '#EC4899', icon: '🏠', description: 'Построить дом мечты для семьи', cost: 100000, income: 0 },
-      { id: 27, type: 'business', name: 'Кофейня', color: '#10B981', icon: '☕', description: 'Кофейня в центре города', cost: 100000, income: 3000 },
+      { id: 26, type: 'dream', name: 'Дом мечты', color: '#E91E63', icon: '🏠', description: 'Построить дом мечты для семьи', cost: 100000, income: 0 },
+      { id: 27, type: 'business', name: 'Кофейня', color: '#4CAF50', icon: '☕', description: 'Кофейня в центре города', cost: 100000, income: 3000 },
       { id: 28, type: 'loss', name: 'Аудит', color: '#EF4444', icon: '📋', description: 'Аудит - потеря 50% активов', cost: 0, income: 0 },
-      { id: 29, type: 'business', name: 'Центр здоровья', color: '#10B981', icon: '💆', description: 'Центр здоровья и спа', cost: 270000, income: 5000 },
-      { id: 30, type: 'dream', name: 'Антарктида', color: '#EC4899', icon: '🧊', description: 'Посетить Антарктиду', cost: 150000, income: 0 },
-      { id: 31, type: 'business', name: 'Мобильное приложение', color: '#10B981', icon: '📱', description: 'Мобильное приложение (подписка)', cost: 420000, income: 10000 },
+      { id: 29, type: 'business', name: 'Центр здоровья', color: '#4CAF50', icon: '💆', description: 'Центр здоровья и спа', cost: 270000, income: 5000 },
+      { id: 30, type: 'dream', name: 'Полет на Марс', color: '#E91E63', icon: '🚀', description: 'Реализация мечты о космическом путешествии на Красную планету', cost: 300000, income: 0 },
+      { id: 31, type: 'business', name: 'Биржа', color: '#4CAF50', icon: '📈', description: 'Биржа (Разово выплачивается 500 000$ если выпало 5 или 6 на кубике) (стоимость 50 000$) можно купить или отказаться', cost: 50000, income: 0 },
       { id: 32, type: 'charity', name: 'Благотворительность', color: '#F97316', icon: '❤️', description: 'Благотворительность', cost: 0, income: 0 },
-      { id: 33, type: 'business', name: 'Цифровой маркетинг', color: '#3B82F6', icon: '📊', description: 'Агентство цифрового маркетинга', cost: 160000, income: 4000 },
+      { id: 33, type: 'business', name: 'Цифровой маркетинг', color: '#4CAF50', icon: '📊', description: 'Агентство цифрового маркетинга', cost: 160000, income: 4000 },
       { id: 34, type: 'loss', name: 'Кража', color: '#EF4444', icon: '🦹', description: 'Кража 100% наличных', cost: 0, income: 0 },
-      { id: 35, type: 'business', name: 'Мини-отель', color: '#3B82F6', icon: '🏨', description: 'Мини-отель/бутик-гостиница', cost: 200000, income: 5000 },
-      { id: 36, type: 'dream', name: 'Высочайшие вершины', color: '#EC4899', icon: '🏔️', description: 'Подняться на все высочайшие вершины мира', cost: 500000, income: 0 },
-      { id: 37, type: 'business', name: 'Франшиза ресторана', color: '#3B82F6', icon: '🍽️', description: 'Франшиза популярного ресторана', cost: 320000, income: 8000 },
+      { id: 35, type: 'business', name: 'Мини-отель', color: '#4CAF50', icon: '🏨', description: 'Мини-отель/бутик-гостиница', cost: 200000, income: 5000 },
+      { id: 36, type: 'dream', name: 'Высочайшие вершины', color: '#E91E63', icon: '🏔️', description: 'Подняться на все высочайшие вершины мира', cost: 500000, income: 0 },
+      { id: 37, type: 'business', name: 'Франшиза ресторана', color: '#4CAF50', icon: '🍽️', description: 'Франшиза популярного ресторана', cost: 320000, income: 8000 },
       { id: 38, type: 'money', name: 'Доход от инвестиций', color: '#EAB308', icon: '$', description: 'Ваши инвестиции приносят доход', cost: 0, income: 0 },
-      { id: 39, type: 'business', name: 'Мини-отель', color: '#3B82F6', icon: '🏨', description: 'Мини-отель/бутик-гостиница', cost: 200000, income: 4000 },
-      { id: 40, type: 'dream', name: 'Книга-бестселлер', color: '#EC4899', icon: '📚', description: 'Стать автором книги-бестселлера', cost: 300000, income: 0 },
-      { id: 41, type: 'business', name: 'Йога-центр', color: '#3B82F6', icon: '🧘', description: 'Йога- и медитационный центр', cost: 170000, income: 4500 },
+      { id: 39, type: 'dream', name: 'Ретрит-центр', color: '#E91E63', icon: '🏕️', description: 'Построить ретрит-центр', cost: 500000, income: 0 },
+      { id: 40, type: 'business', name: 'Мини-отель', color: '#4CAF50', icon: '🏨', description: 'Мини-отель/бутик-гостиница', cost: 200000, income: 4000 },
+      { id: 41, type: 'dream', name: 'Жить год на яхте в Средиземном море', color: '#E91E63', icon: '⛵', description: 'Годовая жизнь на роскошной яхте в прекрасном климате', cost: 300000, income: 0 },
       { id: 42, type: 'loss', name: 'Развод', color: '#EF4444', icon: '💔', description: 'Развод - потеря 50% активов', cost: 0, income: 0 },
-      { id: 43, type: 'business', name: 'Автомойки', color: '#3B82F6', icon: '🚗', description: 'Сеть автомоек самообслуживания', cost: 120000, income: 3000 },
-      { id: 44, type: 'dream', name: 'Яхта в Средиземном море', color: '#F59E0B', icon: '⛵', description: 'Жить год на яхте в Средиземном море', cost: 300000, income: 0 },
-      { id: 45, type: 'business', name: 'Салон красоты', color: '#3B82F6', icon: '💇', description: 'Салон красоты/барбершоп', cost: 500000, income: 15000 },
-      { id: 46, type: 'dream', name: 'Фонд поддержки', color: '#F59E0B', icon: '🎭', description: 'Создать фонд поддержки талантов', cost: 300000, income: 0 },
-      { id: 47, type: 'business', name: 'Онлайн-магазин', color: '#3B82F6', icon: '🛍️', description: 'Онлайн-магазин одежды', cost: 110000, income: 3000 },
-      { id: 48, type: 'dream', name: 'Мировой фестиваль', color: '#F59E0B', icon: '🎪', description: 'Организовать мировой фестиваль', cost: 200000, income: 0 },
-      { id: 49, type: 'loss', name: 'Пожар', color: '#EF4444', icon: '🔥', description: 'Пожар (вы теряете бизнес с мин доходом)', cost: 0, income: 0 },
-      { id: 50, type: 'dream', name: 'Ретрит-центр', color: '#F59E0B', icon: '🏕️', description: 'Построить ретрит-центр', cost: 500000, income: 0 },
+      { id: 43, type: 'dream', name: 'Ретрит-центр', color: '#E91E63', icon: '🏕️', description: 'Построить ретрит-центр', cost: 500000, income: 0 },
+      { id: 44, type: 'business', name: 'Автомойки', color: '#4CAF50', icon: '🚗', description: 'Сеть автомоек самообслуживания', cost: 120000, income: 3000 },
+      { id: 45, type: 'dream', name: 'Яхта в Средиземном море', color: '#E91E63', icon: '⛵', description: 'Жить год на яхте в Средиземном море', cost: 300000, income: 0 },
+      { id: 46, type: 'business', name: 'Салон красоты', color: '#4CAF50', icon: '💇', description: 'Салон красоты/барбершоп', cost: 500000, income: 15000 },
+      { id: 47, type: 'dream', name: 'Фонд поддержки', color: '#E91E63', icon: '🎭', description: 'Создать фонд поддержки талантов', cost: 300000, income: 0 },
+      { id: 48, type: 'business', name: 'Онлайн-магазин', color: '#4CAF50', icon: '🛍️', description: 'Онлайн-магазин одежды', cost: 110000, income: 3000 },
+      { id: 49, type: 'dream', name: 'Мировой фестиваль', color: '#E91E63', icon: '🎪', description: 'Организовать мировой фестиваль', cost: 200000, income: 0 },
+      { id: 50, type: 'loss', name: 'Пожар', color: '#EF4444', icon: '🔥', description: 'Пожар (вы теряете бизнес с мин доходом)', cost: 0, income: 0 },
       { id: 51, type: 'money', name: 'Доход от инвестиций', color: '#EAB308', icon: '$', description: 'Ваши инвестиции приносят доход', cost: 0, income: 0 },
-      { id: 52, type: 'dream', name: 'Кругосветное плавание', color: '#F59E0B', icon: '🌊', description: 'Кругосветное плавание на паруснике', cost: 200000, income: 0 },
-      { id: 53, type: 'business', name: 'Эко-ранчо', color: '#3B82F6', icon: '🌿', description: 'Туристический комплекс (эко-ранчо)', cost: 1000000, income: 20000 },
-      { id: 54, type: 'dream', name: 'Кругосветное плавание', color: '#F59E0B', icon: '🌊', description: 'Кругосветное плавание на паруснике', cost: 300000, income: 0 },
-      { id: 55, type: 'business', name: 'Биржа', color: '#3B82F6', icon: '📈', description: 'Биржа (Разово выплачивается 500 000$ если выпало 5 или 6 на кубике)', cost: 50000, income: 500000 },
-      { id: 56, type: 'dream', name: 'Частный самолёт', color: '#F59E0B', icon: '✈️', description: 'Купить частный самолёт', cost: 1000000, income: 0 },
-      { id: 57, type: 'business', name: 'NFT-платформа', color: '#3B82F6', icon: '🎨', description: 'NFT-платформа', cost: 400000, income: 12000 },
-      { id: 58, type: 'dream', name: 'Мировой лидер', color: '#F59E0B', icon: '👑', description: 'Стать мировым лидером мнений', cost: 1000000, income: 0 },
-      { id: 59, type: 'business', name: 'Школа языков', color: '#3B82F6', icon: '🌍', description: 'Школа иностранных языков', cost: 20000, income: 3000 },
-      { id: 60, type: 'dream', name: 'Коллекция суперкаров', color: '#F59E0B', icon: '🏎️', description: 'Купить коллекцию суперкаров', cost: 1000000, income: 0 },
-      { id: 61, type: 'business', name: 'Школа будущего', color: '#3B82F6', icon: '🎓', description: 'Создать школу будущего для детей', cost: 300000, income: 10000 },
-      { id: 62, type: 'dream', name: 'Фильм', color: '#F59E0B', icon: '🎬', description: 'Снять полнометражный фильм', cost: 500000, income: 0 },
-      { id: 63, type: 'loss', name: 'Рейдерский захват', color: '#EF4444', icon: '🦈', description: 'Рейдерский захват (Вы теряете бизнес с крупным доходом)', cost: 0, income: 0 },
-      { id: 64, type: 'dream', name: 'Кругосветное плавание', color: '#F59E0B', icon: '🌊', description: 'Кругосветное плавание на паруснике', cost: 200000, income: 0 },
-      { id: 65, type: 'business', name: 'Автомойки', color: '#3B82F6', icon: '🚗', description: 'Сеть автомоек самообслуживания', cost: 120000, income: 3500 },
-      { id: 66, type: 'dream', name: 'Белоснежная яхта', color: '#F59E0B', icon: '⛵', description: 'Белоснежная Яхта', cost: 300000, income: 0 },
-      { id: 67, type: 'business', name: 'Франшиза "Поток денег"', color: '#3B82F6', icon: '💸', description: 'Франшиза "поток денег"', cost: 100000, income: 10000 },
-      { id: 68, type: 'loss', name: 'Санкции', color: '#EF4444', icon: '🚫', description: 'Санкции заблокировали все счета', cost: 0, income: 0 },
-      { id: 69, type: 'business', name: 'Пекарня', color: '#3B82F6', icon: '🥖', description: 'Пекарня с доставкой', cost: 300000, income: 7000 },
-      { id: 70, type: 'dream', name: 'Благотворительный фонд', color: '#F59E0B', icon: '🤝', description: 'Организовать благотворительный фонд', cost: 200000, income: 0 },
-      { id: 71, type: 'business', name: 'Онлайн-образование', color: '#3B82F6', icon: '💻', description: 'Онлайн-образовательная платформа', cost: 200000, income: 5000 },
-      { id: 72, type: 'dream', name: 'Полёт в космос', color: '#F59E0B', icon: '🚀', description: 'Полёт в космос', cost: 250000, income: 0 },
-      { id: 73, type: 'business', name: 'Фитнес-студии', color: '#3B82F6', icon: '💪', description: 'Сеть фитнес-студий', cost: 750000, income: 20000 },
-      { id: 74, type: 'dream', name: 'Кругосветное путешествие', color: '#F59E0B', icon: '🌍', description: 'Кругосветное путешествие', cost: 300000, income: 0 },
-      { id: 75, type: 'business', name: 'Коворкинг', color: '#3B82F6', icon: '🏢', description: 'Коворкинг-пространство', cost: 500000, income: 10000 },
-      { id: 76, type: 'dream', name: 'Мечта', color: '#F59E0B', icon: '⭐', description: 'Придумай свою мечту', cost: 0, income: 0 }
+      { id: 52, type: 'business', name: 'Йога-центр', color: '#4CAF50', icon: '🧘', description: 'Йога- и медитационный центр', cost: 170000, income: 4500 },
+      { id: 53, type: 'dream', name: 'Кругосветное плавание', color: '#E91E63', icon: '🌊', description: 'Кругосветное плавание на паруснике', cost: 200000, income: 0 },
+      { id: 54, type: 'business', name: 'Эко-ранчо', color: '#4CAF50', icon: '🌿', description: 'Туристический комплекс (эко-ранчо)', cost: 1000000, income: 20000 },
+      { id: 55, type: 'dream', name: 'Кругосветное плавание', color: '#E91E63', icon: '🌊', description: 'Кругосветное плавание на паруснике', cost: 300000, income: 0 },
+      { id: 56, type: 'business', name: 'Биржа', color: '#4CAF50', icon: '📈', description: 'Биржа (Разово выплачивается 500 000$ если выпало 5 или 6 на кубике)', cost: 50000, income: 500000 },
+      { id: 57, type: 'dream', name: 'Частный самолёт', color: '#E91E63', icon: '✈️', description: 'Купить частный самолёт', cost: 1000000, income: 0 },
+      { id: 58, type: 'business', name: 'NFT-платформа', color: '#4CAF50', icon: '🎨', description: 'NFT-платформа', cost: 400000, income: 12000 },
+      { id: 59, type: 'dream', name: 'Мировой лидер', color: '#E91E63', icon: '👑', description: 'Стать мировым лидером мнений', cost: 1000000, income: 0 },
+      { id: 60, type: 'business', name: 'Школа языков', color: '#4CAF50', icon: '🌍', description: 'Школа иностранных языков', cost: 20000, income: 3000 },
+      { id: 61, type: 'dream', name: 'Коллекция суперкаров', color: '#E91E63', icon: '🏎️', description: 'Купить коллекцию суперкаров', cost: 1000000, income: 0 },
+      { id: 62, type: 'business', name: 'Школа будущего', color: '#4CAF50', icon: '🎓', description: 'Создать школу будущего для детей', cost: 300000, income: 10000 },
+      { id: 63, type: 'dream', name: 'Фильм', color: '#E91E63', icon: '🎬', description: 'Снять полнометражный фильм', cost: 500000, income: 0 },
+      { id: 64, type: 'money', name: 'Вам выплачивается доход от ваших инвестиций', color: '#FFD700', icon: '$', description: 'Получение дохода от ранее приобретенных активов', cost: 0, income: 0 },
+      { id: 65, type: 'dream', name: 'Кругосветное плавание', color: '#E91E63', icon: '🌊', description: 'Кругосветное плавание на паруснике', cost: 200000, income: 0 },
+      { id: 66, type: 'loss', name: 'Рейдерский захват', color: '#EF4444', icon: '🦈', description: 'Рейдерский захват (Вы теряете бизнес с крупным доходом)', cost: 0, income: 0 },
+      { id: 67, type: 'dream', name: 'Белоснежная яхта', color: '#E91E63', icon: '⛵', description: 'Белоснежная Яхта', cost: 300000, income: 0 },
+      { id: 68, type: 'business', name: 'Франшиза "Поток денег"', color: '#4CAF50', icon: '💸', description: 'Франшиза "поток денег"', cost: 100000, income: 10000 },
+      { id: 69, type: 'loss', name: 'Санкции', color: '#EF4444', icon: '🚫', description: 'Санкции заблокировали все счета', cost: 0, income: 0 },
+      { id: 70, type: 'business', name: 'Пекарня', color: '#4CAF50', icon: '🥖', description: 'Пекарня с доставкой', cost: 300000, income: 7000 },
+      { id: 71, type: 'dream', name: 'Благотворительный фонд', color: '#E91E63', icon: '🤝', description: 'Организовать благотворительный фонд', cost: 200000, income: 0 },
+      { id: 72, type: 'business', name: 'Онлайн-образование', color: '#4CAF50', icon: '💻', description: 'Онлайн-образовательная платформа', cost: 200000, income: 5000 },
+      { id: 73, type: 'dream', name: 'Полёт в космос', color: '#E91E63', icon: '🚀', description: 'Полёт в космос', cost: 250000, income: 0 },
+      { id: 74, type: 'business', name: 'Фитнес-студии', color: '#4CAF50', icon: '💪', description: 'Сеть фитнес-студий', cost: 750000, income: 20000 },
+      { id: 75, type: 'dream', name: 'Кругосветное путешествие', color: '#E91E63', icon: '🌍', description: 'Кругосветное путешествие', cost: 300000, income: 0 },
+      { id: 76, type: 'business', name: 'Коворкинг', color: '#4CAF50', icon: '🏢', description: 'Коворкинг-пространство', cost: 500000, income: 10000 }
     ];
     
     // Добавляем внешние клетки
@@ -183,6 +197,21 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     { id: 3, from: 'Алексей', to: 'Дмитрий', amount: 200, date: '2024-01-15', time: '12:20' }
   ]);
 
+  // Состояние для карточек рынка
+  const [showMarketCardModal, setShowMarketCardModal] = useState(false);
+  const [currentMarketCard, setCurrentMarketCard] = useState(null);
+  const [currentPlayerAssets, setCurrentPlayerAssets] = useState([]);
+  const [marketDeckManager] = useState(() => new MarketDeckManager());
+  const [marketDeckCount, setMarketDeckCount] = useState(24);
+  const [marketDiscardCount, setMarketDiscardCount] = useState(0);
+
+  // Состояние для карточек расходов
+  const [showExpenseCardModal, setShowExpenseCardModal] = useState(false);
+  const [currentExpenseCard, setCurrentExpenseCard] = useState(null);
+  const [expenseDeckManager] = useState(() => new ExpenseDeckManager());
+  const [expenseDeckCount, setExpenseDeckCount] = useState(24);
+  const [expenseDiscardCount, setExpenseDiscardCount] = useState(0);
+
   // Состояние для активов
   const [assets, setAssets] = useState([
     { id: 1, type: 'house', name: 'Дом', icon: '🏠', value: 150000, cost: 150000, income: 2000, color: '#10B981', description: 'Красивый дом в пригороде', quantity: 1 },
@@ -204,6 +233,13 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [showChildModal, setShowChildModal] = useState(false); // Модал рождения ребенка
   const [showConfetti, setShowConfetti] = useState(false); // Анимация конфети
 
+  // Состояние для большого круга
+  const [isOnBigCircle, setIsOnBigCircle] = useState(false); // Находится ли игрок на большом круге
+  const [bigCirclePassiveIncome, setBigCirclePassiveIncome] = useState(0); // Пассивный доход на большом круге
+  const [bigCircleBalance, setBigCircleBalance] = useState(0); // Баланс на большом круге
+  const [bigCircleBusinesses, setBigCircleBusinesses] = useState([]); // Купленные бизнесы на большом круге
+  const [bigCircleCells, setBigCircleCells] = useState({}); // Владельцы клеток на большом круге
+
   // Состояние для системы сделок
   const [dealDeck, setDealDeck] = useState([]); // Основная колода сделок
   const [discardPile, setDiscardPile] = useState([]); // Отбой
@@ -218,6 +254,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [creditModalFromDeal, setCreditModalFromDeal] = useState(false); // Открыт ли модал кредитов из сделки
   const [showAssetTransferModal, setShowAssetTransferModal] = useState(false); // Модал передачи активов
   const [selectedAssetForTransfer, setSelectedAssetForTransfer] = useState(null); // Выбранный актив для передачи
+  const [showBigCircleTransitionModal, setShowBigCircleTransitionModal] = useState(false); // Модал перехода на большой круг
+  
+  // Состояние для благотворительности
+  const [showCharityModal, setShowCharityModal] = useState(false);
+  const [charityCost, setCharityCost] = useState(0);
+  const [hasCharityBonus, setHasCharityBonus] = useState(false);
+  const [showCharityDiceModal, setShowCharityDiceModal] = useState(false);
+  const [charityDiceValues, setCharityDiceValues] = useState({ dice1: 0, dice2: 0, sum: 0 });
+  
+  // Состояние для отображения количества карточек
+
 
 
 
@@ -225,6 +272,13 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   useEffect(() => {
     initializeDealDeck();
   }, []);
+  
+  // Автоматически сворачиваем мобильное меню, если не ход игрока
+  useEffect(() => {
+    if (isMobile && !canRollDice) {
+      setIsMobileMenuOpen(false);
+    }
+  }, [isMobile, canRollDice]);
 
   // Функция инициализации колоды сделок
   const initializeDealDeck = () => {
@@ -303,12 +357,34 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       { id: 11, type: 'big', name: 'Завод', cost: 300000, income: 35000, description: 'Производственное предприятие' },
       { id: 12, type: 'big', name: 'Университет', cost: 500000, income: 60000, description: 'Частный университет' },
       { id: 13, type: 'big', name: 'Больница', cost: 400000, income: 45000, description: 'Частная клиника' },
-      { id: 14, type: 'big', name: 'Аэропорт', cost: 1000000, income: 150000, description: 'Региональный аэропорт' }
+      { id: 14, type: 'big', name: 'Аэропорт', cost: 1000000, income: 150000, description: 'Региональный аэропорт' },
+      // 10 карточек домов стоимостью 7000-10000$ и доходом 100-300$
+      { id: 70, type: 'big', name: 'Дом в пригороде', cost: 7000, income: 100, description: 'Небольшой дом в пригороде для сдачи в аренду' },
+      { id: 71, type: 'big', name: 'Дом в пригороде', cost: 7500, income: 120, description: 'Небольшой дом в пригороде для сдачи в аренду' },
+      { id: 72, type: 'big', name: 'Дом в пригороде', cost: 8000, income: 140, description: 'Небольшой дом в пригороде для сдачи в аренду' },
+      { id: 73, type: 'big', name: 'Дом в пригороде', cost: 8500, income: 160, description: 'Небольшой дом в пригороде для сдачи в аренду' },
+      { id: 74, type: 'big', name: 'Дом в пригороде', cost: 9000, income: 180, description: 'Небольшой дом в пригороде для сдачи в аренду' },
+      { id: 75, type: 'big', name: 'Дом в пригороде', cost: 9500, income: 200, description: 'Небольшой дом в пригороде для сдачи в аренду' },
+      { id: 76, type: 'big', name: 'Дом в пригороде', cost: 10000, income: 220, description: 'Небольшой дом в пригороде для сдачи в аренду' },
+      { id: 77, type: 'big', name: 'Дом в пригороде', cost: 8000, income: 150, description: 'Небольшой дом в пригороде для сдачи в аренду' },
+      { id: 78, type: 'big', name: 'Дом в пригороде', cost: 8500, income: 170, description: 'Небольшой дом в пригороде для сдачи в аренду' },
+      { id: 79, type: 'big', name: 'Дом в пригороде', cost: 9000, income: 190, description: 'Небольшой дом в пригороде для сдачи в аренду' },
+      // Новые карточки бизнесов
+      { id: 80, type: 'big', name: 'Мини-отель', cost: 80000, income: 3000, description: 'Бутик-отель на 10 номеров, стабильно приносит доход' },
+      { id: 81, type: 'big', name: 'Сеть кафе быстрого питания', cost: 200000, income: 7000, description: 'Прибыльный бизнес, несколько точек в центре города' },
+      { id: 82, type: 'big', name: 'Ферма органических овощей', cost: 120000, income: 4500, description: 'Экологичное хозяйство с контрактами на поставку' },
+      { id: 83, type: 'big', name: 'Сеть автомоек', cost: 150000, income: 5000, description: 'Хорошее расположение, стабильный трафик клиентов' },
+      { id: 84, type: 'big', name: 'Коворкинг-центр', cost: 250000, income: 8000, description: 'Большое пространство для аренды под стартапы и фрилансеров' },
+      { id: 85, type: 'big', name: 'Мини-отель', cost: 80000, income: 3000, description: 'Бутик-отель на 10 номеров, стабильно приносит доход' },
+      { id: 86, type: 'big', name: 'Сеть кафе быстрого питания', cost: 200000, income: 7000, description: 'Прибыльный бизнес, несколько точек в центре города' },
+      { id: 87, type: 'big', name: 'Франшиза "Энергия денег"', cost: 100000, income: 10000, description: 'Франшиза на страну игры "Энергия денег" - прибыльный образовательный бизнес' }
     ];
 
     // Перемешиваем карточки
     const shuffledDeck = [...smallDeals, ...bigDeals].sort(() => Math.random() - 0.5);
     setDealDeck(shuffledDeck);
+    
+
   };
 
   // Функция броска кубика
@@ -319,6 +395,21 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     setDiceRolled(true);
     setCanRollDice(false);
     
+    if (hasCharityBonus) {
+      // Бросаем 2 кубика при наличии бонуса благотворительности
+      const dice1 = Math.floor(Math.random() * 6) + 1;
+      const dice2 = Math.floor(Math.random() * 6) + 1;
+      const sum = dice1 + dice2;
+      
+      // Показываем модал выбора хода
+      setShowCharityDiceModal(true);
+      setCharityDiceValues({ dice1, dice2, sum });
+      
+      setIsRolling(false);
+      return;
+    }
+    
+    // Обычный бросок одного кубика
     const rollInterval = setInterval(() => {
       setDiceValue(Math.floor(Math.random() * 6) + 1);
     }, 100);
@@ -423,6 +514,209 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     setCustomPayoffAmount(''); // Очищаем поле погашения кредита
   };
   
+  // Функция проверки условий для перехода на большой круг
+  const checkBigCircleConditions = (player) => {
+    // 1. Пассивный доход должен в 2 раза превышать расходы
+    const passiveIncome = getTotalAssetsIncome();
+    const expenses = getPlayerExpenses(player.profession);
+    const incomeCondition = passiveIncome >= expenses * 2;
+    
+    // 2. Погасить ипотеку
+    const hasMortgage = player.liabilities && player.liabilities.some(liability => liability.type === 'mortgage');
+    const mortgageCondition = !hasMortgage;
+    
+    // 3. Погасить кредит если брал
+    const hasCredit = playerCredit > 0;
+    const creditCondition = !hasCredit;
+    
+    return {
+      incomeCondition,
+      mortgageCondition,
+      creditCondition,
+      canTransition: incomeCondition && mortgageCondition && creditCondition
+    };
+  };
+
+  // Функция перехода на большой круг
+  const transitionToBigCircle = () => {
+    const player = players[currentPlayer];
+    
+    // 0. Обнуляем весь кеш и все карточки идут в отбой
+    setPlayerMoney(0);
+    setAssets([]);
+    setDealDeck([]);
+    setDiscardPile([]);
+    setPlayerCredit(0);
+    
+    // 1. Пассивный доход увеличивается в 10 раз
+    const originalPassiveIncome = getTotalAssetsIncome();
+    const newPassiveIncome = originalPassiveIncome * 10;
+    setBigCirclePassiveIncome(newPassiveIncome);
+    
+    // 2. При старте игроку начисляется пассивный доход на баланс
+    setBigCircleBalance(newPassiveIncome);
+    
+    // 3. Устанавливаем флаг нахождения на большом круге
+    setIsOnBigCircle(true);
+    
+    // 4. Перемещаем игрока на позицию 25 (начало большого круга)
+    const updatedPlayers = [...players];
+    updatedPlayers[currentPlayer].position = 25;
+    setPlayers(updatedPlayers);
+    
+    setToast({
+      open: true,
+      message: `🎉 ${player.name} перешел на большой круг! Пассивный доход: $${newPassiveIncome.toLocaleString()}/ход`,
+      severity: 'success'
+    });
+    
+    console.log(`🎉 [OriginalGameBoard] Игрок ${player.name} перешел на большой круг с пассивным доходом $${newPassiveIncome}`);
+  };
+
+  // Функция начисления дохода при прохождении денег на большом круге
+  const handleBigCircleMoneyPass = () => {
+    if (!isOnBigCircle) return;
+    
+    const player = players[currentPlayer];
+    const currentIncome = bigCirclePassiveIncome;
+    
+    setBigCircleBalance(prev => prev + currentIncome);
+    
+    setToast({
+      open: true,
+      message: `💰 ${player.name} получил доход $${currentIncome.toLocaleString()} (большой круг)`,
+      severity: 'success'
+    });
+    
+    console.log(`💰 [OriginalGameBoard] Игрок ${player.name} получил доход $${currentIncome} на большом круге`);
+  };
+
+  // Функция покупки бизнеса на большом круге
+  const handleBigCircleBusinessPurchase = (cellId, businessData) => {
+    if (!isOnBigCircle) return;
+    
+    const player = players[currentPlayer];
+    const currentBalance = bigCircleBalance;
+    const businessCost = businessData.cost;
+    const businessIncome = businessData.income;
+    
+    if (currentBalance >= businessCost) {
+      // Покупаем бизнес
+      setBigCircleBalance(prev => prev - businessCost);
+      
+      // Добавляем бизнес к списку
+      const newBusiness = {
+        id: Date.now(),
+        cellId: cellId,
+        name: businessData.name,
+        cost: businessCost,
+        income: businessIncome,
+        owner: player.id,
+        ownerName: player.name,
+        ownerColor: player.color
+      };
+      
+      setBigCircleBusinesses(prev => [...prev, newBusiness]);
+      
+      // Увеличиваем пассивный доход
+      setBigCirclePassiveIncome(prev => prev + businessIncome);
+      
+      // Устанавливаем владельца клетки
+      setBigCircleCells(prev => ({
+        ...prev,
+        [cellId]: {
+          owner: player.id,
+          ownerName: player.name,
+          ownerColor: player.color,
+          business: newBusiness
+        }
+      }));
+      
+      setToast({
+        open: true,
+        message: `✅ ${player.name} купил ${businessData.name} за $${businessCost.toLocaleString()}. Доход увеличен на $${businessIncome}/ход`,
+        severity: 'success'
+      });
+      
+      console.log(`✅ [OriginalGameBoard] Игрок ${player.name} купил бизнес ${businessData.name} на большом круге`);
+    } else {
+      setToast({
+        open: true,
+        message: `❌ Недостаточно денег для покупки ${businessData.name}. Нужно: $${businessCost.toLocaleString()}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  // Функция перекупки бизнеса на большом круге
+  const handleBigCircleBusinessTakeover = (cellId, businessData) => {
+    if (!isOnBigCircle) return;
+    
+    const player = players[currentPlayer];
+    const currentBalance = bigCircleBalance;
+    const currentOwner = bigCircleCells[cellId];
+    
+    if (!currentOwner) return;
+    
+    // Цена перекупки = предыдущая цена * 2
+    const takeoverCost = businessData.cost * 2;
+    
+    if (currentBalance >= takeoverCost) {
+      // Перекупаем бизнес
+      setBigCircleBalance(prev => prev - takeoverCost);
+      
+      // Возвращаем деньги предыдущему владельцу
+      const previousOwnerIndex = players.findIndex(p => p.id === currentOwner.owner);
+      if (previousOwnerIndex !== -1) {
+        // Здесь нужно обновить баланс предыдущего владельца
+        // Пока что просто показываем уведомление
+      }
+      
+      // Удаляем доход у предыдущего владельца
+      setBigCirclePassiveIncome(prev => prev - businessData.income);
+      
+      // Обновляем владельца клетки
+      setBigCircleCells(prev => ({
+        ...prev,
+        [cellId]: {
+          owner: player.id,
+          ownerName: player.name,
+          ownerColor: player.color,
+          business: {
+            ...currentOwner.business,
+            owner: player.id,
+            ownerName: player.name,
+            ownerColor: player.color
+          }
+        }
+      }));
+      
+      // Обновляем бизнес в списке
+      setBigCircleBusinesses(prev => prev.map(business => 
+        business.cellId === cellId 
+          ? { ...business, owner: player.id, ownerName: player.name, ownerColor: player.color }
+          : business
+      ));
+      
+      // Добавляем доход новому владельцу
+      setBigCirclePassiveIncome(prev => prev + businessData.income);
+      
+      setToast({
+        open: true,
+        message: `🔄 ${player.name} перекупил ${businessData.name} за $${takeoverCost.toLocaleString()} у ${currentOwner.ownerName}`,
+        severity: 'success'
+      });
+      
+      console.log(`🔄 [OriginalGameBoard] Игрок ${player.name} перекупил бизнес ${businessData.name} у ${currentOwner.ownerName}`);
+    } else {
+      setToast({
+        open: true,
+        message: `❌ Недостаточно денег для перекупки ${businessData.name}. Нужно: $${takeoverCost.toLocaleString()}`,
+        severity: 'error'
+      });
+    }
+  };
+
   // Функция движения игрока
   const movePlayer = (steps) => {
     const updatedPlayers = [...players];
@@ -440,8 +734,18 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     const moveStep = () => {
       if (currentPosition < startPosition + steps) {
         currentPosition++;
-        if (currentPosition > 76) {
-          currentPosition = 1; // Замыкаем круг (76 клеток)
+        
+        // Логика замыкания круга
+        if (isOnBigCircle) {
+          // На большом круге: 25-76 (52 клетки)
+          if (currentPosition > 76) {
+            currentPosition = 25; // Возвращаемся к началу большого круга
+          }
+        } else {
+          // На малом круге: 1-24 (24 клетки)
+          if (currentPosition > 24) {
+            currentPosition = 1; // Возвращаемся к началу малого круга
+          }
         }
         
         // Обновляем позицию игрока
@@ -451,19 +755,30 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         // Продолжаем движение
         setTimeout(moveStep, 200); // 200ms между шагами
       } else {
-        // Движение завершено, НЕ переходим к следующему игроку
-        // Игрок остается на своей позиции до истечения времени хода
-        setIsMoving(false); // Снимаем флаг движения
-        setMovingPlayerId(null); // Сбрасываем ID движущегося игрока
+        // Движение завершено
+        setIsMoving(false);
+        setMovingPlayerId(null);
         
-        // Движение завершено, обрабатываем клетку
-        setIsMoving(false); // Снимаем флаг движения
-        setMovingPlayerId(null); // Сбрасываем ID движущегося игрока
+        // Проверяем условия для перехода на большой круг (только если не на большом круге)
+        if (!isOnBigCircle && player.position <= 24) {
+          const conditions = checkBigCircleConditions(player);
+          
+          if (conditions.canTransition) {
+            setToast({
+              open: true,
+              message: `🎉 ${player.name} выполнил все условия! Может перейти на большой круг!`,
+              severity: 'success'
+            });
+            
+            // Показываем модал выбора перехода
+            setShowBigCircleTransitionModal(true);
+          }
+        }
         
         // Обрабатываем логику клетки
         handleCellAction(player.position);
         
-        console.log(`🎯 Игрок ${player.name} переместился на позицию ${player.position}`);
+        console.log(`🎯 Игрок ${player.name} переместился на позицию ${player.position} ${isOnBigCircle ? '(большой круг)' : '(малый круг)'}`);
       }
     };
     
@@ -473,6 +788,19 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция обработки действий клетки
   const handleCellAction = (position) => {
+    const player = players[currentPlayer];
+    
+    if (isOnBigCircle) {
+      // Логика большого круга
+      handleBigCircleCellAction(position);
+    } else {
+      // Логика малого круга
+      handleSmallCircleCellAction(position);
+    }
+  };
+
+  // Функция обработки действий клетки на малом круге
+  const handleSmallCircleCellAction = (position) => {
     const player = players[currentPlayer];
     
     // Клетки зарплаты (6, 14, 22)
@@ -508,6 +836,109 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     // Клетки сделок (1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23)
     if ([1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23].includes(position)) {
       setShowDealTypeModal(true);
+    }
+    
+    // Клетки рынка (8, 16, 24)
+    if ([8, 16, 24].includes(position)) {
+      handleMarketAction();
+    }
+
+    // Клетки расходов (2, 10, 18)
+    if ([2, 10, 18].includes(position)) {
+      handleExpenseAction();
+    }
+    
+    // Клетки благотворительности (4, 32)
+    if ([4, 32].includes(position)) {
+      handleCharityAction();
+    }
+  };
+
+  // Функция обработки действий клетки на большом круге
+  const handleBigCircleCellAction = (position) => {
+    const player = players[currentPlayer];
+    
+    // Клетки дохода от инвестиций (25, 38, 51, 64)
+    if ([25, 38, 51, 64].includes(position)) {
+      handleBigCircleMoneyPass();
+    }
+    
+    // Клетки бизнесов (27, 29, 33, 35, 37, 40, 44, 46, 48, 52, 54, 56, 58, 60, 62, 68, 70, 72, 74, 76)
+    const businessCells = [27, 29, 33, 35, 37, 40, 44, 46, 48, 52, 54, 56, 58, 60, 62, 68, 70, 72, 74, 76];
+    if (businessCells.includes(position)) {
+      const cellData = originalBoard.find(cell => cell.id === position);
+      if (cellData && cellData.type === 'business') {
+        const currentOwner = bigCircleCells[position];
+        
+        if (currentOwner) {
+          // Клетка уже куплена - предлагаем перекупку
+          if (currentOwner.owner !== player.id) {
+            const takeoverCost = cellData.cost * 2;
+            setToast({
+              open: true,
+              message: `🔄 ${cellData.name} принадлежит ${currentOwner.ownerName}. Цена перекупки: $${takeoverCost.toLocaleString()}`,
+              severity: 'info'
+            });
+            // Здесь можно добавить модал для подтверждения перекупки
+          } else {
+            setToast({
+              open: true,
+              message: `✅ ${cellData.name} уже принадлежит вам!`,
+              severity: 'success'
+            });
+          }
+        } else {
+          // Клетка свободна - предлагаем покупку
+          setToast({
+            open: true,
+            message: `💼 ${cellData.name} - стоимость: $${cellData.cost.toLocaleString()}, доход: $${cellData.income}/ход`,
+            severity: 'info'
+          });
+          // Здесь можно добавить модал для подтверждения покупки
+        }
+      }
+    }
+    
+    // Клетки мечты (26, 30, 36, 39, 41, 43, 45, 47, 49, 53, 55, 57, 59, 61, 63, 65, 67, 69, 71, 73, 75)
+    const dreamCells = [26, 30, 36, 39, 41, 43, 45, 47, 49, 53, 55, 57, 59, 61, 63, 65, 67, 69, 71, 73, 75];
+    if (dreamCells.includes(position)) {
+      const cellData = originalBoard.find(cell => cell.id === position);
+      if (cellData && cellData.type === 'dream') {
+        setToast({
+          open: true,
+          message: `🌟 ${cellData.name} - стоимость: $${cellData.cost.toLocaleString()}`,
+          severity: 'info'
+        });
+      }
+    }
+    
+    // Клетки потерь (28, 34, 42, 50, 66)
+    const lossCells = [28, 34, 42, 50, 66];
+    if (lossCells.includes(position)) {
+      const cellData = originalBoard.find(cell => cell.id === position);
+      if (cellData && cellData.type === 'loss') {
+        setToast({
+          open: true,
+          message: `💸 ${cellData.name} - ${cellData.description}`,
+          severity: 'error'
+        });
+      }
+    }
+  };
+
+  // Функция получения расходов игрока
+  const getPlayerExpenses = (profession) => {
+    switch (profession) {
+      case 'Инженер':
+        return 3000;
+      case 'Менеджер':
+        return 2800;
+      case 'Дизайнер':
+        return 2500;
+      case 'Программист':
+        return 3500;
+      default:
+        return 2500;
     }
   };
 
@@ -563,6 +994,310 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     
     setShowChildModal(false);
   };
+  
+  // Функция обработки благотворительности
+  const handleCharityAction = () => {
+    const player = players[currentPlayer];
+    
+    // Рассчитываем стоимость благотворительности (50% от суммарного дохода)
+    const totalIncome = getPlayerSalary(player.profession) + 
+                       assets.reduce((sum, asset) => sum + (asset.income || 0), 0);
+    const charityAmount = Math.floor(totalIncome * 0.5);
+    
+    setCharityCost(charityAmount);
+    setShowCharityModal(true);
+    
+    console.log(`❤️ [OriginalGameBoard] Игрок ${player.name} попал на клетку благотворительности. Стоимость: $${charityAmount}`);
+  };
+
+  // Функция обработки карточек рынка
+  const handleMarketAction = () => {
+    const player = players[currentPlayer];
+    
+    // Вытаскиваем карточку из колоды
+    const marketCard = marketDeckManager.drawCard();
+    
+    if (!marketCard) {
+      setToast({
+        open: true,
+        message: '❌ Нет доступных карточек рынка',
+        severity: 'error'
+      });
+      return;
+    }
+    
+    // Получаем активы текущего игрока (пока используем общие активы)
+    const playerAssets = assets;
+    
+    // Проверяем, есть ли у игрока подходящий актив
+    const hasMatchingAsset = checkPlayerHasMatchingAsset(playerAssets, marketCard);
+    
+    // Устанавливаем состояние для модального окна
+    setCurrentMarketCard(marketCard);
+    setCurrentPlayerAssets(playerAssets);
+    setShowMarketCardModal(true);
+    
+    // Обновляем счетчики колоды
+    setMarketDeckCount(marketDeckManager.getDeckCount());
+    setMarketDiscardCount(marketDeckManager.getDiscardCount());
+    
+    console.log(`🏪 [OriginalGameBoard] Игрок ${player.name} попал на клетку рынка. Карточка: ${marketCard.name}`);
+    console.log(`📊 [OriginalGameBoard] Колода: ${marketDeckManager.getDeckCount()}, Отбой: ${marketDeckManager.getDiscardCount()}`);
+  };
+
+  // Функция обработки карточек расходов
+  const handleExpenseAction = () => {
+    const player = players[currentPlayer];
+    
+    // Вытаскиваем карточку из колоды
+    const expenseCard = expenseDeckManager.drawCard();
+    
+    if (!expenseCard) {
+      setToast({
+        open: true,
+        message: '❌ Нет доступных карточек расходов',
+        severity: 'error'
+      });
+      return;
+    }
+    
+    // Устанавливаем состояние для модального окна
+    setCurrentExpenseCard(expenseCard);
+    setShowExpenseCardModal(true);
+    
+    // Обновляем счетчики колоды
+    setExpenseDeckCount(expenseDeckManager.getDeckCount());
+    setExpenseDiscardCount(expenseDeckManager.getDiscardCount());
+    
+    console.log(`💸 [OriginalGameBoard] Игрок ${player.name} попал на клетку расходов. Карточка: ${expenseCard.name}`);
+    console.log(`📊 [OriginalGameBoard] Колода: ${expenseDeckManager.getDeckCount()}, Отбой: ${expenseDeckManager.getDiscardCount()}`);
+  };
+
+  // Функция принятия предложения рынка
+  const handleMarketAccept = () => {
+    const player = players[currentPlayer];
+    
+    if (!currentMarketCard) return;
+    
+    if (currentMarketCard.type === 'market_crash') {
+      // Обработка краха рынка (влияет на всех игроков)
+      handleMarketCrash();
+    } else {
+      // Обработка обычного предложения
+      handleMarketSale();
+    }
+    
+    // Откладываем карточку в отбой
+    marketDeckManager.discardCard(currentMarketCard);
+    
+    // Обновляем счетчики колоды
+    setMarketDeckCount(marketDeckManager.getDeckCount());
+    setMarketDiscardCount(marketDeckManager.getDiscardCount());
+    
+    setShowMarketCardModal(false);
+    setCurrentMarketCard(null);
+  };
+
+  // Функция отказа от предложения рынка
+  const handleMarketDecline = () => {
+    const player = players[currentPlayer];
+    
+    setToast({
+      open: true,
+      message: `${player.name} отказался от предложения рынка`,
+      severity: 'info'
+    });
+    
+    // Откладываем карточку в отбой
+    marketDeckManager.discardCard(currentMarketCard);
+    
+    // Обновляем счетчики колоды
+    setMarketDeckCount(marketDeckManager.getDeckCount());
+    setMarketDiscardCount(marketDeckManager.getDiscardCount());
+    
+    setShowMarketCardModal(false);
+    setCurrentMarketCard(null);
+    
+    console.log(`😔 [OriginalGameBoard] Игрок ${player.name} отказался от предложения рынка`);
+  };
+
+  // Функция обработки продажи актива через рынок
+  const handleMarketSale = () => {
+    const player = players[currentPlayer];
+    
+    if (!currentMarketCard) return;
+    
+    // Находим актив для продажи
+    let assetToSell = null;
+    
+    if (currentMarketCard.targetAsset === 'any_business') {
+      // Продаем первый найденный бизнес
+      assetToSell = currentPlayerAssets.find(asset => asset.type === 'business');
+    } else {
+      // Ищем точное совпадение
+      assetToSell = currentPlayerAssets.find(asset => asset.id === currentMarketCard.targetAsset);
+    }
+    
+    if (assetToSell) {
+      // Удаляем актив из списка
+      setAssets(prev => prev.filter(asset => asset.id !== assetToSell.id));
+      
+      // Добавляем деньги от продажи
+      setPlayerMoney(prev => prev + currentMarketCard.offerPrice);
+      
+      setToast({
+        open: true,
+        message: `💰 ${player.name} продал ${assetToSell.name} за $${currentMarketCard.offerPrice.toLocaleString()}`,
+        severity: 'success'
+      });
+      
+      console.log(`💰 [OriginalGameBoard] Игрок ${player.name} продал ${assetToSell.name} за $${currentMarketCard.offerPrice}`);
+    }
+  };
+
+  // Функция обработки краха рынка
+  const handleMarketCrash = () => {
+    const player = players[currentPlayer];
+    
+    // Удаляем все BTC активы у всех игроков
+    setAssets(prev => prev.filter(asset => asset.type !== 'bitcoin'));
+    
+    setToast({
+      open: true,
+      message: `📉 Крах рынка! Все игроки потеряли Bitcoin активы`,
+      severity: 'error'
+    });
+    
+    console.log(`📉 [OriginalGameBoard] Крах рынка! Все игроки потеряли Bitcoin активы`);
+  };
+
+  // Функция оплаты карточки расхода
+  const handleExpensePay = () => {
+    const player = players[currentPlayer];
+    
+    if (!currentExpenseCard) return;
+    
+    // Списываем деньги с баланса игрока
+    const updatedPlayers = [...players];
+    updatedPlayers[currentPlayer] = {
+      ...updatedPlayers[currentPlayer],
+      balance: updatedPlayers[currentPlayer].balance - currentExpenseCard.cost
+    };
+    setPlayers(updatedPlayers);
+    
+    // Откладываем карточку в отбой
+    expenseDeckManager.discardCard(currentExpenseCard);
+    
+    // Обновляем счетчики колоды
+    setExpenseDeckCount(expenseDeckManager.getDeckCount());
+    setExpenseDiscardCount(expenseDeckManager.getDiscardCount());
+    
+    setToast({
+      open: true,
+      message: `💸 ${player.name} заплатил $${currentExpenseCard.cost.toLocaleString()} за ${currentExpenseCard.name}`,
+      severity: 'info'
+    });
+    
+    setShowExpenseCardModal(false);
+    setCurrentExpenseCard(null);
+    
+    console.log(`💸 [OriginalGameBoard] Игрок ${player.name} заплатил $${currentExpenseCard.cost} за ${currentExpenseCard.name}`);
+  };
+
+  // Функция взятия кредита для оплаты расхода
+  const handleExpenseTakeCredit = () => {
+    const player = players[currentPlayer];
+    
+    if (!currentExpenseCard) return;
+    
+    const shortfall = currentExpenseCard.cost - player.balance;
+    
+    // Добавляем кредит игроку
+    const updatedPlayers = [...players];
+    updatedPlayers[currentPlayer] = {
+      ...updatedPlayers[currentPlayer],
+      balance: updatedPlayers[currentPlayer].balance + shortfall,
+      credits: (updatedPlayers[currentPlayer].credits || 0) + shortfall
+    };
+    setPlayers(updatedPlayers);
+    
+    // Списываем стоимость расхода
+    updatedPlayers[currentPlayer].balance -= currentExpenseCard.cost;
+    setPlayers(updatedPlayers);
+    
+    // Откладываем карточку в отбой
+    expenseDeckManager.discardCard(currentExpenseCard);
+    
+    // Обновляем счетчики колоды
+    setExpenseDeckCount(expenseDeckManager.getDeckCount());
+    setExpenseDiscardCount(expenseDeckManager.getDiscardCount());
+    
+    setToast({
+      open: true,
+      message: `💳 ${player.name} взял кредит $${shortfall.toLocaleString()} для оплаты ${currentExpenseCard.name}`,
+      severity: 'warning'
+    });
+    
+    setShowExpenseCardModal(false);
+    setCurrentExpenseCard(null);
+    
+    console.log(`💳 [OriginalGameBoard] Игрок ${player.name} взял кредит $${shortfall} для оплаты ${currentExpenseCard.name}`);
+  };
+  
+  // Функция принятия благотворительности
+  const handleCharityAccept = () => {
+    const player = players[currentPlayer];
+    
+    if (playerMoney >= charityCost) {
+      // Списываем деньги
+      setPlayerMoney(prev => prev - charityCost);
+      
+      // Активируем бонус благотворительности
+      setHasCharityBonus(true);
+      
+      setToast({
+        open: true,
+        message: `❤️ ${player.name} пожертвовал $${charityCost.toLocaleString()} на благотворительность! Теперь можно бросать 2 кубика!`,
+        severity: 'success'
+      });
+      
+      console.log(`❤️ [OriginalGameBoard] Игрок ${player.name} принял благотворительность за $${charityCost}`);
+    } else {
+      setToast({
+        open: true,
+        message: `❌ Недостаточно денег для благотворительности. Нужно: $${charityCost.toLocaleString()}`,
+        severity: 'error'
+      });
+    }
+    
+    setShowCharityModal(false);
+  };
+  
+  // Функция отказа от благотворительности
+  const handleCharityDecline = () => {
+    setShowCharityModal(false);
+    
+    setToast({
+      open: true,
+      message: `😔 Игрок отказался от благотворительности`,
+      severity: 'info'
+    });
+    
+    console.log(`😔 [OriginalGameBoard] Игрок отказался от благотворительности`);
+  };
+  
+  // Функция выбора хода по кубикам благотворительности
+  const handleCharityDiceChoice = (chosenValue) => {
+    setShowCharityDiceModal(false);
+    
+    // Двигаем фишку на выбранное количество шагов
+    movePlayer(chosenValue);
+    
+    // Сбрасываем бонус благотворительности после использования
+    setHasCharityBonus(false);
+    
+    console.log(`🎲 [OriginalGameBoard] Игрок выбрал ход на ${chosenValue} шагов (кубики: ${charityDiceValues.dice1}, ${charityDiceValues.dice2})`);
+  };
 
   // Функция выбора типа сделки
   const handleDealTypeSelection = (dealType) => {
@@ -578,9 +1313,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         setDealDeck(shuffledDiscard);
         setDiscardPile([]);
         
+
+        
         setToast({
           open: true,
-          message: `🔄 Колода закончилась! Отбой перемешан и возвращен в игру`,
+          message: `🔄 Колода закончилась! Отбой (${shuffledDiscard.length} карточек) перемешан и возвращен в игру`,
           severity: 'info'
         });
         
@@ -604,6 +1341,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     
     // Убираем карточку из колоды
     setDealDeck(prev => prev.filter(c => c.id !== card.id));
+    
+
   };
 
   // Функция покупки карточки сделки
@@ -693,9 +1432,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     // Карточка уходит в отбой
     setDiscardPile(prev => [...prev, currentDealCard]);
     
+
+    
     setToast({
       open: true,
-      message: `🔄 Карточка ${currentDealCard.name} ушла в отбой`,
+      message: `🔄 Карточка ${currentDealCard.name} ушла в отбой (всего в отбое: ${discardPile.length + 1})`,
       severity: 'info'
     });
     
@@ -1286,29 +2027,55 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     <Box sx={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%)',
-      padding: '20px',
+      padding: isMobile ? '10px' : '20px',
       display: 'flex',
-      gap: '30px'
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: isMobile ? '15px' : '30px'
     }}>
       {/* Основное игровое поле */}
       <Box sx={{
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center'
+        alignItems: 'center',
+        width: isMobile ? '100%' : 'auto',
+        minHeight: isMobile ? 'auto' : '100vh'
       }}>
         {/* Отладочная информация */}
-        <Box sx={{ textAlign: 'center', mb: 2 }}>
+        <Box sx={{ textAlign: 'center', mb: isMobile ? 1 : 2 }}>
           <Typography variant="body2" sx={{ 
             color: '#ff4444',
             fontWeight: 'bold',
             fontFamily: 'monospace',
-            fontSize: '0.8rem',
-            mb: 1
+            fontSize: isMobile ? '0.7rem' : '0.8rem',
+            mb: isMobile ? 0.5 : 1
           }}>
             🐛 DEBUG: OriginalGameBoard.js (3 топ актива + упрощенный логотип + профили + банк)
           </Typography>
         </Box>
+        
+        {/* Мобильная кнопка меню */}
+        {isMobile && (
+          <Box sx={{ 
+            position: 'fixed', 
+            top: '20px', 
+            right: '20px', 
+            zIndex: 1000 
+          }}>
+            <IconButton
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              sx={{
+                background: 'rgba(139, 92, 246, 0.9)',
+                color: 'white',
+                '&:hover': {
+                  background: 'rgba(139, 92, 246, 1)',
+                }
+              }}
+            >
+              {isMobileMenuOpen ? <Close /> : <Menu />}
+            </IconButton>
+          </Box>
+        )}
         
         {/* Заголовок убран - оставлено только центральное лого */}
         
@@ -1316,41 +2083,46 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         <Box sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 3,
-          mb: 3,
-          p: 2,
+          gap: isMobile ? 2 : 3,
+          mb: isMobile ? 2 : 3,
+          p: isMobile ? 1.5 : 2,
           background: 'rgba(255, 255, 255, 0.1)',
-          borderRadius: '15px',
+          borderRadius: isMobile ? '10px' : '15px',
           backdropFilter: 'blur(10px)'
         }}>
           <Box sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: 2
+            gap: isMobile ? 1 : 2
           }}>
             <Avatar sx={{ 
               bgcolor: players[currentPlayer]?.color,
-              width: 40,
-              height: 40
+              width: isMobile ? 35 : 40,
+              height: isMobile ? 35 : 40
             }}>
               {players[currentPlayer]?.name.charAt(0)}
             </Avatar>
             <Box>
-              <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+              <Typography variant={isMobile ? "body1" : "h6"} sx={{ color: 'white', fontWeight: 'bold' }}>
                 {players[currentPlayer]?.name}
               </Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: isMobile ? '0.8rem' : 'inherit' }}>
                 {players[currentPlayer]?.profession}
               </Typography>
+              {isOnBigCircle && (
+                <Typography variant="body2" sx={{ color: '#22C55E', fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 'bold' }}>
+                  🎯 Большой круг
+                </Typography>
+              )}
             </Box>
           </Box>
           
           <Box sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: 2
+            gap: isMobile ? 1 : 2
           }}>
-            <Typography variant="h6" sx={{ color: 'white' }}>
+            <Typography variant={isMobile ? "body1" : "h6"} sx={{ color: 'white' }}>
               Кубик: {diceValue}
             </Typography>
             <Button
@@ -1363,9 +2135,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                   : 'linear-gradient(45deg, #8B5CF6, #06B6D4)',
                 color: 'white',
                 fontWeight: 'bold',
-                px: 3,
-                py: 1,
-                borderRadius: '25px',
+                px: isMobile ? 2 : 3,
+                py: isMobile ? 0.8 : 1,
+                borderRadius: isMobile ? '20px' : '25px',
+                fontSize: isMobile ? '0.9rem' : 'inherit',
                 '&:hover': {
                   background: isRolling || isMoving 
                     ? 'linear-gradient(45deg, #9CA3AF, #6B7280)' 
@@ -1378,13 +2151,45 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           </Box>
         </Box>
 
+        {/* Информация о большом круге */}
+        {isOnBigCircle && (
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: isMobile ? 2 : 3,
+            mb: isMobile ? 2 : 3,
+            p: isMobile ? 1.5 : 2,
+            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.2))',
+            borderRadius: isMobile ? '10px' : '15px',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(34, 197, 94, 0.3)'
+          }}>
+            <Box>
+              <Typography variant={isMobile ? "body1" : "h6"} sx={{ color: '#22C55E', fontWeight: 'bold' }}>
+                💰 Баланс: ${bigCircleBalance.toLocaleString()}
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(34, 197, 94, 0.8)', fontSize: isMobile ? '0.8rem' : 'inherit' }}>
+                📈 Пассивный доход: ${bigCirclePassiveIncome.toLocaleString()}/ход
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'rgba(34, 197, 94, 0.8)', fontSize: isMobile ? '0.7rem' : '0.8rem' }}>
+                🏢 Бизнесов: {bigCircleBusinesses.length}
+              </Typography>
+            </Box>
+          </Box>
+        )}
+
         {/* Игровое поле */}
         <Box sx={{
           position: 'relative',
-          width: '800px',
-          height: '800px',
+          width: isMobile ? '100%' : '800px',
+          height: isMobile ? 'auto' : '800px',
+          maxWidth: isMobile ? '100vw' : '800px',
+          maxHeight: isMobile ? '70vh' : '800px',
           background: 'rgba(255, 255, 255, 0.05)',
-          borderRadius: '30px',
+          borderRadius: isMobile ? '15px' : '30px',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           backdropFilter: 'blur(20px)',
           boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)',
@@ -1407,8 +2212,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '200px',
-              height: '200px',
+              width: isMobile ? '150px' : '200px',
+              height: isMobile ? '150px' : '200px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -1419,22 +2224,22 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             {/* Основной круг с радужным градиентом */}
             <Box
               sx={{
-                width: '150px',
-                height: '150px',
+                width: isMobile ? '120px' : '150px',
+                height: isMobile ? '120px' : '150px',
                 borderRadius: '50%',
                 background: 'conic-gradient(from 0deg, #3B82F6, #10B981, #F59E0B, #EF4444, #8B5CF6, #3B82F6)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 position: 'relative',
-                mb: 2
+                mb: isMobile ? 1 : 2
               }}
             >
               {/* Внутренний круг с темным фоном */}
               <Box
                 sx={{
-                  width: '140px',
-                  height: '140px',
+                  width: isMobile ? '110px' : '140px',
+                  height: isMobile ? '110px' : '140px',
                   borderRadius: '50%',
                   background: '#1F2937',
                   display: 'flex',
@@ -1447,12 +2252,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 <Box
                   sx={{
                     position: 'absolute',
-                    width: '100px',
-                    height: '100px',
+                    width: isMobile ? '80px' : '100px',
+                    height: isMobile ? '80px' : '100px',
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr',
                     gridTemplateRows: '1fr 1fr',
-                    gap: '8px',
+                    gap: isMobile ? '6px' : '8px',
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}
@@ -1463,9 +2268,9 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '1.5rem',
+                      fontSize: isMobile ? '1.2rem' : '1.5rem',
                       background: 'linear-gradient(135deg, #3B82F6, #10B981)',
-                      borderRadius: '8px',
+                      borderRadius: isMobile ? '6px' : '8px',
                       width: '100%',
                       height: '100%',
                       color: 'white',
@@ -1481,9 +2286,9 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '1.5rem',
+                      fontSize: isMobile ? '1.2rem' : '1.5rem',
                       background: 'linear-gradient(135deg, #10B981, #F59E0B)',
-                      borderRadius: '8px',
+                      borderRadius: isMobile ? '6px' : '8px',
                       width: '100%',
                       height: '100%',
                       color: 'white',
@@ -1499,10 +2304,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '2rem',
+                      fontSize: isMobile ? '1.5rem' : '2rem',
                       fontWeight: 'bold',
                       background: 'linear-gradient(135deg, #F59E0B, #EF4444)',
-                      borderRadius: '8px',
+                      borderRadius: isMobile ? '6px' : '8px',
                       width: '100%',
                       height: '100%',
                       color: 'white',
@@ -1518,9 +2323,9 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '1.5rem',
+                      fontSize: isMobile ? '1.2rem' : '1.5rem',
                       background: 'linear-gradient(135deg, #EF4444, #8B5CF6)',
-                      borderRadius: '8px',
+                      borderRadius: isMobile ? '6px' : '8px',
                       width: '100%',
                       height: '100%',
                       color: 'white',
@@ -1536,7 +2341,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             {/* Текст "ENERGY OF MONEY" с радужным градиентом */}
             <Box sx={{ textAlign: 'center' }}>
               <Typography
-                variant="h5"
+                variant={isMobile ? "body1" : "h5"}
                 sx={{
                   fontWeight: 'bold',
                   background: 'linear-gradient(135deg, #3B82F6, #10B981)',
@@ -1545,13 +2350,13 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                   WebkitTextFillColor: 'transparent',
                   textShadow: '0 0 20px rgba(59, 130, 246, 0.5)',
                   lineHeight: 1.2,
-                  fontSize: '1.2rem'
+                  fontSize: isMobile ? '1rem' : '1.2rem'
                 }}
               >
                 ENERGY OF
               </Typography>
               <Typography
-                variant="h5"
+                variant={isMobile ? "body1" : "h5"}
                 sx={{
                   fontWeight: 'bold',
                   background: 'linear-gradient(135deg, #10B981, #EF4444)',
@@ -1560,7 +2365,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                   WebkitTextFillColor: 'transparent',
                   textShadow: '0 0 20px rgba(16, 185, 129, 0.5)',
                   lineHeight: 1.2,
-                  fontSize: '1.2rem'
+                  fontSize: isMobile ? '1rem' : '1.2rem'
                 }}
               >
                 MONEY
@@ -1629,6 +2434,81 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       zIndex: 2
                     }}
                   >
+                    {cell.id <= 24 ? cell.id : cell.id - 24}
+                  </Typography>
+                </Box>
+              </motion.div>
+            );
+          })}
+
+          {/* 52 внешние клетки большого круга */}
+          {isOnBigCircle && originalBoard.slice(24, 76).map((cell, i) => {
+            const angle = (i * 360) / 52;
+            const radius = 300; // Радиус большого круга
+            const x = Math.cos((angle - 90) * Math.PI / 180) * radius;
+            const y = Math.sin((angle - 90) * Math.PI / 180) * radius;
+            
+            // Проверяем, есть ли владелец у клетки
+            const cellOwner = bigCircleCells[cell.id];
+            const borderColor = cellOwner ? cellOwner.ownerColor : 'rgba(255, 255, 255, 0.3)';
+            const borderWidth = cellOwner ? '3px' : '2px';
+            
+            return (
+              <motion.div
+                key={cell.id}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: i * 0.02, duration: 0.3 }}
+              >
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
+                    width: '40px',
+                    height: '40px',
+                    background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    border: `${borderWidth} solid ${borderColor}`,
+                    boxShadow: cellOwner 
+                      ? `0 8px 25px rgba(0,0,0,0.3), 0 0 15px ${borderColor}40`
+                      : '0 8px 25px rgba(0,0,0,0.3)',
+                    zIndex: 1,
+                    '&:hover': {
+                      transform: `translate(-50%, -50%) translate(${x}px, ${y}px) scale(1.2)`,
+                      boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
+                      zIndex: 3
+                    }
+                  }}
+                  title={`${cell.description}${cellOwner ? ` (Владелец: ${cellOwner.ownerName})` : ''}`}
+                >
+                  {/* Иконка клетки */}
+                  <Typography variant="h6" sx={{ fontSize: '16px' }}>
+                    {cell.icon}
+                  </Typography>
+                  
+                  {/* Номер клетки в левом углу */}
+                  <Typography
+                    sx={{
+                      position: 'absolute',
+                      top: '1px',
+                      left: '3px',
+                      fontSize: '8px',
+                      fontWeight: 'bold',
+                      color: 'white',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                      zIndex: 2
+                    }}
+                  >
                     {cell.id}
                   </Typography>
                 </Box>
@@ -1651,20 +2531,20 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 transform: 'translate(-50%, -50%) translate(-180px, -180px)', // Позиция между кругами
                 width: '80px',
                 height: '100px',
-                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                background: 'linear-gradient(135deg, #00BCD4 0%, #0097A7 100%)',
                 borderRadius: '16px',
                 border: '2px solid #EF4444',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 8px 25px rgba(16, 185, 129, 0.4), 0 0 15px rgba(239, 68, 68, 0.3)',
+                boxShadow: '0 8px 25px rgba(0, 188, 212, 0.4), 0 0 15px rgba(239, 68, 68, 0.3)',
                 zIndex: 3,
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 '&:hover': {
                   transform: 'translate(-50%, -50%) translate(-180px, -180px) scale(1.05)',
-                  boxShadow: '0 15px 40px rgba(16, 185, 129, 0.5), 0 0 25px rgba(239, 68, 68, 0.4)'
+                  boxShadow: '0 15px 40px rgba(0, 188, 212, 0.5), 0 0 25px rgba(239, 68, 68, 0.4)'
                 }
               }}
             >
@@ -1684,6 +2564,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 textShadow: '0 1px 2px rgba(0,0,0,0.5)'
               }}>
                 Большая сделка
+              </Typography>
+              <Typography variant="caption" sx={{ 
+                color: 'white', 
+                fontWeight: 'bold',
+                textAlign: 'center',
+                fontSize: '8px',
+                lineHeight: 1,
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                mt: 0.5
+              }}>
+                {dealDeck.filter(card => card.type === 'big').length} карт
               </Typography>
             </Box>
           </motion.div>
@@ -1736,6 +2627,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               }}>
                 Малая сделка
               </Typography>
+              <Typography variant="caption" sx={{ 
+                color: 'white', 
+                fontWeight: 'bold',
+                textAlign: 'center',
+                fontSize: '8px',
+                lineHeight: 1,
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                mt: 0.5
+              }}>
+                {dealDeck.filter(card => card.type === 'small').length} карт
+              </Typography>
             </Box>
           </motion.div>
 
@@ -1753,20 +2655,20 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 transform: 'translate(-50%, -50%) translate(180px, 180px)', // Позиция между кругами
                 width: '80px',
                 height: '100px',
-                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                background: 'linear-gradient(135deg, #00BCD4 0%, #0097A7 100%)',
                 borderRadius: '16px',
                 border: '2px solid #EF4444',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 8px 25px rgba(245, 158, 11, 0.4), 0 0 15px rgba(239, 68, 68, 0.3)',
+                boxShadow: '0 8px 25px rgba(0, 188, 212, 0.4), 0 0 15px rgba(239, 68, 68, 0.3)',
                 zIndex: 3,
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 '&:hover': {
                   transform: 'translate(-50%, -50%) translate(180px, 180px) scale(1.05)',
-                  boxShadow: '0 15px 40px rgba(245, 158, 11, 0.5), 0 0 25px rgba(239, 68, 68, 0.4)'
+                  boxShadow: '0 15px 40px rgba(0, 188, 212, 0.5), 0 0 25px rgba(239, 68, 68, 0.4)'
                 }
               }}
             >
@@ -1775,7 +2677,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 mb: 1,
                 fontSize: '20px'
               }}>
-                📈
+                🏪
               </Typography>
               <Typography variant="caption" sx={{ 
                 color: 'white', 
@@ -1786,6 +2688,28 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 textShadow: '0 1px 2px rgba(0,0,0,0.5)'
               }}>
                 Рынок
+              </Typography>
+              <Typography variant="caption" sx={{ 
+                color: 'white', 
+                fontWeight: 'bold',
+                textAlign: 'center',
+                fontSize: '8px',
+                lineHeight: 1,
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                mt: 0.5
+              }}>
+                {marketDeckCount} карт
+              </Typography>
+              <Typography variant="caption" sx={{ 
+                color: 'white', 
+                fontWeight: 'bold',
+                textAlign: 'center',
+                fontSize: '7px',
+                lineHeight: 1,
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                mt: 0.2
+              }}>
+                Отбой: {marketDiscardCount}
               </Typography>
             </Box>
           </motion.div>
@@ -1804,20 +2728,20 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 transform: 'translate(-50%, -50%) translate(-180px, 180px)', // Позиция между кругами
                 width: '80px',
                 height: '100px',
-                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                background: 'linear-gradient(135deg, #E91E63 0%, #C2185B 100%)',
                 borderRadius: '16px',
-                border: '2px solid #EF4444',
+                border: '2px solid #E91E63',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 8px 25px rgba(239, 68, 68, 0.4), 0 0 15px rgba(239, 68, 68, 0.3)',
+                boxShadow: '0 8px 25px rgba(233, 30, 99, 0.4), 0 0 15px rgba(233, 30, 99, 0.3)',
                 zIndex: 3,
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 '&:hover': {
                   transform: 'translate(-50%, -50%) translate(-180px, 180px) scale(1.05)',
-                  boxShadow: '0 15px 40px rgba(239, 68, 68, 0.5), 0 0 25px rgba(239, 68, 68, 0.4)'
+                  boxShadow: '0 15px 40px rgba(233, 30, 99, 0.5), 0 0 25px rgba(233, 30, 99, 0.4)'
                 }
               }}
             >
@@ -1826,7 +2750,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 mb: 1,
                 fontSize: '20px'
               }}>
-                💸
+                <CharityIcon sx={{ fontSize: '20px' }} />
               </Typography>
               <Typography variant="caption" sx={{ 
                 color: 'white', 
@@ -1838,10 +2762,32 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               }}>
                 Расходы
               </Typography>
+              <Typography variant="caption" sx={{ 
+                color: 'white', 
+                fontWeight: 'bold',
+                textAlign: 'center',
+                fontSize: '8px',
+                lineHeight: 1,
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                mt: 0.5
+              }}>
+                {expenseDeckCount} карт
+              </Typography>
+              <Typography variant="caption" sx={{ 
+                color: 'white', 
+                fontWeight: 'bold',
+                textAlign: 'center',
+                fontSize: '7px',
+                lineHeight: 1,
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                mt: 0.2
+              }}>
+                Отбой: {expenseDiscardCount}
+              </Typography>
             </Box>
           </motion.div>
 
-                    {/* Фишки игроков на внутреннем круге */}
+                    {/* Фишки игроков */}
           {(() => {
             // Группируем игроков по позициям
             const playersByPosition = {};
@@ -1854,11 +2800,23 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             
             // Рендерим фишки с учетом перекрытия
             const playerTokens = players.map((player, playerIndex) => {
-              const cellIndex = player.position - 1; // Позиция 1-24, индекс 0-23
-              const angle = (cellIndex * 360) / 24;
-              const radius = 172.5; // Радиус внутреннего круга
-              const x = Math.cos((angle - 90) * Math.PI / 180) * radius;
-              const y = Math.sin((angle - 90) * Math.PI / 180) * radius;
+              let cellIndex, angle, radius, x, y;
+              
+              if (isOnBigCircle && player.position >= 25) {
+                // Фишки на большом круге (позиции 25-76)
+                cellIndex = player.position - 25; // Позиция 25-76, индекс 0-51
+                angle = (cellIndex * 360) / 52;
+                radius = 300; // Радиус большого круга
+                x = Math.cos((angle - 90) * Math.PI / 180) * radius;
+                y = Math.sin((angle - 90) * Math.PI / 180) * radius;
+              } else {
+                // Фишки на малом круге (позиции 1-24)
+                cellIndex = player.position - 1; // Позиция 1-24, индекс 0-23
+                angle = (cellIndex * 360) / 24;
+                radius = 172.5; // Радиус внутреннего круга
+                x = Math.cos((angle - 90) * Math.PI / 180) * radius;
+                y = Math.sin((angle - 90) * Math.PI / 180) * radius;
+              }
               
               // Определяем смещение для фишки, если на клетке несколько игроков
               const playersOnSameCell = playersByPosition[player.position];
@@ -2039,7 +2997,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       {cell.icon}
                     </Typography>
                     
-                    {/* Номер клетки в левом углу */}
+                    {/* ID клетки в левом углу */}
                     <Typography
                       sx={{
                         position: 'absolute',
@@ -2052,7 +3010,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         zIndex: 2
                       }}
                     >
-                      {cell.id - 24}
+                      {cell.id}
                     </Typography>
                   </Box>
                 </motion.div>
@@ -2106,7 +3064,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       {cell.icon}
                     </Typography>
                     
-                    {/* Номер клетки в левом углу */}
+                    {/* ID клетки в левом углу */}
                     <Typography
                       sx={{
                         position: 'absolute',
@@ -2119,7 +3077,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         zIndex: 2
                       }}
                     >
-                      {cell.id - 24}
+                      {cell.id}
                     </Typography>
                   </Box>
                 </motion.div>
@@ -2173,7 +3131,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       {cell.icon}
                     </Typography>
                     
-                    {/* Номер клетки в левом углу */}
+                    {/* ID клетки в левом углу */}
                     <Typography
                       sx={{
                         position: 'absolute',
@@ -2186,7 +3144,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         zIndex: 2
                       }}
                     >
-                      {cell.id - 24}
+                      {cell.id}
                     </Typography>
                   </Box>
                 </motion.div>
@@ -2240,7 +3198,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       {cell.icon}
                     </Typography>
                     
-                    {/* Номер клетки в левом углу */}
+                    {/* ID клетки в левом углу */}
                     <Typography
                       sx={{
                         position: 'absolute',
@@ -2253,7 +3211,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         zIndex: 2
                       }}
                     >
-                      {cell.id - 24}
+                      {cell.id}
                     </Typography>
                   </Box>
                 </motion.div>
@@ -2281,18 +3239,38 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       </Box>
 
       {/* Правая панель управления - 6 элементов */}
-      <Box sx={{
-        width: '320px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '20px',
-        padding: '20px'
-      }}>
+      <motion.div
+        initial={isMobile ? { opacity: 0, x: 300 } : { opacity: 1, x: 0 }}
+        animate={isMobile ? 
+          (isMobileMenuOpen ? { opacity: 1, x: 0 } : { opacity: 0, x: 300 }) : 
+          { opacity: 1, x: 0 }
+        }
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
+      >
+        <Box sx={{
+          width: isMobile ? '100%' : '320px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: isMobile ? '15px' : '20px',
+          padding: isMobile ? '15px' : '20px',
+          position: isMobile ? 'fixed' : 'static',
+          top: isMobile ? '80px' : 'auto',
+          right: isMobile ? '10px' : 'auto',
+          left: isMobile ? '10px' : 'auto',
+          bottom: isMobile ? '10px' : 'auto',
+          zIndex: isMobile ? 999 : 'auto',
+          background: isMobile ? 'rgba(15, 23, 42, 0.95)' : 'transparent',
+          backdropFilter: isMobile ? 'blur(10px)' : 'none',
+          borderRadius: isMobile ? '15px' : '0',
+          border: isMobile ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
+          maxHeight: isMobile ? 'calc(100vh - 100px)' : 'auto',
+          overflowY: isMobile ? 'auto' : 'visible'
+        }}>
         {/* Заголовок панели */}
-        <Typography variant="h5" sx={{ 
+        <Typography variant={isMobile ? "h6" : "h5"} sx={{ 
           color: 'white', 
           textAlign: 'center',
-          mb: 2,
+          mb: isMobile ? 1 : 2,
           fontWeight: 'bold'
         }}>
           🎮 Управление
@@ -2308,8 +3286,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         >
           <Box sx={{
             background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '15px',
-            padding: '20px',
+            borderRadius: isMobile ? '10px' : '15px',
+            padding: isMobile ? '15px' : '20px',
             border: '1px solid rgba(255, 255, 255, 0.2)'
           }}>
             <Button
@@ -2329,15 +3307,15 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 }
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-                <Avatar sx={{ bgcolor: '#8B5CF6', width: 50, height: 50 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 1 : 2, width: '100%' }}>
+                <Avatar sx={{ bgcolor: '#8B5CF6', width: isMobile ? 40 : 50, height: isMobile ? 40 : 50 }}>
                   {playerData?.username?.charAt(0) || 'M'}
                 </Avatar>
                 <Box sx={{ flex: 1, textAlign: 'left' }}>
-                  <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  <Typography variant={isMobile ? "body1" : "h6"} sx={{ color: 'white', fontWeight: 'bold' }}>
                     {playerData?.username || 'MAG'}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: '#94A3B8' }}>
+                  <Typography variant="body2" sx={{ color: '#94A3B8', fontSize: isMobile ? '0.8rem' : 'inherit' }}>
                     💼 Менеджер
                   </Typography>
                   
@@ -2390,8 +3368,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         >
           <Box sx={{
             background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '15px',
-            padding: '20px',
+            borderRadius: isMobile ? '10px' : '15px',
+            padding: isMobile ? '15px' : '20px',
             border: '1px solid rgba(255, 255, 255, 0.2)'
           }}>
             <Button
@@ -2412,13 +3390,13 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               }}
             >
               <Box sx={{ textAlign: 'center', width: '100%' }}>
-                <Typography variant="h6" sx={{ color: 'white', mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                <Typography variant={isMobile ? "body1" : "h6"} sx={{ color: 'white', mb: isMobile ? 1 : 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                   <AccountBalance /> Банк
                 </Typography>
-                <Typography variant="h4" sx={{ color: '#10B981', fontWeight: 'bold' }}>
+                <Typography variant={isMobile ? "h5" : "h4"} sx={{ color: '#10B981', fontWeight: 'bold' }}>
                   ${bankBalance.toLocaleString()}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#94A3B8', mt: 1 }}>
+                <Typography variant="body2" sx={{ color: '#94A3B8', mt: 1, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
                   Доход: $1,200 | Расходы: $800
                 </Typography>
                 
@@ -2509,6 +3487,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       </Button>
                     )}
                   </Box>
+                  
+
                 </Box>
               </Box>
             </Button>
@@ -2523,8 +3503,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         >
           <Box sx={{
             background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '15px',
-            padding: '20px',
+            borderRadius: isMobile ? '10px' : '15px',
+            padding: isMobile ? '15px' : '20px',
             border: '1px solid rgba(255, 255, 255, 0.2)'
           }}>
             <Button
@@ -2545,15 +3525,18 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               }}
             >
               <Box sx={{ textAlign: 'center', width: '100%' }}>
-                <Typography variant="h6" sx={{ color: 'white', mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                <Typography variant={isMobile ? "body1" : "h6"} sx={{ color: 'white', mb: isMobile ? 1 : 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                   <Inventory /> Активы
                 </Typography>
-                <Typography variant="h4" sx={{ color: '#10B981', fontWeight: 'bold', mb: 2 }}>
+                <Typography variant={isMobile ? "h5" : "h4"} sx={{ color: '#10B981', fontWeight: 'bold', mb: isMobile ? 1 : 2 }}>
                   ${getTotalAssetsValue().toLocaleString()}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#94A3B8', mb: 2 }}>
+                <Typography variant="body2" sx={{ color: '#94A3B8', mb: isMobile ? 1 : 2, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
                   Доход: ${getTotalAssetsIncome().toLocaleString()}/мес
                 </Typography>
+                
+
+                
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   {/* Показываем только Дом */}
                   {assets
@@ -2671,11 +3654,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         >
           <Box sx={{
             background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '15px',
-            padding: '20px',
+            borderRadius: isMobile ? '10px' : '15px',
+            padding: isMobile ? '15px' : '20px',
             border: '1px solid rgba(255, 255, 255, 0.2)'
           }}>
-            <Typography variant="h6" sx={{ color: 'white', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant={isMobile ? "body1" : "h6"} sx={{ color: 'white', mb: isMobile ? 1 : 2, display: 'flex', alignItems: 'center', gap: 1 }}>
               <Timer /> Время хода
             </Typography>
             <LinearProgress 
@@ -2699,9 +3682,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             />
             <Typography variant="body2" sx={{ 
               color: turnTimeLeft > 60 ? '#10B981' : turnTimeLeft > 20 ? '#F59E0B' : '#EF4444', 
-              mt: 1, 
+              mt: isMobile ? 0.5 : 1, 
               textAlign: 'center',
               fontWeight: 'bold',
+              fontSize: isMobile ? '0.7rem' : 'inherit',
               animation: isTurnEnding ? 'shake 0.5s infinite' : 'none'
             }}>
               {Math.floor(turnTimeLeft / 60)}:{(turnTimeLeft % 60).toString().padStart(2, '0')} • {turnTimeLeft > 60 ? '🟢' : turnTimeLeft > 20 ? '🟡' : '🔴'} {turnTimeLeft > 60 ? 'Первая минута' : turnTimeLeft > 20 ? 'Вторая минута' : 'КРИТИЧЕСКОЕ ВРЕМЯ!'}
@@ -2717,12 +3701,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         >
           <Box sx={{
             background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '15px',
-            padding: '20px',
+            borderRadius: isMobile ? '10px' : '15px',
+            padding: isMobile ? '15px' : '20px',
             border: '1px solid rgba(255, 255, 255, 0.2)',
-            mb: 2
+            mb: isMobile ? 1 : 2
           }}>
-            <Typography variant="h6" sx={{ color: 'white', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant={isMobile ? "body1" : "h6"} sx={{ color: 'white', mb: isMobile ? 1 : 2, display: 'flex', alignItems: 'center', gap: 1 }}>
               <Group /> Очередность игроков
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -2731,12 +3715,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 fullWidth
                 onClick={() => handlePlayerTurn(0)}
                 sx={{
-                  p: 1,
+                  p: isMobile ? 0.5 : 1,
                   background: currentPlayer === 0 ? '#8B5CF6' : 'transparent',
                   color: 'white',
-                  borderRadius: '8px',
+                  borderRadius: isMobile ? '6px' : '8px',
                   textTransform: 'none',
-                  fontSize: '0.9rem',
+                  fontSize: isMobile ? '0.8rem' : '0.9rem',
                   fontWeight: 'bold',
                   border: currentPlayer === 0 ? 'none' : '1px solid rgba(255,255,255,0.3)',
                   '&:hover': {
@@ -2751,12 +3735,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 fullWidth
                 onClick={() => handlePlayerTurn(1)}
                 sx={{
-                  p: 1,
+                  p: isMobile ? 0.5 : 1,
                   background: currentPlayer === 1 ? '#8B5CF6' : 'transparent',
                   color: 'white',
-                  borderRadius: '8px',
+                  borderRadius: isMobile ? '6px' : '8px',
                   textTransform: 'none',
-                  fontSize: '0.9rem',
+                  fontSize: isMobile ? '0.8rem' : '0.9rem',
                   fontWeight: 'bold',
                   border: currentPlayer === 1 ? 'none' : '1px solid rgba(255,255,255,0.3)',
                   '&:hover': {
@@ -2771,12 +3755,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 fullWidth
                 onClick={() => handlePlayerTurn(2)}
                 sx={{
-                  p: 1,
+                  p: isMobile ? 0.5 : 1,
                   background: currentPlayer === 2 ? '#8B5CF6' : 'transparent',
                   color: 'white',
-                  borderRadius: '8px',
+                  borderRadius: isMobile ? '6px' : '8px',
                   textTransform: 'none',
-                  fontSize: '0.9rem',
+                  fontSize: isMobile ? '0.8rem' : '0.9rem',
                   fontWeight: 'bold',
                   border: currentPlayer === 2 ? 'none' : '1px solid rgba(255,255,255,0.3)',
                   '&:hover': {
@@ -2791,12 +3775,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 fullWidth
                 onClick={() => handlePlayerTurn(3)}
                 sx={{
-                  p: 1,
+                  p: isMobile ? 0.5 : 1,
                   background: currentPlayer === 3 ? '#8B5CF6' : 'transparent',
                   color: 'white',
-                  borderRadius: '8px',
+                  borderRadius: isMobile ? '6px' : '8px',
                   textTransform: 'none',
-                  fontSize: '0.9rem',
+                  fontSize: isMobile ? '0.8rem' : '0.9rem',
                   fontWeight: 'bold',
                   border: currentPlayer === 3 ? 'none' : '1px solid rgba(255,255,255,0.3)',
                   '&:hover': {
@@ -2807,6 +3791,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 4. Дмитрий {currentPlayer === 3 ? '(Ход)' : ''}
               </Button>
             </Box>
+            
+
           </Box>
         </motion.div>
 
@@ -2822,11 +3808,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             onClick={onExit}
             sx={{
               width: '100%',
-              height: '50px',
+              height: isMobile ? '45px' : '50px',
               background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
               color: 'white',
-              borderRadius: '15px',
-              fontSize: '16px',
+              borderRadius: isMobile ? '10px' : '15px',
+              fontSize: isMobile ? '14px' : '16px',
               fontWeight: 'bold',
               boxShadow: '0 8px 25px rgba(239, 68, 68, 0.3)',
               '&:hover': {
@@ -2839,6 +3825,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           </Button>
         </motion.div>
       </Box>
+        </motion.div>
 
       {/* Модальное окно профиля игрока */}
       <Dialog
@@ -3244,8 +4231,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       
                       <Button
                         variant="outlined"
-                        onClick={() => handleSellAsset(asset, players[currentPlayer]?.username === player?.username)}
-                        disabled={asset.income === 0 || asset.isExpense || (!asset.isDividendStock && players[currentPlayer]?.username !== player?.username)}
+                        onClick={() => handleSellAsset(asset, true)}
+                        disabled={asset.income === 0 || asset.isExpense || (!asset.isDividendStock && false)}
                         sx={{
                           borderColor: asset.isExpense ? '#EF4444' : asset.income === 0 ? '#6B7280' : asset.isDividendStock ? '#10B981' : '#F59E0B',
                           color: asset.isExpense ? '#EF4444' : asset.income === 0 ? '#6B7280' : asset.isDividendStock ? '#10B981' : '#F59E0B',
@@ -3668,6 +4655,185 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             }}
           >
             🎲 Бросить кубик
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Модальное окно благотворительности */}
+      <Dialog
+        open={showCharityModal}
+        onClose={() => setShowCharityModal(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)',
+            borderRadius: '20px',
+            border: '2px solid #F59E0B',
+            boxShadow: '0 25px 50px rgba(245, 158, 11, 0.3)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          color: '#92400E', 
+          textAlign: 'center',
+          borderBottom: '1px solid #F59E0B',
+          pb: 2
+        }}>
+          ❤️ Клетка "Благотворительность"
+        </DialogTitle>
+        
+        <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
+          <Typography variant="h6" sx={{ color: '#92400E', mb: 2 }}>
+            {players[currentPlayer]?.name}, вы попали на клетку "Благотворительность"!
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#92400E', mb: 3 }}>
+            Стоимость благотворительности: <strong>${charityCost.toLocaleString()}</strong>
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#92400E', mb: 3 }}>
+            💝 Пожертвовав деньги, вы получите возможность бросать 2 кубика и выбирать ход!
+            <br />
+            🎲 Вы сможете ходить по одному кубику или по сумме двух кубиков
+          </Typography>
+        </DialogContent>
+
+        <DialogActions sx={{ 
+          p: 3, 
+          borderTop: '1px solid #F59E0B',
+          justifyContent: 'center',
+          gap: 2
+        }}>
+          <Button
+            onClick={handleCharityAccept}
+            disabled={playerMoney < charityCost}
+            sx={{
+              background: playerMoney >= charityCost 
+                ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                : 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: playerMoney >= charityCost 
+                  ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+                  : 'linear-gradient(135deg, #4B5563 0%, #374151 100%)'
+              }
+            }}
+          >
+            ❤️ Принять (${charityCost.toLocaleString()})
+          </Button>
+          <Button
+            onClick={handleCharityDecline}
+            sx={{
+              background: 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #4B5563 0%, #374151 100%)'
+              }
+            }}
+          >
+            😔 Отказаться
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Модальное окно выбора кубиков благотворительности */}
+      <Dialog
+        open={showCharityDiceModal}
+        onClose={() => setShowCharityDiceModal(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+            borderRadius: '20px',
+            border: '2px solid #3B82F6',
+            boxShadow: '0 25px 50px rgba(59, 130, 246, 0.3)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          color: 'white', 
+          textAlign: 'center',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
+          pb: 2
+        }}>
+          🎲 Благотворительность - Выбор хода
+        </DialogTitle>
+        
+        <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
+          <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+            Выпало: <strong>{charityDiceValues.dice1}</strong> и <strong>{charityDiceValues.dice2}</strong>
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'white', mb: 3 }}>
+            Выберите, на сколько шагов хотите ходить:
+          </Typography>
+        </DialogContent>
+
+        <DialogActions sx={{ 
+          p: 3, 
+          borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+          justifyContent: 'center',
+          gap: 2
+        }}>
+          <Button
+            onClick={() => handleCharityDiceChoice(charityDiceValues.dice1)}
+            sx={{
+              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+              }
+            }}
+          >
+            🎲 Ходить на {charityDiceValues.dice1}
+          </Button>
+          <Button
+            onClick={() => handleCharityDiceChoice(charityDiceValues.dice2)}
+            sx={{
+              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+              }
+            }}
+          >
+            🎲 Ходить на {charityDiceValues.dice2}
+          </Button>
+          <Button
+            onClick={() => handleCharityDiceChoice(charityDiceValues.sum)}
+            sx={{
+              background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)'
+              }
+            }}
+          >
+            🎲 Ходить на {charityDiceValues.sum} (сумма)
           </Button>
         </DialogActions>
       </Dialog>
@@ -4333,6 +5499,156 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         onClose={() => setShowProfessionCard(false)}
         professionId={selectedProfessionId}
       />
+
+      {/* Модальное окно карточки рынка */}
+      <MarketCardModal
+        open={showMarketCardModal}
+        onClose={() => setShowMarketCardModal(false)}
+        marketCard={currentMarketCard}
+        playerAssets={currentPlayerAssets}
+        onAccept={handleMarketAccept}
+        onDecline={handleMarketDecline}
+        currentPlayer={players[currentPlayer]}
+      />
+
+      {/* Модальное окно карточки расходов */}
+      <ExpenseCardModal
+        open={showExpenseCardModal}
+        onClose={() => setShowExpenseCardModal(false)}
+        expenseCard={currentExpenseCard}
+        currentPlayer={players[currentPlayer]}
+        onPay={handleExpensePay}
+        onTakeCredit={handleExpenseTakeCredit}
+      />
+
+      {/* Модальное окно перехода на большой круг */}
+      <Dialog
+        open={showBigCircleTransitionModal}
+        onClose={() => setShowBigCircleTransitionModal(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(135deg, #1F2937 0%, #111827 100%)',
+            borderRadius: '20px',
+            border: '2px solid #374151'
+          }
+        }}
+      >
+        <DialogTitle sx={{
+          textAlign: 'center',
+          color: '#FFFFFF',
+          fontSize: '24px',
+          fontWeight: 'bold',
+          borderBottom: '1px solid #374151',
+          pb: 2
+        }}>
+          🎉 Переход на большой круг!
+        </DialogTitle>
+        
+        <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
+          <Typography variant="h6" sx={{ color: '#FFFFFF', mb: 2 }}>
+            Поздравляем! Вы выполнили все условия:
+          </Typography>
+          
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 2, 
+              p: 2, 
+              background: 'rgba(34, 197, 94, 0.1)', 
+              borderRadius: '10px',
+              border: '1px solid rgba(34, 197, 94, 0.3)'
+            }}>
+              <Typography variant="h6" sx={{ color: '#22C55E' }}>✅</Typography>
+              <Typography variant="body1" sx={{ color: '#FFFFFF' }}>
+                Пассивный доход в 2 раза превышает расходы
+              </Typography>
+            </Box>
+            
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 2, 
+              p: 2, 
+              background: 'rgba(34, 197, 94, 0.1)', 
+              borderRadius: '10px',
+              border: '1px solid rgba(34, 197, 94, 0.3)'
+            }}>
+              <Typography variant="h6" sx={{ color: '#22C55E' }}>✅</Typography>
+              <Typography variant="body1" sx={{ color: '#FFFFFF' }}>
+                Ипотека погашена
+              </Typography>
+            </Box>
+            
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 2, 
+              p: 2, 
+              background: 'rgba(34, 197, 94, 0.1)', 
+              borderRadius: '10px',
+              border: '1px solid rgba(34, 197, 94, 0.3)'
+            }}>
+              <Typography variant="h6" sx={{ color: '#22C55E' }}>✅</Typography>
+              <Typography variant="body1" sx={{ color: '#FFFFFF' }}>
+                Кредит погашен
+              </Typography>
+            </Box>
+          </Box>
+          
+          <Typography variant="body1" sx={{ color: '#94A3B8', mb: 3 }}>
+            Теперь вы можете перейти на большой круг и начать играть в Fast Track!
+          </Typography>
+        </DialogContent>
+        
+        <DialogActions sx={{
+          p: 3,
+          borderTop: '1px solid #374151',
+          justifyContent: 'center',
+          gap: 2
+        }}>
+          <Button
+            onClick={() => {
+              setShowBigCircleTransitionModal(false);
+              transitionToBigCircle();
+            }}
+            sx={{
+              background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)'
+              }
+            }}
+          >
+            🎯 Перейти на большой круг
+          </Button>
+          
+          <Button
+            onClick={() => setShowBigCircleTransitionModal(false)}
+            sx={{
+              background: 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #4B5563 0%, #374151 100%)'
+              }
+            }}
+          >
+            Остаться на малом круге
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
     </Fragment>
   );

@@ -248,6 +248,30 @@ const Registration = ({ onRegister }) => {
     return '';
   }, [currentStep, isExistingUser]);
 
+  // Обработчик нажатия клавиши Enter
+  const handleKeyPress = useCallback((event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      switch (currentStep) {
+        case 0:
+          if (formData.email.trim() && !isLoading) {
+            checkUserExists();
+          }
+          break;
+        case 1:
+          if (formData.username.trim() && !isLoading) {
+            checkUsernameUnique();
+          }
+          break;
+        case 2:
+          if (formData.password && !isLoading) {
+            handleFinalSubmit();
+          }
+          break;
+      }
+    }
+  }, [currentStep, formData, isLoading, checkUserExists, checkUsernameUnique, handleFinalSubmit]);
+
   return (
     <Box
       component={motion.div}
@@ -315,6 +339,7 @@ const Registration = ({ onRegister }) => {
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
+                onKeyPress={handleKeyPress}
                 placeholder="example@email.com"
                 InputProps={{
                   startAdornment: <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
@@ -354,6 +379,7 @@ const Registration = ({ onRegister }) => {
                 label="Имя пользователя"
                 value={formData.username}
                 onChange={(e) => handleInputChange('username', e.target.value)}
+                onKeyPress={handleKeyPress}
                 placeholder="Введите ваше имя"
                 InputProps={{
                   startAdornment: <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
@@ -392,6 +418,7 @@ const Registration = ({ onRegister }) => {
                 type="password"
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
+                onKeyPress={handleKeyPress}
                 placeholder={isExistingUser ? "Введите пароль" : "Минимум 6 символов"}
                 InputProps={{
                   startAdornment: <LockIcon sx={{ mr: 1, color: 'text.secondary' }} />

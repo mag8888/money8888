@@ -22,6 +22,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { CASHFLOW_THEME, COMPONENT_STYLES } from '../styles/cashflow-theme';
 import FullProfessionCard from './FullProfessionCard';
+import BankOperations from './BankOperations';
 
 // 🎨 Стильная панель управления Cashflow
 const StylishControlPanel = ({
@@ -31,12 +32,15 @@ const StylishControlPanel = ({
   onRollDice,
   isMyTurn,
   isRolling,
-  timer = 120
+  timer = 120,
+  socket = null,
+  roomId = null
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [activeSection, setActiveSection] = useState('players');
   const [showProfessionCard, setShowProfessionCard] = useState(false);
   const [selectedProfessionId, setSelectedProfessionId] = useState(null);
+  const [showBankOperations, setShowBankOperations] = useState(false);
 
   // Анимация появления
   const containerVariants = {
@@ -91,6 +95,17 @@ const StylishControlPanel = ({
       case 'active': return CASHFLOW_THEME.colors.success.main;
       case 'ready': return CASHFLOW_THEME.colors.warning.main;
       default: return CASHFLOW_THEME.colors.error.main;
+    }
+  };
+
+  // Обработка банковских транзакций
+  const handleBankTransaction = (transaction) => {
+    // Здесь можно добавить логику для отправки транзакции на сервер
+    console.log('🏦 [BankOperations] Транзакция:', transaction);
+    
+    // Обновляем баланс игрока (в реальном приложении это будет через сокет)
+    if (playerData && typeof playerData.changeBalance === 'function') {
+      playerData.changeBalance(transaction.amount);
     }
   };
 
@@ -433,7 +448,7 @@ const StylishControlPanel = ({
                     size="large"
                     onClick={() => {
                       console.log('🏦 [StylishControlPanel] Кнопка банка нажата');
-                      // Здесь можно добавить логику для открытия модального окна банка
+                      setShowBankOperations(true);
                     }}
                     sx={{
                       p: 3,
@@ -578,13 +593,36 @@ const StylishControlPanel = ({
                     height: '56px',
                     fontSize: '16px',
                     fontWeight: 'bold',
-                    mb: 3,
+                    mb: 2,
                     '&:hover': {
                       ...COMPONENT_STYLES.buttons.hover
                     }
                   }}
                 >
                   {isRolling ? '⏳ Ожидание...' : '🎲 Бросить кубик'}
+                </Button>
+
+                {/* Кнопка банковских операций */}
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  size="large"
+                  startIcon={<BankIcon />}
+                  onClick={() => setShowBankOperations(true)}
+                  sx={{
+                    borderColor: CASHFLOW_THEME.colors.success.main,
+                    color: CASHFLOW_THEME.colors.success.main,
+                    height: '48px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    mb: 3,
+                    '&:hover': {
+                      borderColor: CASHFLOW_THEME.colors.success.dark,
+                      backgroundColor: 'rgba(34, 197, 94, 0.1)'
+                    }
+                  }}
+                >
+                  🏦 Банковские операции
                 </Button>
 
                 {/* Таймер хода */}
@@ -653,6 +691,16 @@ const StylishControlPanel = ({
         open={showProfessionCard}
         onClose={() => setShowProfessionCard(false)}
         professionId={selectedProfessionId}
+      />
+
+      {/* Банковские операции */}
+      <BankOperations
+        open={showBankOperations}
+        onClose={() => setShowBankOperations(false)}
+        playerData={playerData}
+        onTransaction={handleBankTransaction}
+        socket={socket}
+        roomId={roomId}
       />
     </motion.div>
   );

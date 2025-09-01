@@ -288,6 +288,14 @@ const RoomSelection = ({ playerData, onRoomSelect,
     }
   };
 
+  // Обработчик нажатия клавиши Enter для полей формы создания комнаты
+  const handleFormKeyPress = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleCreateRoom();
+    }
+  };
+
   const getRoomStatusIcon = (status) => {
     switch (status) {
       case 'waiting': return '⏳';
@@ -713,6 +721,7 @@ const RoomSelection = ({ playerData, onRoomSelect,
             label="Название комнаты"
             value={roomName}
             onChange={(e) => setRoomName(e.target.value)}
+            onKeyPress={handleFormKeyPress}
             placeholder="Например: Моя первая игра"
             helperText="Введите описательное название для игроков"
             type="text"
@@ -738,6 +747,7 @@ const RoomSelection = ({ playerData, onRoomSelect,
                         label="Пароль (необязательно)"
                         value={roomPassword}
                         onChange={(e) => setRoomPassword(e.target.value)}
+                        onKeyPress={handleFormKeyPress}
                         placeholder="Оставьте пустым"
                         helperText="Для закрытой комнаты"
                         type="password"
