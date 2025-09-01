@@ -261,7 +261,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [charityCost, setCharityCost] = useState(0);
   const [hasCharityBonus, setHasCharityBonus] = useState(false);
   const [showCharityDiceModal, setShowCharityDiceModal] = useState(false);
-  const [charityDiceValues, setCharityDiceValues] = useState({ dice1: 0, dice2: 0, sum: 0 });
+  const [charityDiceValues, setCharityDiceValues] = useState({ dice1: 0, dice2: 0, dice3: 0, sum: 0 });
+  const [charityDiceCount, setCharityDiceCount] = useState(2); // Количество кубиков для благотворительности (2 для малого круга, 1-3 для большого)
   
   // Состояние для отображения количества карточек
 
@@ -396,14 +397,26 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     setCanRollDice(false);
     
     if (hasCharityBonus) {
-      // Бросаем 2 кубика при наличии бонуса благотворительности
+      // Бросаем кубики при наличии бонуса благотворительности
       const dice1 = Math.floor(Math.random() * 6) + 1;
       const dice2 = Math.floor(Math.random() * 6) + 1;
-      const sum = dice1 + dice2;
+      const dice3 = Math.floor(Math.random() * 6) + 1;
+      
+      // Определяем количество кубиков в зависимости от круга
+      const diceCount = isOnBigCircle ? charityDiceCount : 2;
+      let sum = 0;
+      
+      if (diceCount === 1) {
+        sum = dice1;
+      } else if (diceCount === 2) {
+        sum = dice1 + dice2;
+      } else if (diceCount === 3) {
+        sum = dice1 + dice2 + dice3;
+      }
       
       // Показываем модал выбора хода
       setShowCharityDiceModal(true);
-      setCharityDiceValues({ dice1, dice2, sum });
+      setCharityDiceValues({ dice1, dice2, dice3, sum });
       
       setIsRolling(false);
       return;
@@ -924,6 +937,25 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         });
       }
     }
+    
+    // Клетки благотворительности (32)
+    if (position === 32) {
+      handleBigCircleCharityAction();
+    }
+  };
+
+  // Функция обработки благотворительности на большом круге
+  const handleBigCircleCharityAction = () => {
+    const player = players[currentPlayer];
+    
+    // На большом круге благотворительность стоит 100,000$
+    const charityAmount = 100000;
+    
+    setCharityCost(charityAmount);
+    setCharityDiceCount(3); // На большом круге можно выбрать 1, 2 или 3 кубика
+    setShowCharityModal(true);
+    
+    console.log(`❤️ [OriginalGameBoard] Игрок ${player.name} попал на клетку благотворительности (большой круг). Стоимость: $${charityAmount}`);
   };
 
   // Функция получения расходов игрока
@@ -995,7 +1027,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     setShowChildModal(false);
   };
   
-  // Функция обработки благотворительности
+  // Функция обработки благотворительности на малом круге
   const handleCharityAction = () => {
     const player = players[currentPlayer];
     
@@ -1005,9 +1037,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     const charityAmount = Math.floor(totalIncome * 0.5);
     
     setCharityCost(charityAmount);
+    setCharityDiceCount(2); // На малом круге всегда 2 кубика
     setShowCharityModal(true);
     
-    console.log(`❤️ [OriginalGameBoard] Игрок ${player.name} попал на клетку благотворительности. Стоимость: $${charityAmount}`);
+    console.log(`❤️ [OriginalGameBoard] Игрок ${player.name} попал на клетку благотворительности (малый круг). Стоимость: $${charityAmount}`);
   };
 
   // Функция обработки карточек рынка
@@ -1248,20 +1281,32 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const handleCharityAccept = () => {
     const player = players[currentPlayer];
     
-    if (playerMoney >= charityCost) {
+    // Проверяем баланс в зависимости от круга
+    const currentBalance = isOnBigCircle ? bigCircleBalance : playerMoney;
+    
+    if (currentBalance >= charityCost) {
       // Списываем деньги
-      setPlayerMoney(prev => prev - charityCost);
+      if (isOnBigCircle) {
+        setBigCircleBalance(prev => prev - charityCost);
+      } else {
+        setPlayerMoney(prev => prev - charityCost);
+      }
       
       // Активируем бонус благотворительности
       setHasCharityBonus(true);
       
+      // Формируем сообщение в зависимости от круга
+      const diceMessage = isOnBigCircle 
+        ? `Теперь можно бросать 1, 2 или 3 кубика на выбор!`
+        : `Теперь можно бросать 2 кубика!`;
+      
       setToast({
         open: true,
-        message: `❤️ ${player.name} пожертвовал $${charityCost.toLocaleString()} на благотворительность! Теперь можно бросать 2 кубика!`,
+        message: `❤️ ${player.name} пожертвовал $${charityCost.toLocaleString()} на благотворительность! ${diceMessage}`,
         severity: 'success'
       });
       
-      console.log(`❤️ [OriginalGameBoard] Игрок ${player.name} принял благотворительность за $${charityCost}`);
+      console.log(`❤️ [OriginalGameBoard] Игрок ${player.name} принял благотворительность за $${charityCost} (${isOnBigCircle ? 'большой круг' : 'малый круг'})`);
     } else {
       setToast({
         open: true,
@@ -1293,10 +1338,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     // Двигаем фишку на выбранное количество шагов
     movePlayer(chosenValue);
     
-    // Сбрасываем бонус благотворительности после использования
-    setHasCharityBonus(false);
+    // Сбрасываем бонус благотворительности только на малом круге
+    // На большом круге бонус действует до конца игры
+    if (!isOnBigCircle) {
+      setHasCharityBonus(false);
+    }
     
-    console.log(`🎲 [OriginalGameBoard] Игрок выбрал ход на ${chosenValue} шагов (кубики: ${charityDiceValues.dice1}, ${charityDiceValues.dice2})`);
+    const diceInfo = isOnBigCircle 
+      ? `(кубики: ${charityDiceValues.dice1}, ${charityDiceValues.dice2}, ${charityDiceValues.dice3})`
+      : `(кубики: ${charityDiceValues.dice1}, ${charityDiceValues.dice2})`;
+    
+    console.log(`🎲 [OriginalGameBoard] Игрок выбрал ход на ${chosenValue} шагов ${diceInfo} ${isOnBigCircle ? '(большой круг - бонус сохранен)' : '(малый круг - бонус сброшен)'}`);
   };
 
   // Функция выбора типа сделки
@@ -4691,9 +4743,21 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             Стоимость благотворительности: <strong>${charityCost.toLocaleString()}</strong>
           </Typography>
           <Typography variant="body2" sx={{ color: '#92400E', mb: 3 }}>
-            💝 Пожертвовав деньги, вы получите возможность бросать 2 кубика и выбирать ход!
-            <br />
-            🎲 Вы сможете ходить по одному кубику или по сумме двух кубиков
+            {isOnBigCircle ? (
+              <>
+                💝 Пожертвовав деньги, вы получите возможность бросать 1, 2 или 3 кубика на выбор!
+                <br />
+                🎲 Вы сможете ходить по одному кубику, по сумме двух кубиков или по сумме трех кубиков
+                <br />
+                <strong>Бонус действует до конца игры!</strong>
+              </>
+            ) : (
+              <>
+                💝 Пожертвовав деньги, вы получите возможность бросать 2 кубика и выбирать ход!
+                <br />
+                🎲 Вы сможете ходить по одному кубику или по сумме двух кубиков
+              </>
+            )}
           </Typography>
         </DialogContent>
 
@@ -4705,9 +4769,9 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         }}>
           <Button
             onClick={handleCharityAccept}
-            disabled={playerMoney < charityCost}
+            disabled={(isOnBigCircle ? bigCircleBalance : playerMoney) < charityCost}
             sx={{
-              background: playerMoney >= charityCost 
+              background: (isOnBigCircle ? bigCircleBalance : playerMoney) >= charityCost 
                 ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
                 : 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
               color: 'white',
@@ -4717,7 +4781,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               fontSize: '16px',
               fontWeight: 'bold',
               '&:hover': {
-                background: playerMoney >= charityCost 
+                background: (isOnBigCircle ? bigCircleBalance : playerMoney) >= charityCost 
                   ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
                   : 'linear-gradient(135deg, #4B5563 0%, #374151 100%)'
               }
@@ -4771,7 +4835,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         
         <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
           <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
-            Выпало: <strong>{charityDiceValues.dice1}</strong> и <strong>{charityDiceValues.dice2}</strong>
+            {isOnBigCircle ? (
+              <>Выпало: <strong>{charityDiceValues.dice1}</strong>, <strong>{charityDiceValues.dice2}</strong> и <strong>{charityDiceValues.dice3}</strong></>
+            ) : (
+              <>Выпало: <strong>{charityDiceValues.dice1}</strong> и <strong>{charityDiceValues.dice2}</strong></>
+            )}
           </Typography>
           <Typography variant="body1" sx={{ color: 'white', mb: 3 }}>
             Выберите, на сколько шагов хотите ходить:
@@ -4782,7 +4850,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           p: 3, 
           borderTop: '1px solid rgba(255, 255, 255, 0.2)',
           justifyContent: 'center',
-          gap: 2
+          gap: 2,
+          flexWrap: 'wrap'
         }}>
           <Button
             onClick={() => handleCharityDiceChoice(charityDiceValues.dice1)}
@@ -4818,10 +4887,29 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           >
             🎲 Ходить на {charityDiceValues.dice2}
           </Button>
+          {isOnBigCircle && (
+            <Button
+              onClick={() => handleCharityDiceChoice(charityDiceValues.dice3)}
+              sx={{
+                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                color: 'white',
+                px: 4,
+                py: 1.5,
+                borderRadius: '10px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+                }
+              }}
+            >
+              🎲 Ходить на {charityDiceValues.dice3}
+            </Button>
+          )}
           <Button
-            onClick={() => handleCharityDiceChoice(charityDiceValues.sum)}
+            onClick={() => handleCharityDiceChoice(charityDiceValues.dice1 + charityDiceValues.dice2)}
             sx={{
-              background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+              background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
               color: 'white',
               px: 4,
               py: 1.5,
@@ -4829,12 +4917,31 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               fontSize: '16px',
               fontWeight: 'bold',
               '&:hover': {
-                background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)'
+                background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)'
               }
             }}
           >
-            🎲 Ходить на {charityDiceValues.sum} (сумма)
+            🎲 Ходить на {charityDiceValues.dice1 + charityDiceValues.dice2} (сумма 2)
           </Button>
+          {isOnBigCircle && (
+            <Button
+              onClick={() => handleCharityDiceChoice(charityDiceValues.sum)}
+              sx={{
+                background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                color: 'white',
+                px: 4,
+                py: 1.5,
+                borderRadius: '10px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)'
+                }
+              }}
+            >
+              🎲 Ходить на {charityDiceValues.sum} (сумма 3)
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 
