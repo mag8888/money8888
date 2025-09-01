@@ -267,6 +267,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [selectedAssetForTransfer, setSelectedAssetForTransfer] = useState(null); // Выбранный актив для передачи
   const [showBigCircleTransitionModal, setShowBigCircleTransitionModal] = useState(false); // Модал перехода на большой круг
   
+  // Состояние для карточек "другу нужны деньги"
+  const [friendMoneyCardsUsed, setFriendMoneyCardsUsed] = useState(0); // Количество использованных карточек "другу нужны деньги"
+  const [hasExtraTurn, setHasExtraTurn] = useState(false); // Возможность дополнительного хода
+  const [hasFreeCards, setHasFreeCards] = useState(false); // Возможность бесплатных карточек
+  const [showFreeCardsModal, setShowFreeCardsModal] = useState(false); // Модал бесплатных карточек
+  
   // Состояние для благотворительности
   const [showCharityModal, setShowCharityModal] = useState(false);
   const [charityCost, setCharityCost] = useState(0);
@@ -360,7 +366,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       { id: 66, type: 'small', name: 'Крыша протекла', cost: 5000, income: 0, description: 'Крыша протекла — возможность обновить крышу (если у игрока есть недвижимость)', isExpense: true },
       { id: 67, type: 'small', name: 'Покупка дрона для съёмок', cost: 3000, income: 50, description: 'Покупка дрона для съёмок - дополнительный доход' },
       { id: 68, type: 'small', name: 'Флипинг студии', cost: 5000, income: 50, description: 'Флипинг студии - перепродажа недвижимости' },
-      { id: 69, type: 'small', name: 'Прорыв канализации', cost: 2000, income: 0, description: 'Прорыв канализации (у вас есть возможность починить канализацию)', isExpense: true }
+      { id: 69, type: 'small', name: 'Прорыв канализации', cost: 2000, income: 0, description: 'Прорыв канализации (у вас есть возможность починить канализацию)', isExpense: true },
+      // Карточки "другу нужны деньги"
+      { id: 70, type: 'small', name: 'Другу нужны деньги', cost: 5000, income: 0, description: 'Другу нужны деньги, он вам будет благодарен', isFriendMoneyCard: true, friendCardNumber: 1 },
+      { id: 71, type: 'small', name: 'Другу нужны деньги', cost: 5000, income: 0, description: 'Другу нужны деньги, он вам будет благодарен', isFriendMoneyCard: true, friendCardNumber: 2 },
+      { id: 72, type: 'small', name: 'Другу нужны деньги', cost: 5000, income: 0, description: 'Другу нужны деньги, он вам будет благодарен', isFriendMoneyCard: true, friendCardNumber: 3 }
     ];
 
     const bigDeals = [
@@ -1559,6 +1569,13 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const handleDealTypeSelection = (dealType) => {
     setShowDealTypeModal(false);
     
+    // Проверяем, есть ли бесплатные карточки
+    if (hasFreeCards && dealType === 'small') {
+      // Показываем модал для выбора бесплатной карточки
+      setShowFreeCardsModal(true);
+      return;
+    }
+    
     // Фильтруем карточки по типу
     const availableCards = dealDeck.filter(card => card.type === dealType);
     
@@ -1601,6 +1618,78 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   };
 
+  // Функция использования бесплатных карточек
+  const handleUseFreeCards = () => {
+    setHasFreeCards(false);
+    
+    // Выбираем случайную карточку малой сделки
+    const smallCards = dealDeck.filter(card => card.type === 'small' && !card.isFriendMoneyCard);
+    const bigCards = dealDeck.filter(card => card.type === 'big');
+    
+    if (smallCards.length > 0 && bigCards.length > 0) {
+      const randomSmallCard = smallCards[Math.floor(Math.random() * smallCards.length)];
+      const randomBigCard = bigCards[Math.floor(Math.random() * bigCards.length)];
+      
+      // Добавляем карточки игроку бесплатно
+      const player = players[currentPlayer];
+      
+      // Добавляем малую карточку
+      const smallAsset = {
+        id: Date.now(),
+        type: 'deal',
+        name: randomSmallCard.name,
+        icon: '🏪',
+        value: randomSmallCard.cost,
+        cost: 0, // Бесплатно
+        income: randomSmallCard.income,
+        color: '#10B981',
+        description: randomSmallCard.description + ' (бесплатно от друга)',
+        quantity: 1,
+        isDividendStock: randomSmallCard.isDividendStock || false,
+        dividendYield: randomSmallCard.dividendYield || 0,
+        maxQuantity: randomSmallCard.maxQuantity || 1
+      };
+      
+      // Добавляем большую карточку
+      const bigAsset = {
+        id: Date.now() + 1,
+        type: 'deal',
+        name: randomBigCard.name,
+        icon: '🏢',
+        value: randomBigCard.cost,
+        cost: 0, // Бесплатно
+        income: randomBigCard.income,
+        color: '#8B5CF6',
+        description: randomBigCard.description + ' (бесплатно от друга)',
+        quantity: 1,
+        isDividendStock: randomBigCard.isDividendStock || false,
+        dividendYield: randomBigCard.dividendYield || 0,
+        maxQuantity: randomBigCard.maxQuantity || 1
+      };
+      
+      setAssets(prev => [...prev, smallAsset, bigAsset]);
+      
+      // Убираем карточки из колоды
+      setDealDeck(prev => prev.filter(c => c.id !== randomSmallCard.id && c.id !== randomBigCard.id));
+      
+      setToast({
+        open: true,
+        message: `🎁 ${player.name} получил бесплатно: ${randomSmallCard.name} и ${randomBigCard.name}!`,
+        severity: 'success'
+      });
+      
+      console.log(`🎁 [OriginalGameBoard] Игрок ${player.name} получил бесплатные карточки: ${randomSmallCard.name}, ${randomBigCard.name}`);
+    } else {
+      setToast({
+        open: true,
+        message: `❌ Недостаточно карточек для бесплатной раздачи`,
+        severity: 'warning'
+      });
+    }
+    
+    setShowFreeCardsModal(false);
+  };
+
   // Функция покупки карточки сделки
   const handleBuyDeal = () => {
     if (!currentDealCard) return;
@@ -1610,6 +1699,42 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     if (playerMoney >= currentDealCard.cost) {
       // Покупаем карточку
       setPlayerMoney(prev => prev - currentDealCard.cost);
+      
+      // Обработка карточек "другу нужны деньги"
+      if (currentDealCard.isFriendMoneyCard) {
+        setFriendMoneyCardsUsed(prev => prev + 1);
+        
+        // Применяем эффекты в зависимости от номера карточки
+        if (currentDealCard.friendCardNumber === 1) {
+          // Первая карточка - ничего не получает
+          setToast({
+            open: true,
+            message: `💝 ${player.name} помог другу! Друг благодарен.`,
+            severity: 'info'
+          });
+        } else if (currentDealCard.friendCardNumber === 2) {
+          // Вторая карточка - дополнительный ход
+          setHasExtraTurn(true);
+          setToast({
+            open: true,
+            message: `🎯 ${player.name} помог другу! Друг передает свой ход - у вас дополнительный ход!`,
+            severity: 'success'
+          });
+        } else if (currentDealCard.friendCardNumber === 3) {
+          // Третья карточка - бесплатные карточки
+          setHasFreeCards(true);
+          setToast({
+            open: true,
+            message: `🎁 ${player.name} помог другу! Друг дарит карточку малой и большой возможности!`,
+            severity: 'success'
+          });
+        }
+        
+        console.log(`💝 [OriginalGameBoard] Игрок ${player.name} купил карточку "другу нужны деньги" #${currentDealCard.friendCardNumber}`);
+        setShowDealModal(false);
+        setCurrentDealCard(null);
+        return;
+      }
       
       // Карточки с расходами не добавляются в активы
       if (currentDealCard.isExpense) {
@@ -1650,7 +1775,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       }
       
       // Определяем тип сообщения в зависимости от типа карточки
-      const isCharity = currentDealCard.income === 0 && !currentDealCard.isExpense;
+      const isCharity = currentDealCard.income === 0 && !currentDealCard.isExpense && !currentDealCard.isFriendMoneyCard;
       const isExpense = currentDealCard.isExpense;
       
       let message;
@@ -2126,6 +2251,26 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция для перехода хода
   const passTurn = () => {
+    // Проверяем, есть ли дополнительный ход
+    if (hasExtraTurn) {
+      setHasExtraTurn(false);
+      setToast({
+        open: true,
+        message: `🎯 Дополнительный ход! ${players[currentPlayer].name} ходит еще раз!`,
+        severity: 'success'
+      });
+      
+      // Сбрасываем таймер для того же игрока
+      setTurnTimeLeft(120);
+      setTimerProgress(100);
+      setIsTurnEnding(false);
+      setCanRollDice(true);
+      setDiceRolled(false);
+      
+      console.log(`🎯 [OriginalGameBoard] Дополнительный ход для игрока ${players[currentPlayer].name}`);
+      return;
+    }
+    
     const nextPlayer = (currentPlayer + 1) % players.length;
     setCurrentPlayer(nextPlayer);
     
@@ -2368,6 +2513,16 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               {isOnBigCircle && (
                 <Typography variant="body2" sx={{ color: '#22C55E', fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 'bold' }}>
                   🎯 Большой круг
+                </Typography>
+              )}
+              {hasExtraTurn && (
+                <Typography variant="body2" sx={{ color: '#F59E0B', fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 'bold' }}>
+                  🎯 Дополнительный ход
+                </Typography>
+              )}
+              {hasFreeCards && (
+                <Typography variant="body2" sx={{ color: '#8B5CF6', fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 'bold' }}>
+                  🎁 Бесплатные карточки
                 </Typography>
               )}
             </Box>
@@ -6179,6 +6334,88 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             }}
           >
             Закрыть
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Модальное окно бесплатных карточек */}
+      <Dialog
+        open={showFreeCardsModal}
+        onClose={() => setShowFreeCardsModal(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)',
+            borderRadius: '20px',
+            border: '2px solid #F59E0B',
+            boxShadow: '0 25px 50px rgba(245, 158, 11, 0.3)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          color: '#92400E', 
+          textAlign: 'center',
+          borderBottom: '1px solid #F59E0B',
+          pb: 2
+        }}>
+          🎁 Бесплатные карточки от друга
+        </DialogTitle>
+        
+        <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
+          <Typography variant="h6" sx={{ color: '#92400E', mb: 2 }}>
+            Ваш друг настолько благодарен, что дарит вам:
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#92400E', mb: 3 }}>
+            • 1 карточку малой возможности
+            <br />
+            • 1 карточку большой возможности
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#92400E', mb: 3 }}>
+            Карточки будут выбраны случайным образом и добавлены к вашим активам бесплатно!
+          </Typography>
+        </DialogContent>
+        
+        <DialogActions sx={{
+          p: 3,
+          borderTop: '1px solid #F59E0B',
+          justifyContent: 'center',
+          gap: 2
+        }}>
+          <Button
+            onClick={handleUseFreeCards}
+            sx={{
+              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+              }
+            }}
+          >
+            🎁 Получить карточки
+          </Button>
+          
+          <Button
+            onClick={() => setShowFreeCardsModal(false)}
+            sx={{
+              background: 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #4B5563 0%, #374151 100%)'
+              }
+            }}
+          >
+            Отмена
           </Button>
         </DialogActions>
       </Dialog>
