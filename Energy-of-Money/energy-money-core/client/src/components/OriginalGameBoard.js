@@ -2531,175 +2531,13 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
 
 
-          {/* Центральное лого "ENERGY OF MONEY" */}
-          <Box
-            sx={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: isMobile ? '150px' : '200px',
-              height: isMobile ? '150px' : '200px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 2
-            }}
-          >
-            {/* Основной круг с радужным градиентом */}
-            <Box
-              sx={{
-                width: isMobile ? '120px' : '150px',
-                height: isMobile ? '120px' : '150px',
-                borderRadius: '50%',
-                background: 'conic-gradient(from 0deg, #3B82F6, #10B981, #F59E0B, #EF4444, #8B5CF6, #3B82F6)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                mb: isMobile ? 1 : 2
-              }}
-            >
-              {/* Внутренний круг с темным фоном */}
-              <Box
-                sx={{
-                  width: isMobile ? '110px' : '140px',
-                  height: isMobile ? '110px' : '140px',
-                  borderRadius: '50%',
-                  background: '#1F2937',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  position: 'relative'
-                }}
-              >
-                {/* Центральная область с символами */}
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    width: isMobile ? '80px' : '100px',
-                    height: isMobile ? '80px' : '100px',
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gridTemplateRows: '1fr 1fr',
-                    gap: isMobile ? '6px' : '8px',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  {/* Молния (⚡) - верхний левый */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: isMobile ? '1.2rem' : '1.5rem',
-                      background: 'linear-gradient(135deg, #3B82F6, #10B981)',
-                      borderRadius: isMobile ? '6px' : '8px',
-                      width: '100%',
-                      height: '100%',
-                      color: 'white',
-                      textShadow: '0 0 10px rgba(59, 130, 246, 0.8)'
-                    }}
-                  >
-                    ⚡
-                  </Box>
-                  
-                  {/* Атом (⚛️) - верхний правый */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: isMobile ? '1.2rem' : '1.5rem',
-                      background: 'linear-gradient(135deg, #10B981, #F59E0B)',
-                      borderRadius: isMobile ? '6px' : '8px',
-                      width: '100%',
-                      height: '100%',
-                      color: 'white',
-                      textShadow: '0 0 10px rgba(16, 185, 129, 0.8)'
-                    }}
-                  >
-                    ⚛️
-                  </Box>
-                  
-                  {/* Доллар ($) - нижний левый */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: isMobile ? '1.5rem' : '2rem',
-                      fontWeight: 'bold',
-                      background: 'linear-gradient(135deg, #F59E0B, #EF4444)',
-                      borderRadius: isMobile ? '6px' : '8px',
-                      width: '100%',
-                      height: '100%',
-                      color: 'white',
-                      textShadow: '0 0 10px rgba(245, 158, 11, 0.8)'
-                    }}
-                  >
-                    $
-                  </Box>
-                  
-                  {/* Денежный мешок (💰) - нижний правый */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: isMobile ? '1.2rem' : '1.5rem',
-                      background: 'linear-gradient(135deg, #EF4444, #8B5CF6)',
-                      borderRadius: isMobile ? '6px' : '8px',
-                      width: '100%',
-                      height: '100%',
-                      color: 'white',
-                      textShadow: '0 0 10px rgba(239, 68, 68, 0.8)'
-                    }}
-                  >
-                    💰
-                  </Box>
-                </Box>
-              </Box>
-            </Box>
-            
-            {/* Текст "ENERGY OF MONEY" с радужным градиентом */}
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography
-                variant={isMobile ? "body1" : "h5"}
-                sx={{
-                  fontWeight: 'bold',
-                  background: 'linear-gradient(135deg, #3B82F6, #10B981)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  textShadow: '0 0 20px rgba(59, 130, 246, 0.5)',
-                  lineHeight: 1.2,
-                  fontSize: isMobile ? '1rem' : '1.2rem'
-                }}
-              >
-                ENERGY OF
-              </Typography>
-              <Typography
-                variant={isMobile ? "body1" : "h5"}
-                sx={{
-                  fontWeight: 'bold',
-                  background: 'linear-gradient(135deg, #10B981, #EF4444)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  textShadow: '0 0 20px rgba(16, 185, 129, 0.5)',
-                  lineHeight: 1.2,
-                  fontSize: isMobile ? '1rem' : '1.2rem'
-                }}
-              >
-                MONEY
-              </Typography>
-            </Box>
-          </Box>
 
-          {/* Логотип в центре */}
+
+
+
+
+
+          {/* PNG логотип в центре */}
           <Box
             sx={{
               position: 'absolute',
@@ -2711,37 +2549,137 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               zIndex: 2,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              background: 'radial-gradient(circle, rgba(255,215,0,0.1) 0%, rgba(255,165,0,0.05) 50%, transparent 100%)',
+              borderRadius: '50%',
+              padding: '20px'
             }}
           >
-            <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style={{
-              width: '100%',
-              height: '100%',
-              filter: 'drop-shadow(0 8px 25px rgba(0,0,0,0.3))'
-            }}>
-              {/* Фоновый круг */}
-              <circle cx="100" cy="100" r="90" fill="url(#gradient)" stroke="rgba(255,255,255,0.3)" strokeWidth="4"/>
+            <Box
+              sx={{
+                width: '160px',
+                height: '160px',
+                background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 8px 32px rgba(255, 215, 0, 0.4), 0 0 0 4px rgba(255, 215, 0, 0.2)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              {/* Внутренний круг с градиентом */}
+              <Box
+                sx={{
+                  width: '140px',
+                  height: '140px',
+                  background: 'radial-gradient(circle, #000000 0%, #1a1a1a 100%)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative'
+                }}
+              >
+                {/* Центральный символ доллара */}
+                <Typography
+                  sx={{
+                    fontSize: '48px',
+                    fontWeight: 'bold',
+                    color: '#FFD700',
+                    textShadow: '0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 165, 0, 0.6)',
+                    zIndex: 3,
+                    position: 'relative'
+                  }}
+                >
+                  $
+                </Typography>
+                
+                {/* Энергетические линии */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    borderRadius: '50%',
+                    background: 'conic-gradient(from 0deg, transparent 0deg, rgba(255, 215, 0, 0.3) 45deg, transparent 90deg, rgba(255, 165, 0, 0.3) 135deg, transparent 180deg, rgba(255, 140, 0, 0.3) 225deg, transparent 270deg, rgba(255, 215, 0, 0.3) 315deg, transparent 360deg)',
+                    animation: 'rotate 4s linear infinite'
+                  }}
+                />
+                
+                {/* Дополнительные светящиеся точки */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '50%'
+                  }}
+                >
+                  {[0, 60, 120, 180, 240, 300].map((angle, index) => (
+                    <Box
+                      key={index}
+                      sx={{
+                        position: 'absolute',
+                        width: '6px',
+                        height: '6px',
+                        background: '#FFD700',
+                        borderRadius: '50%',
+                        top: '50%',
+                        left: '50%',
+                        transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(-50px)`,
+                        boxShadow: '0 0 10px rgba(255, 215, 0, 0.8)',
+                        animation: `pulse ${2 + index * 0.3}s ease-in-out infinite`
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Box>
               
-              {/* Градиент */}
-              <defs>
-                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style={{stopColor:"#3B82F6",stopOpacity:1}} />
-                  <stop offset="25%" style={{stopColor:"#10B981",stopOpacity:1}} />
-                  <stop offset="50%" style={{stopColor:"#F59E0B",stopOpacity:1}} />
-                  <stop offset="75%" style={{stopColor:"#EF4444",stopOpacity:1}} />
-                  <stop offset="100%" style={{stopColor:"#8B5CF6",stopOpacity:1}} />
-                </linearGradient>
-              </defs>
-              
-              {/* Текст E */}
-              <text x="100" y="70" fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" textAnchor="middle" fill="white">E</text>
-              
-              {/* Текст M */}
-              <text x="100" y="130" fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" textAnchor="middle" fill="white">M</text>
-              
-              {/* Символ доллара в центре */}
-              <text x="100" y="100" fontFamily="Arial, sans-serif" fontSize="32" fontWeight="bold" textAnchor="middle" fill="white">$</text>
-            </svg>
+              {/* Внешние монеты */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%'
+                }}
+              >
+                {[45, 135, 225, 315].map((angle, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      position: 'absolute',
+                      width: '24px',
+                      height: '24px',
+                      background: 'radial-gradient(circle, #FFD700 0%, #FFA500 100%)',
+                      borderRadius: '50%',
+                      top: '50%',
+                      left: '50%',
+                      transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(-70px)`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 8px rgba(255, 215, 0, 0.6)',
+                      border: '2px solid #FFD700'
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        color: '#000000'
+                      }}
+                    >
+                      $
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
           </Box>
 
           {/* 24 внутренние клетки по кругу */}
