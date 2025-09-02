@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Box, 
@@ -400,6 +399,25 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
     // Обработка запуска игры
     socket.on('gameStarted', (data) => {
       console.log('🎮 [RoomSetup] Игра запущена:', data);
+      
+      // Сохраняем данные о очередности хода
+      if (data.turnOrder) {
+        console.log('🎲 [RoomSetup] Очередность хода:', data.turnOrder);
+        localStorage.setItem('potok-deneg_turnOrder', JSON.stringify(data.turnOrder));
+      }
+      
+      // Сохраняем данные о текущем ходе
+      if (data.currentTurn) {
+        console.log('🎯 [RoomSetup] Текущий ход:', data.currentTurn);
+        localStorage.setItem('potok-deneg_currentTurn', data.currentTurn);
+      }
+      
+      // Сохраняем данные игроков
+      if (data.players) {
+        console.log('👥 [RoomSetup] Данные игроков для игры:', data.players);
+        localStorage.setItem('potok-deneg_gamePlayers', JSON.stringify(data.players));
+      }
+      
       setSuccess('Игра запущена! Переходим к игровому полю...');
       setTimeout(() => {
         navigate(`/room/${roomId}/original`);

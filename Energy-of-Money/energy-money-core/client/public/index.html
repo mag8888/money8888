@@ -11,6 +11,30 @@
     <link rel="apple-touch-icon" href="/favicon.svg" />
     
     <title>Energy of Money</title>
+    
+    <!-- Блокируем автоматические попытки подключения к MetaMask -->
+    <script>
+      // Блокируем автоматические попытки подключения к кошелькам
+      if (typeof window !== 'undefined') {
+        // Переопределяем window.ethereum для предотвращения автоматических подключений
+        Object.defineProperty(window, 'ethereum', {
+          value: undefined,
+          writable: false,
+          configurable: false
+        });
+        
+        // Блокируем события подключения к кошелькам
+        window.addEventListener('beforeunload', function(e) {
+          e.preventDefault();
+          e.returnValue = '';
+        });
+        
+        // Отключаем автоматические попытки подключения
+        if (window.ethereum) {
+          window.ethereum = undefined;
+        }
+      }
+    </script>
   </head>
   <body>
     <noscript>Для запуска приложения нужен JavaScript.</noscript>

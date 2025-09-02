@@ -350,6 +350,29 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
     }, 500);
   }, [roomId]);
 
+  // Обработчик данных игроков в игре
+  const handleGamePlayersData = useCallback((data) => {
+    console.log('👥 [gamePlayersData] received:', data);
+    
+    // Обновляем состояние игры с данными игроков
+    updateGameState(prevState => ({
+      ...prevState,
+      players: data.players || [],
+      turnOrder: data.turnOrder || [],
+      currentTurn: data.currentTurn,
+      currentTurnIndex: data.currentTurnIndex,
+      gamePhase: 'playing'
+    }));
+    
+    // Также обновляем состояние профессий если есть данные
+    if (data.players && data.players.length > 0) {
+      const currentPlayer = data.players.find(p => p.socketId === socket.id);
+      if (currentPlayer && currentPlayer.profession) {
+        updateProfessionState(currentPlayer.profession);
+      }
+    }
+  }, [updateGameState, updateProfessionState]);
+
   // Обработчик выбора сделки
   const handleDealChoice = useCallback(({ playerId, cellType, position, balance, monthlyCashflow }) => {
     // Убираем лишние логи для уменьшения спама
@@ -515,6 +538,7 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
     registerEventHandler('turnChanged', handleTurnChanged);
     registerEventHandler('roomData', handleRoomData);
     registerEventHandler('gameStarted', handleGameStarted);
+    registerEventHandler('gamePlayersData', handleGamePlayersData);
     registerEventHandler('dealChoice', handleDealChoice);
     registerEventHandler('dealCard', handleDealCard);
     registerEventHandler('dealBought', handleDealBought);
@@ -545,6 +569,7 @@ export const useSocketEvents = (roomId, updateGameState, updateBankState, update
     handleTurnChanged,
     handleRoomData,
     handleGameStarted,
+    handleGamePlayersData,
     handleDealChoice,
     handleDealCard,
     handleDealBought,

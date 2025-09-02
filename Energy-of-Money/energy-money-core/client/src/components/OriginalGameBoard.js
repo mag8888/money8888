@@ -1,4 +1,5 @@
-import React, { useState, useEffect, Fragment } from 'react';
+import React, { useState, useEffect, Fragment, useRef } from 'react';
+import socket from '../socket';
 import { Box, Typography, Button, LinearProgress, Avatar, Chip, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, List, ListItem, ListItemText, Divider, Grid, useMediaQuery, useTheme, IconButton } from '@mui/material';
 import { motion } from 'framer-motion';
 import FullProfessionCard from './FullProfessionCard';
@@ -7,6 +8,7 @@ import ExpenseCardModal from './ExpenseCardModal';
 import BreakModal from './BreakModal';
 import { MarketDeckManager, checkPlayerHasMatchingAsset } from '../data/marketCards';
 import { ExpenseDeckManager } from '../data/expenseCards';
+import { PLAYER_COLORS, assignPlayerColor } from '../styles/playerColors';
 import { 
   Timer, 
   ExitToApp,
@@ -20,7 +22,10 @@ import {
 
 const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   console.log('🎮 [OriginalGameBoard] Компонент загружен:', { roomId, playerData });
-  console.log('🎮 [OriginalGameBoard] Компонент обновлен - добавляем отладочную информацию');
+  
+  // Ref для хранения roomId
+  const roomIdRef = useRef(roomId);
+  roomIdRef.current = roomId;
   
   // Хуки для адаптивности
   const theme = useTheme();
@@ -28,6 +33,64 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   
   // Состояние мобильного меню
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Получаем данные об очередности хода
+  const [turnOrder, setTurnOrder] = useState([]);
+  const [currentTurn, setCurrentTurn] = useState(null);
+  const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
+  
+  // Получаем данные игроков для игры
+  const [gamePlayers, setGamePlayers] = useState([]);
+
+
+
+  // Функция для инициализации полной структуры игрока
+  const initializePlayerData = (player, allPlayers = []) => {
+    return {
+      id: player.id || player.socketId,
+      username: player.username || 'Игрок',
+      socketId: player.socketId,
+      balance: player.balance || 2000,
+      position: player.position || 0,
+      ready: player.ready || false,
+      profession: player.profession || null,
+      assets: player.assets || [],
+      liabilities: player.liabilities || [],
+      isFinancialFree: player.isFinancialFree || false,
+      isOnBigCircle: player.isOnBigCircle || false,
+      hasWon: player.hasWon || false,
+      color: player.color || assignPlayerColor(allPlayers, player),
+      joinedAt: player.joinedAt || Date.now(),
+      ...player // Сохраняем все остальные свойства
+    };
+  };
+
+  // Функция для синхронизации данных игрока с сервером
+  const syncPlayerData = (playerId, updatedData) => {
+    if (socket.connected && roomIdRef.current) {
+      console.log('🔄 [OriginalGameBoard] Синхронизируем данные игрока с сервером:', { playerId, updatedData });
+      socket.emit('playerDataUpdate', roomIdRef.current, playerId, updatedData);
+    }
+  };
+
+  // Функция для получения активов текущего игрока
+  const getCurrentPlayerAssets = () => {
+    const currentPlayerData = gamePlayers[currentPlayer];
+    return currentPlayerData?.assets || [];
+  };
+
+  // Функция для обновления активов текущего игрока
+  const updateCurrentPlayerAssets = (newAssets) => {
+    const currentPlayerData = gamePlayers[currentPlayer];
+    if (currentPlayerData) {
+      syncPlayerData(currentPlayerData.socketId, { assets: newAssets });
+      setGamePlayers(prev => prev.map(p => 
+        p.socketId === currentPlayerData.socketId 
+          ? { ...p, assets: newAssets }
+          : p
+      ));
+    }
+  };
   
   // CSS стили для анимаций
   useEffect(() => {
@@ -55,7 +118,177 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       document.head.removeChild(style);
     };
   }, []);
+  
+  // Загружаем данные из localStorage при инициализации
+  useEffect(() => {
+    const savedTurnOrder = localStorage.getItem('potok-deneg_turnOrder');
+    const savedCurrentTurn = localStorage.getItem('potok-deneg_currentTurn');
+    const savedGamePlayers = localStorage.getItem('potok-deneg_gamePlayers');
+    
+    if (savedTurnOrder) {
+      try {
+        setTurnOrder(JSON.parse(savedTurnOrder));
+      } catch (e) {
+        console.error('❌ [OriginalGameBoard] Ошибка парсинга turnOrder:', e);
+      }
+    }
+    
+    if (savedCurrentTurn) {
+      setCurrentTurn(savedCurrentTurn);
+    }
+    
+    if (savedGamePlayers) {
+      try {
+        const savedPlayers = JSON.parse(savedGamePlayers);
+        setGamePlayers(savedPlayers);
+        
+        // Находим текущего игрока
+        const currentPlayer = savedPlayers.find(p => p.socketId === socket?.id);
+        if (currentPlayer) {
+          console.log('👤 [OriginalGameBoard] Текущий игрок:', currentPlayer);
+          console.log('💰 [OriginalGameBoard] Баланс:', currentPlayer.balance);
+          console.log('💼 [OriginalGameBoard] Профессия:', currentPlayer.profession);
+          console.log('🏠 [OriginalGameBoard] Активы:', currentPlayer.assets);
+          console.log('💳 [OriginalGameBoard] Обязательства:', currentPlayer.liabilities);
+        }
+      } catch (e) {
+        console.error('❌ [OriginalGameBoard] Ошибка парсинга gamePlayers:', e);
+      }
+    }
+  }, [socket?.id]);
 
+  // Обработчики Socket.IO событий для обновления списка игроков
+  useEffect(() => {
+    console.log('🔌 [OriginalGameBoard] Настраиваем обработчики Socket.IO событий');
+
+    // Обработчик обновления списка игроков
+    const handlePlayersUpdate = (playersList) => {
+      console.log('👥 [OriginalGameBoard] Получен обновленный список игроков:', playersList);
+      
+      // Инициализируем полную структуру для каждого игрока с учетом цветов
+      const initializedPlayers = playersList.map((player, index) => {
+        const existingPlayer = gamePlayers.find(p => p.socketId === player.socketId);
+        // Сохраняем существующий цвет или назначаем новый
+        const playerWithColor = {
+          ...player,
+          color: existingPlayer?.color || assignPlayerColor(playersList, player)
+        };
+        return initializePlayerData(playerWithColor, playersList);
+      });
+      
+      // Обновляем только если данные действительно изменились
+      setGamePlayers(prev => {
+        // Проверяем, есть ли существенные изменения
+        const hasChanges = initializedPlayers.some(newPlayer => {
+          const oldPlayer = prev.find(p => p.socketId === newPlayer.socketId);
+          if (!oldPlayer) return true; // Новый игрок
+          
+          // Проверяем ключевые поля
+          return oldPlayer.balance !== newPlayer.balance ||
+                 oldPlayer.position !== newPlayer.position ||
+                 oldPlayer.profession !== newPlayer.profession ||
+                 oldPlayer.color !== newPlayer.color ||
+                 JSON.stringify(oldPlayer.assets) !== JSON.stringify(newPlayer.assets);
+        });
+        
+        if (hasChanges) {
+          console.log('🔄 [OriginalGameBoard] Обнаружены изменения в данных игроков, обновляем');
+          return initializedPlayers;
+        }
+        
+        return prev; // Нет изменений, оставляем как есть
+      });
+      
+      // Сохраняем в localStorage
+      localStorage.setItem('potok-deneg_gamePlayers', JSON.stringify(initializedPlayers));
+    };
+
+    // Обработчик получения данных комнаты
+    const handleRoomData = (roomData) => {
+      console.log('🏠 [OriginalGameBoard] Получены данные комнаты:', roomData);
+      if (roomData.currentPlayers) {
+        // Инициализируем полную структуру для каждого игрока с учетом цветов
+        const initializedPlayers = roomData.currentPlayers.map((player, index) => {
+          return initializePlayerData(player, roomData.currentPlayers);
+        });
+        setGamePlayers(initializedPlayers);
+        localStorage.setItem('potok-deneg_gamePlayers', JSON.stringify(initializedPlayers));
+      }
+    };
+
+    // Обработчик успешного присоединения к комнате
+    const handleRoomJoined = (data) => {
+      console.log('✅ [OriginalGameBoard] Успешно присоединились к комнате:', data);
+      // Запрашиваем данные комнаты после успешного присоединения
+      socket.emit('getRoomData', roomIdRef.current);
+    };
+
+    // Обработчик обновления позиции игрока
+    const handlePlayerPositionUpdate = (data) => {
+      console.log('🎯 [OriginalGameBoard] Получено обновление позиции игрока:', data);
+      
+      setGamePlayers(prev => prev.map(player => 
+        player.socketId === data.playerId 
+          ? { ...player, position: data.position }
+          : player
+      ));
+    };
+
+    // Обработчик смены хода игрока
+    const handlePlayerTurnChanged = (data) => {
+      console.log('🎯 [OriginalGameBoard] Получено обновление хода игрока:', data);
+      
+      setCurrentPlayer(data.currentPlayerIndex);
+      
+      // Сбрасываем таймер для нового игрока
+      setTurnTimeLeft(120);
+      setTimerProgress(0);
+      setIsTurnEnding(false);
+    };
+
+    // Обработчик синхронизации таймера хода
+    const handleTurnTimerSynced = (data) => {
+      console.log('⏰ [OriginalGameBoard] Получена синхронизация таймера:', data);
+      
+      setTurnTimeLeft(data.timeLeft);
+      setIsTurnEnding(data.isTurnEnding);
+      
+      // Обновляем прогресс таймера
+      const progress = ((120 - data.timeLeft) / 120) * 100;
+      setTimerProgress(progress);
+    };
+
+    // Подписываемся на события
+    socket.on('playersUpdate', handlePlayersUpdate);
+    socket.on('roomData', handleRoomData);
+    socket.on('roomJoined', handleRoomJoined);
+    socket.on('playerPositionUpdate', handlePlayerPositionUpdate);
+    socket.on('playerTurnChanged', handlePlayerTurnChanged);
+    socket.on('turnTimerSynced', handleTurnTimerSynced);
+
+    // Запрашиваем актуальный список игроков при подключении
+    if (socket.connected && roomIdRef.current) {
+      console.log('📡 [OriginalGameBoard] Запрашиваем список игроков для комнаты:', roomIdRef.current);
+      socket.emit('getRoomData', roomIdRef.current);
+      
+      // Также попробуем присоединиться к комнате, если еще не присоединены
+      console.log('🚪 [OriginalGameBoard] Пытаемся присоединиться к комнате:', roomIdRef.current);
+      socket.emit('joinRoom', roomIdRef.current, {
+        username: playerData?.username || 'Игрок',
+        socketId: socket.id
+      });
+    }
+
+    // Очистка при размонтировании
+    return () => {
+      socket.off('playersUpdate', handlePlayersUpdate);
+      socket.off('roomData', handleRoomData);
+      socket.off('roomJoined', handleRoomJoined);
+      socket.off('playerPositionUpdate', handlePlayerPositionUpdate);
+      socket.off('playerTurnChanged', handlePlayerTurnChanged);
+      socket.off('turnTimerSynced', handleTurnTimerSynced);
+    };
+  }, []); // Убираем roomId из зависимостей, чтобы избежать ререндеров
 
   
   const [originalBoard] = useState(() => {
@@ -164,16 +397,23 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [diceRolled, setDiceRolled] = useState(false);
   
   // Состояние игроков и их фишек - начинают с 1-й клетки (малый круг)
-  const [players, setPlayers] = useState([
-    { id: 1, name: 'MAG', position: 1, color: '#EF4444', profession: 'Инженер' },
-    { id: 2, name: 'Алексей', position: 1, color: '#3B82F6', profession: 'Менеджер' },
-    { id: 3, name: 'Мария', position: 1, color: '#10B981', profession: 'Дизайнер' },
-    { id: 4, name: 'Дмитрий', position: 1, color: '#F59E0B', profession: 'Программист' }
-  ]);
+  // Удалено: const [players, setPlayers] = useState([]); - используем gamePlayers
   
   const [currentPlayer, setCurrentPlayer] = useState(0); // Индекс текущего игрока
   const [isMoving, setIsMoving] = useState(false); // Флаг движения фишки
   const [movingPlayerId, setMovingPlayerId] = useState(null); // ID движущегося игрока
+  
+  // Функция для получения текущего игрока из gamePlayers
+  const getCurrentPlayer = () => {
+    if (gamePlayers.length === 0) return null;
+    return gamePlayers[currentPlayer] || gamePlayers[0];
+  };
+  
+  // Функция для получения игрока по индексу из gamePlayers
+  const getPlayerByIndex = (index) => {
+    if (gamePlayers.length === 0) return null;
+    return gamePlayers[index] || gamePlayers[0];
+  };
   
   // Состояние для модальных окон
   const [showPlayerModal, setShowPlayerModal] = useState(false);
@@ -192,11 +432,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [bankBalance, setBankBalance] = useState(2500);
   const [transferAmount, setTransferAmount] = useState('');
   const [selectedRecipient, setSelectedRecipient] = useState('');
-  const [transferHistory, setTransferHistory] = useState([
-    { id: 1, from: 'MAG', to: 'Алексей', amount: 100, date: '2024-01-15', time: '14:30' },
-    { id: 2, from: 'Мария', to: 'MAG', amount: 50, date: '2024-01-15', time: '13:45' },
-    { id: 3, from: 'Алексей', to: 'Дмитрий', amount: 200, date: '2024-01-15', time: '12:20' }
-  ]);
+  const [transferHistory, setTransferHistory] = useState([]);
 
   // Состояние для карточек рынка
   const [showMarketCardModal, setShowMarketCardModal] = useState(false);
@@ -213,16 +449,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [expenseDeckCount, setExpenseDeckCount] = useState(24);
   const [expenseDiscardCount, setExpenseDiscardCount] = useState(0);
 
-  // Состояние для активов
-  const [assets, setAssets] = useState([
-    { id: 1, type: 'house', name: 'Дом', icon: '🏠', value: 150000, cost: 150000, income: 2000, color: '#10B981', description: 'Красивый дом в пригороде', quantity: 1 },
-    { id: 2, type: 'stocks', name: 'Акции', icon: '📈', value: 25000, cost: 25000, income: 500, color: '#3B82F6', description: 'Портфель акций крупных компаний', quantity: 3 },
-    { id: 3, type: 'business', name: 'Бизнес', icon: '💎', value: 80000, cost: 80000, income: 3000, color: '#8B5CF6', description: 'Собственный бизнес', quantity: 1 },
-    { id: 4, type: 'car', name: 'Автомобиль', icon: '🚗', value: 45000, cost: 45000, income: 0, color: '#F59E0B', description: 'Премиум автомобиль', quantity: 1 },
-    { id: 5, type: 'gold', name: 'Золото', icon: '🥇', value: 35000, cost: 35000, income: 200, color: '#EAB308', description: 'Инвестиции в золото', quantity: 2 },
-    { id: 6, type: 'crypto', name: 'Криптовалюта', icon: '₿', value: 18000, cost: 18000, income: 800, color: '#EF4444', description: 'Портфель криптовалют', quantity: 1 },
-    { id: 7, type: 'bonds', name: 'Облигации', icon: '📋', value: 12000, cost: 12000, income: 300, color: '#06B6D6', description: 'Государственные облигации', quantity: 5 }
-  ]);
+  // Состояние для активов - теперь используем данные из gamePlayers
+  // Удалено локальное состояние assets - используем gamePlayers[currentPlayer]?.assets
 
   // Состояние для FullProfessionCard
   const [showProfessionCard, setShowProfessionCard] = useState(false);
@@ -509,20 +737,24 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const handleTransferAssetToPlayer = (playerIndex) => {
     if (!selectedAssetForTransfer) return;
     
-    const currentPlayerData = players[currentPlayer];
-    const targetPlayer = players[playerIndex];
+    const currentPlayerData = getCurrentPlayer();
+    const targetPlayer = getPlayerByIndex(playerIndex);
     
     // Передаем одну акцию/актив
     if (selectedAssetForTransfer.quantity > 1) {
       // Если у игрока больше одной акции, уменьшаем количество
-      setAssets(prev => prev.map(asset => 
+      const currentAssets = getCurrentPlayerAssets();
+      const updatedAssets = currentAssets.map(asset => 
         asset.id === selectedAssetForTransfer.id 
           ? { ...asset, quantity: asset.quantity - 1 }
           : asset
-      ));
+      );
+      updateCurrentPlayerAssets(updatedAssets);
     } else {
       // Если у игрока только одна акция, удаляем актив полностью
-      setAssets(prev => prev.filter(asset => asset.id !== selectedAssetForTransfer.id));
+      const currentAssets = getCurrentPlayerAssets();
+      const updatedAssets = currentAssets.filter(asset => asset.id !== selectedAssetForTransfer.id);
+      updateCurrentPlayerAssets(updatedAssets);
     }
     
     // Добавляем актив целевому игроку (здесь нужно обновить состояние активов целевого игрока)
@@ -530,11 +762,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     
     setToast({
       open: true,
-      message: `🎁 ${currentPlayerData.name} передал 1 ${selectedAssetForTransfer.name} игроку ${targetPlayer.name}`,
+      message: `🎁 ${currentPlayerData?.username || 'Игрок'} передал 1 ${selectedAssetForTransfer.name} игроку ${targetPlayer?.username || 'Игрок'}`,
       severity: 'success'
     });
     
-    console.log(`🎁 [OriginalGameBoard] ${currentPlayerData.name} передал 1 ${selectedAssetForTransfer.name} игроку ${targetPlayer.name}`);
+    console.log(`🎁 [OriginalGameBoard] ${currentPlayerData?.username || 'Игрок'} передал 1 ${selectedAssetForTransfer.name} игроку ${targetPlayer?.username || 'Игрок'}`);
     
     // Закрываем модальные окна
     setShowAssetTransferModal(false);
@@ -561,25 +793,25 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const handleBigCircleMoneyPass = () => {
     if (!isOnBigCircle) return;
     
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     const currentIncome = bigCirclePassiveIncome;
     
     setBigCircleBalance(prev => prev + currentIncome);
     
     setToast({
       open: true,
-      message: `💰 ${player.name} получил доход $${currentIncome.toLocaleString()} (большой круг)`,
+      message: `💰 ${player?.username || 'Игрок'} получил доход $${currentIncome.toLocaleString()} (большой круг)`,
       severity: 'success'
     });
     
-    console.log(`💰 [OriginalGameBoard] Игрок ${player.name} получил доход $${currentIncome} на большом круге`);
+    console.log(`💰 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} получил доход $${currentIncome} на большом круге`);
   };
 
   // Функция покупки бизнеса на большом круге
   const handleBigCircleBusinessPurchase = (cellId, businessData) => {
     if (!isOnBigCircle) return;
     
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     const currentBalance = bigCircleBalance;
     const businessCost = businessData.cost;
     const businessIncome = businessData.income;
@@ -596,7 +828,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         cost: businessCost,
         income: businessIncome,
         owner: player.id,
-        ownerName: player.name,
+        ownerName: player?.username || 'Игрок',
         ownerColor: player.color
       };
       
@@ -610,7 +842,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         ...prev,
         [cellId]: {
           owner: player.id,
-          ownerName: player.name,
+          ownerName: player?.username || 'Игрок',
           ownerColor: player.color,
           business: newBusiness
         }
@@ -618,11 +850,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       
       setToast({
         open: true,
-        message: `✅ ${player.name} купил ${businessData.name} за $${businessCost.toLocaleString()}. Доход увеличен на $${businessIncome}/ход`,
+        message: `✅ ${player?.username || 'Игрок'} купил ${businessData.name} за $${businessCost.toLocaleString()}. Доход увеличен на $${businessIncome}/ход`,
         severity: 'success'
       });
       
-      console.log(`✅ [OriginalGameBoard] Игрок ${player.name} купил бизнес ${businessData.name} на большом круге`);
+      console.log(`✅ [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} купил бизнес ${businessData.name} на большом круге`);
       
       // Проверяем условия победы
       if (checkVictoryConditions(player.id)) {
@@ -640,7 +872,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция проверки условий победы
   const checkVictoryConditions = (playerId) => {
-    const player = players.find(p => p.id === playerId);
+    const player = gamePlayers.find(p => p.socketId === playerId);
     if (!player || !isOnBigCircle) return false;
     
     // Условие 1: 2 бизнеса + мечта
@@ -648,7 +880,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     const dreamCount = bigCircleDreams.filter(d => d.owner === playerId).length;
     
     if (businessCount >= 2 && dreamCount >= 1) {
-      setVictoryReason(`🏆 ${player.name} победил! Купил 2 бизнеса и мечту!`);
+      setVictoryReason(`🏆 ${player?.username || 'Игрок'} победил! Купил 2 бизнеса и мечту!`);
       return true;
     }
     
@@ -658,7 +890,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     const incomeIncrease = currentIncome - initialIncome;
     
     if (businessCount >= 1 && incomeIncrease >= 50000) {
-      setVictoryReason(`🏆 ${player.name} победил! Купил бизнес и увеличил доход на $${incomeIncrease.toLocaleString()}!`);
+      setVictoryReason(`🏆 ${player?.username || 'Игрок'} победил! Купил бизнес и увеличил доход на $${incomeIncrease.toLocaleString()}!`);
       return true;
     }
     
@@ -669,7 +901,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const handleBigCircleDreamPurchase = (cellId, dreamData) => {
     if (!isOnBigCircle) return;
     
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     const currentBalance = bigCircleBalance;
     const dreamCost = dreamData.cost;
     
@@ -684,7 +916,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         name: dreamData.name,
         cost: dreamCost,
         owner: player.id,
-        ownerName: player.name,
+        ownerName: player?.username || 'Игрок',
         ownerColor: player.color
       };
       
@@ -692,11 +924,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       
       setToast({
         open: true,
-        message: `🌟 ${player.name} купил мечту "${dreamData.name}" за $${dreamCost.toLocaleString()}!`,
+        message: `🌟 ${player?.username || 'Игрок'} купил мечту "${dreamData.name}" за $${dreamCost.toLocaleString()}!`,
         severity: 'success'
       });
       
-      console.log(`🌟 [OriginalGameBoard] Игрок ${player.name} купил мечту ${dreamData.name} на большом круге`);
+      console.log(`🌟 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} купил мечту ${dreamData.name} на большом круге`);
       
       // Проверяем условия победы
       if (checkVictoryConditions(player.id)) {
@@ -714,24 +946,24 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция расчета рейтинга
   const calculateRankings = () => {
-    const rankings = players.map(player => {
+    const rankings = gamePlayers.map(player => {
       const playerData = {
-        id: player.id,
-        name: player.name,
+        id: player.socketId,
+        name: player.username,
         color: player.color,
-        position: player.position,
+        position: player.position || 1,
         isOnBigCircle: true, // Всегда на большом круге
         passiveIncome: isOnBigCircle ? bigCirclePassiveIncome : getTotalAssetsIncome(),
-        balance: isOnBigCircle ? bigCircleBalance : playerMoney,
-        businessCount: bigCircleBusinesses.filter(b => b.owner === player.id).length,
-        dreamCount: bigCircleDreams.filter(d => d.owner === player.id).length,
+        balance: isOnBigCircle ? bigCircleBalance : player.balance || 0,
+        businessCount: bigCircleBusinesses.filter(b => b.owner === player.socketId).length,
+        dreamCount: bigCircleDreams.filter(d => d.owner === player.socketId).length,
         hasWon: false,
         rank: 0,
         points: 0
       };
       
       // Проверяем, победил ли игрок
-      if (checkVictoryConditions(player.id)) {
+      if (checkVictoryConditions(player.socketId)) {
         playerData.hasWon = true;
       }
       
@@ -808,7 +1040,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const handleBigCircleBusinessTakeover = (cellId, businessData) => {
     if (!isOnBigCircle) return;
     
-    const player = players[currentPlayer];
+    const player = gamePlayers[currentPlayer];
     const currentBalance = bigCircleBalance;
     const currentOwner = bigCircleCells[cellId];
     
@@ -822,7 +1054,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       setBigCircleBalance(prev => prev - takeoverCost);
       
       // Возвращаем деньги предыдущему владельцу
-      const previousOwnerIndex = players.findIndex(p => p.id === currentOwner.owner);
+      const previousOwnerIndex = gamePlayers.findIndex(p => p.id === currentOwner.owner);
       if (previousOwnerIndex !== -1) {
         // Здесь нужно обновить баланс предыдущего владельца
         // Пока что просто показываем уведомление
@@ -836,12 +1068,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         ...prev,
         [cellId]: {
           owner: player.id,
-          ownerName: player.name,
+          ownerName: player?.username || 'Игрок',
           ownerColor: player.color,
           business: {
             ...currentOwner.business,
             owner: player.id,
-            ownerName: player.name,
+            ownerName: player?.username || 'Игрок',
             ownerColor: player.color
           }
         }
@@ -850,7 +1082,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       // Обновляем бизнес в списке
       setBigCircleBusinesses(prev => prev.map(business => 
         business.cellId === cellId 
-          ? { ...business, owner: player.id, ownerName: player.name, ownerColor: player.color }
+          ? { ...business, owner: player.id, ownerName: player.username, ownerColor: player.color }
           : business
       ));
       
@@ -859,11 +1091,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       
       setToast({
         open: true,
-        message: `🔄 ${player.name} перекупил ${businessData.name} за $${takeoverCost.toLocaleString()} у ${currentOwner.ownerName}`,
+        message: `🔄 ${player?.username || 'Игрок'} перекупил ${businessData.name} за $${takeoverCost.toLocaleString()} у ${currentOwner.ownerName}`,
         severity: 'success'
       });
       
-      console.log(`🔄 [OriginalGameBoard] Игрок ${player.name} перекупил бизнес ${businessData.name} у ${currentOwner.ownerName}`);
+      console.log(`🔄 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} перекупил бизнес ${businessData.name} у ${currentOwner.ownerName}`);
     } else {
       setToast({
         open: true,
@@ -875,8 +1107,14 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция движения игрока
   const movePlayer = (steps) => {
-    const updatedPlayers = [...players];
+    const updatedPlayers = [...gamePlayers];
     const player = updatedPlayers[currentPlayer];
+    
+    // Проверяем, что игрок существует
+    if (!player) {
+      console.error('❌ [OriginalGameBoard] Игрок не найден для хода:', currentPlayer);
+      return;
+    }
     
     // Устанавливаем флаг движения и ID движущегося игрока
     setIsMoving(true);
@@ -906,7 +1144,16 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         
         // Обновляем позицию игрока
         player.position = currentPosition;
-        setPlayers([...updatedPlayers]);
+        
+        // Отправляем обновление позиции на сервер для синхронизации
+        if (socket.connected && roomIdRef.current) {
+          socket.emit('playerMove', roomIdRef.current, player.socketId, currentPosition);
+        }
+        
+        // Обновляем позицию в gamePlayers локально (для плавности анимации)
+        setGamePlayers(prev => prev.map(p => 
+          p.socketId === player.socketId ? { ...p, position: currentPosition } : p
+        ));
         
         // Продолжаем движение
         setTimeout(moveStep, 200); // 200ms между шагами
@@ -920,7 +1167,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         // Обрабатываем логику клетки
         handleCellAction(player.position);
         
-        console.log(`🎯 Игрок ${player.name} переместился на позицию ${player.position} (большой круг)`);
+        console.log(`🎯 Игрок ${player?.username || 'Игрок'} переместился на позицию ${player.position} (большой круг)`);
       }
     };
     
@@ -930,7 +1177,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция обработки действий клетки
   const handleCellAction = (position) => {
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     
     // Всегда логика большого круга
       handleBigCircleCellAction(position);
@@ -940,7 +1187,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция обработки действий клетки на большом круге
   const handleBigCircleCellAction = (position) => {
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     
     // Клетки дохода от инвестиций (25, 38, 51, 64)
     if ([25, 38, 51, 64].includes(position)) {
@@ -1038,7 +1285,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция обработки благотворительности на большом круге
   const handleBigCircleCharityAction = () => {
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     
     // На большом круге благотворительность стоит 100,000$
     const charityAmount = 100000;
@@ -1047,7 +1294,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     setCharityDiceCount(3); // На большом круге можно выбрать 1, 2 или 3 кубика
     setShowCharityModal(true);
     
-    console.log(`❤️ [OriginalGameBoard] Игрок ${player.name} попал на клетку благотворительности (большой круг). Стоимость: $${charityAmount}`);
+    console.log(`❤️ [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} попал на клетку благотворительности (большой круг). Стоимость: $${charityAmount}`);
   };
 
   // Функция получения расходов игрока
@@ -1084,7 +1331,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция рождения ребенка
   const handleChildBirth = () => {
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     
     // Бросаем дополнительный кубик
     const childDice = Math.floor(Math.random() * 6) + 1;
@@ -1100,20 +1347,20 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       
       setToast({
         open: true,
-        message: `👶 Поздравляем! У ${player.name} родился ребенок! +$5,000`,
+        message: `👶 Поздравляем! У ${player?.username || 'Игрок'} родился ребенок! +$5,000`,
         severity: 'success'
       });
       
-      console.log(`👶 [OriginalGameBoard] У игрока ${player.name} родился ребенок! Кубик: ${childDice}`);
+      console.log(`👶 [OriginalGameBoard] У игрока ${player?.username || 'Игрок'} родился ребенок! Кубик: ${childDice}`);
     } else {
       // Ребенок не родился
       setToast({
         open: true,
-        message: `😔 ${player.name}, ребенок не родился. Кубик: ${childDice}`,
+        message: `😔 ${player?.username || 'Игрок'}, ребенок не родился. Кубик: ${childDice}`,
         severity: 'info'
       });
       
-      console.log(`😔 [OriginalGameBoard] У игрока ${player.name} ребенок не родился. Кубик: ${childDice}`);
+      console.log(`😔 [OriginalGameBoard] У игрока ${player?.username || 'Игрок'} ребенок не родился. Кубик: ${childDice}`);
     }
     
     setShowChildModal(false);
@@ -1121,7 +1368,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   
   // Функция обработки благотворительности на малом круге
   const handleCharityAction = () => {
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
+    const assets = getCurrentPlayerAssets();
     
     // Рассчитываем стоимость благотворительности (50% от суммарного дохода)
     const totalIncome = getPlayerSalary(player.profession) + 
@@ -1132,12 +1380,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     setCharityDiceCount(2); // На малом круге всегда 2 кубика
     setShowCharityModal(true);
     
-    console.log(`❤️ [OriginalGameBoard] Игрок ${player.name} попал на клетку благотворительности (малый круг). Стоимость: $${charityAmount}`);
+    console.log(`❤️ [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} попал на клетку благотворительности (малый круг). Стоимость: $${charityAmount}`);
   };
 
   // Функция обработки карточек рынка
   const handleMarketAction = () => {
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     
     // Вытаскиваем карточку из колоды
     const marketCard = marketDeckManager.drawCard();
@@ -1151,8 +1399,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       return;
     }
     
-    // Получаем активы текущего игрока (пока используем общие активы)
-    const playerAssets = assets;
+    // Получаем активы текущего игрока
+    const playerAssets = getCurrentPlayerAssets();
     
     // Проверяем, есть ли у игрока подходящий актив
     const hasMatchingAsset = checkPlayerHasMatchingAsset(playerAssets, marketCard);
@@ -1166,13 +1414,13 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     setMarketDeckCount(marketDeckManager.getDeckCount());
     setMarketDiscardCount(marketDeckManager.getDiscardCount());
     
-    console.log(`🏪 [OriginalGameBoard] Игрок ${player.name} попал на клетку рынка. Карточка: ${marketCard.name}`);
+    console.log(`🏪 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} попал на клетку рынка. Карточка: ${marketCard.name}`);
     console.log(`📊 [OriginalGameBoard] Колода: ${marketDeckManager.getDeckCount()}, Отбой: ${marketDeckManager.getDiscardCount()}`);
   };
 
   // Функция обработки карточек расходов
   const handleExpenseAction = () => {
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     
     // Вытаскиваем карточку из колоды
     const expenseCard = expenseDeckManager.drawCard();
@@ -1194,13 +1442,13 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     setExpenseDeckCount(expenseDeckManager.getDeckCount());
     setExpenseDiscardCount(expenseDeckManager.getDiscardCount());
     
-    console.log(`💸 [OriginalGameBoard] Игрок ${player.name} попал на клетку расходов. Карточка: ${expenseCard.name}`);
+    console.log(`💸 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} попал на клетку расходов. Карточка: ${expenseCard.name}`);
     console.log(`📊 [OriginalGameBoard] Колода: ${expenseDeckManager.getDeckCount()}, Отбой: ${expenseDeckManager.getDiscardCount()}`);
   };
 
   // Функция принятия предложения рынка
   const handleMarketAccept = () => {
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     
     if (!currentMarketCard) return;
     
@@ -1225,11 +1473,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция отказа от предложения рынка
   const handleMarketDecline = () => {
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     
     setToast({
       open: true,
-      message: `${player.name} отказался от предложения рынка`,
+      message: `${player?.username || 'Игрок'} отказался от предложения рынка`,
       severity: 'info'
     });
     
@@ -1243,12 +1491,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     setShowMarketCardModal(false);
     setCurrentMarketCard(null);
     
-    console.log(`😔 [OriginalGameBoard] Игрок ${player.name} отказался от предложения рынка`);
+    console.log(`😔 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} отказался от предложения рынка`);
   };
 
   // Функция обработки продажи актива через рынок
   const handleMarketSale = () => {
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     
     if (!currentMarketCard) return;
     
@@ -1265,27 +1513,29 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     
     if (assetToSell) {
       // Удаляем актив из списка
-      setAssets(prev => prev.filter(asset => asset.id !== assetToSell.id));
+      const currentAssets = getCurrentPlayerAssets();
+      updateCurrentPlayerAssets(currentAssets.filter(asset => asset.id !== assetToSell.id));
       
       // Добавляем деньги от продажи
       setPlayerMoney(prev => prev + currentMarketCard.offerPrice);
       
       setToast({
         open: true,
-        message: `💰 ${player.name} продал ${assetToSell.name} за $${currentMarketCard.offerPrice.toLocaleString()}`,
+        message: `💰 ${player?.username || 'Игрок'} продал ${assetToSell.name} за $${currentMarketCard.offerPrice.toLocaleString()}`,
         severity: 'success'
       });
       
-      console.log(`💰 [OriginalGameBoard] Игрок ${player.name} продал ${assetToSell.name} за $${currentMarketCard.offerPrice}`);
+      console.log(`💰 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} продал ${assetToSell.name} за $${currentMarketCard.offerPrice}`);
     }
   };
 
   // Функция обработки краха рынка
   const handleMarketCrash = () => {
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     
     // Удаляем все BTC активы у всех игроков
-    setAssets(prev => prev.filter(asset => asset.type !== 'bitcoin'));
+    const currentAssets = getCurrentPlayerAssets();
+    updateCurrentPlayerAssets(currentAssets.filter(asset => asset.type !== 'bitcoin'));
     
     setToast({
       open: true,
@@ -1298,17 +1548,22 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция оплаты карточки расхода
   const handleExpensePay = () => {
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     
     if (!currentExpenseCard) return;
     
     // Списываем деньги с баланса игрока
-    const updatedPlayers = [...players];
-    updatedPlayers[currentPlayer] = {
-      ...updatedPlayers[currentPlayer],
-      balance: updatedPlayers[currentPlayer].balance - currentExpenseCard.cost
-    };
-    setPlayers(updatedPlayers);
+    const newBalance = (player?.balance || 0) - currentExpenseCard.cost;
+    
+    // Синхронизируем с сервером
+    syncPlayerData(player?.socketId, { balance: newBalance });
+    
+    // Обновляем локально для отзывчивости
+    setGamePlayers(prev => prev.map(p => 
+      p.socketId === player?.socketId 
+        ? { ...p, balance: newBalance }
+        : p
+    ));
     
     // Откладываем карточку в отбой
     expenseDeckManager.discardCard(currentExpenseCard);
@@ -1319,36 +1574,44 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     
     setToast({
       open: true,
-      message: `💸 ${player.name} заплатил $${currentExpenseCard.cost.toLocaleString()} за ${currentExpenseCard.name}`,
+              message: `💸 ${player?.username || 'Игрок'} заплатил $${currentExpenseCard.cost.toLocaleString()} за ${currentExpenseCard.name}`,
       severity: 'info'
     });
     
     setShowExpenseCardModal(false);
     setCurrentExpenseCard(null);
     
-    console.log(`💸 [OriginalGameBoard] Игрок ${player.name} заплатил $${currentExpenseCard.cost} за ${currentExpenseCard.name}`);
+    console.log(`💸 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} заплатил $${currentExpenseCard.cost} за ${currentExpenseCard.name}`);
   };
 
   // Функция взятия кредита для оплаты расхода
   const handleExpenseTakeCredit = () => {
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     
     if (!currentExpenseCard) return;
     
-    const shortfall = currentExpenseCard.cost - player.balance;
+    const shortfall = currentExpenseCard.cost - (player?.balance || 0);
     
     // Добавляем кредит игроку
-    const updatedPlayers = [...players];
-    updatedPlayers[currentPlayer] = {
-      ...updatedPlayers[currentPlayer],
-      balance: updatedPlayers[currentPlayer].balance + shortfall,
-      credits: (updatedPlayers[currentPlayer].credits || 0) + shortfall
-    };
-    setPlayers(updatedPlayers);
+    const newBalance = (player?.balance || 0) + shortfall - currentExpenseCard.cost;
+    const newCredits = (player?.credits || 0) + shortfall;
     
-    // Списываем стоимость расхода
-    updatedPlayers[currentPlayer].balance -= currentExpenseCard.cost;
-    setPlayers(updatedPlayers);
+    // Синхронизируем с сервером
+    syncPlayerData(player?.socketId, { 
+      balance: newBalance,
+      credits: newCredits
+    });
+    
+    // Обновляем локально для отзывчивости
+    setGamePlayers(prev => prev.map(p => 
+      p.socketId === player?.socketId 
+        ? { 
+            ...p, 
+            balance: newBalance,
+            credits: newCredits
+          }
+        : p
+    ));
     
     // Откладываем карточку в отбой
     expenseDeckManager.discardCard(currentExpenseCard);
@@ -1359,19 +1622,19 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     
     setToast({
       open: true,
-      message: `💳 ${player.name} взял кредит $${shortfall.toLocaleString()} для оплаты ${currentExpenseCard.name}`,
+              message: `💳 ${player?.username || 'Игрок'} взял кредит $${shortfall.toLocaleString()} для оплаты ${currentExpenseCard.name}`,
       severity: 'warning'
     });
     
     setShowExpenseCardModal(false);
     setCurrentExpenseCard(null);
     
-    console.log(`💳 [OriginalGameBoard] Игрок ${player.name} взял кредит $${shortfall} для оплаты ${currentExpenseCard.name}`);
+    console.log(`💳 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} взял кредит $${shortfall} для оплаты ${currentExpenseCard.name}`);
   };
   
   // Функция принятия благотворительности
   const handleCharityAccept = () => {
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     
     // Проверяем баланс в зависимости от круга
     const currentBalance = isOnBigCircle ? bigCircleBalance : playerMoney;
@@ -1394,11 +1657,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       
       setToast({
         open: true,
-        message: `❤️ ${player.name} пожертвовал $${charityCost.toLocaleString()} на благотворительность! ${diceMessage}`,
+        message: `❤️ ${player?.username || 'Игрок'} пожертвовал $${charityCost.toLocaleString()} на благотворительность! ${diceMessage}`,
         severity: 'success'
       });
       
-      console.log(`❤️ [OriginalGameBoard] Игрок ${player.name} принял благотворительность за $${charityCost} (${isOnBigCircle ? 'большой круг' : 'малый круг'})`);
+      console.log(`❤️ [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} принял благотворительность за $${charityCost} (${isOnBigCircle ? 'большой круг' : 'малый круг'})`);
     } else {
       setToast({
         open: true,
@@ -1509,7 +1772,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       const randomBigCard = bigCards[Math.floor(Math.random() * bigCards.length)];
       
       // Добавляем карточки игроку бесплатно
-      const player = players[currentPlayer];
+      const player = gamePlayers[currentPlayer];
       
       // Добавляем малую карточку
       const smallAsset = {
@@ -1545,18 +1808,19 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         maxQuantity: randomBigCard.maxQuantity || 1
       };
       
-      setAssets(prev => [...prev, smallAsset, bigAsset]);
+      const currentAssets = getCurrentPlayerAssets();
+      updateCurrentPlayerAssets([...currentAssets, smallAsset, bigAsset]);
       
       // Убираем карточки из колоды
       setDealDeck(prev => prev.filter(c => c.id !== randomSmallCard.id && c.id !== randomBigCard.id));
       
       setToast({
         open: true,
-        message: `🎁 ${player.name} получил бесплатно: ${randomSmallCard.name} и ${randomBigCard.name}!`,
+        message: `🎁 ${player.username} получил бесплатно: ${randomSmallCard.name} и ${randomBigCard.name}!`,
         severity: 'success'
       });
       
-      console.log(`🎁 [OriginalGameBoard] Игрок ${player.name} получил бесплатные карточки: ${randomSmallCard.name}, ${randomBigCard.name}`);
+      console.log(`🎁 [OriginalGameBoard] Игрок ${player.username} получил бесплатные карточки: ${randomSmallCard.name}, ${randomBigCard.name}`);
     } else {
       setToast({
         open: true,
@@ -1572,11 +1836,22 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const handleBuyDeal = () => {
     if (!currentDealCard) return;
     
-    const player = players[currentPlayer];
+    const player = getCurrentPlayer();
     
     if (playerMoney >= currentDealCard.cost) {
       // Покупаем карточку
-      setPlayerMoney(prev => prev - currentDealCard.cost);
+      const newBalance = playerMoney - currentDealCard.cost;
+      
+      // Синхронизируем с сервером
+      syncPlayerData(player?.socketId, { balance: newBalance });
+      
+      // Обновляем локально для отзывчивости
+      setPlayerMoney(newBalance);
+      setGamePlayers(prev => prev.map(p => 
+        p.socketId === player?.socketId 
+          ? { ...p, balance: newBalance }
+          : p
+      ));
       
       // Обработка карточек "другу нужны деньги"
       if (currentDealCard.isFriendMoneyCard) {
@@ -1587,7 +1862,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           // Первая карточка - ничего не получает
           setToast({
             open: true,
-            message: `💝 ${player.name} помог другу! Друг благодарен.`,
+            message: `💝 ${player.username} помог другу! Друг благодарен.`,
             severity: 'info'
           });
         } else if (currentDealCard.friendCardNumber === 2) {
@@ -1595,7 +1870,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           setHasExtraTurn(true);
           setToast({
             open: true,
-            message: `🎯 ${player.name} помог другу! Друг передает свой ход - у вас дополнительный ход!`,
+            message: `🎯 ${player.username} помог другу! Друг передает свой ход - у вас дополнительный ход!`,
             severity: 'success'
           });
         } else if (currentDealCard.friendCardNumber === 3) {
@@ -1603,12 +1878,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           setHasFreeCards(true);
           setToast({
             open: true,
-            message: `🎁 ${player.name} помог другу! Друг дарит карточку малой и большой возможности!`,
+            message: `🎁 ${player.username} помог другу! Друг дарит карточку малой и большой возможности!`,
             severity: 'success'
           });
         }
         
-        console.log(`💝 [OriginalGameBoard] Игрок ${player.name} купил карточку "другу нужны деньги" #${currentDealCard.friendCardNumber}`);
+        console.log(`💝 [OriginalGameBoard] Игрок ${player.username} купил карточку "другу нужны деньги" #${currentDealCard.friendCardNumber}`);
         setShowDealModal(false);
         setCurrentDealCard(null);
         return;
@@ -1619,17 +1894,19 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         // Просто тратим деньги, актив не создается
       } else {
         // Проверяем, есть ли уже такой актив у игрока
-        const existingAssetIndex = assets.findIndex(asset => 
+        const existingAssetIndex = getCurrentPlayerAssets().findIndex(asset => 
           asset.name === currentDealCard.name && asset.type === 'deal'
         );
         
         if (existingAssetIndex !== -1) {
           // Если актив уже есть, увеличиваем количество
-          setAssets(prev => prev.map((asset, index) => 
+          const currentAssets = getCurrentPlayerAssets();
+          const updatedAssets = currentAssets.map((asset, index) => 
             index === existingAssetIndex 
               ? { ...asset, quantity: asset.quantity + 1 }
               : asset
-          ));
+          );
+          updateCurrentPlayerAssets(updatedAssets);
         } else {
           // Если актива нет, создаем новый
           const newAsset = {
@@ -1648,7 +1925,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             maxQuantity: currentDealCard.maxQuantity || 1
           };
           
-          setAssets(prev => [...prev, newAsset]);
+          const currentAssets = getCurrentPlayerAssets();
+          updateCurrentPlayerAssets([...currentAssets, newAsset]);
         }
       }
       
@@ -1658,11 +1936,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       
       let message;
       if (isExpense) {
-        message = `🔧 ${player.name} потратил $${currentDealCard.cost.toLocaleString()} на ${currentDealCard.name}`;
+        message = `🔧 ${player.username} потратил $${currentDealCard.cost.toLocaleString()} на ${currentDealCard.name}`;
       } else if (isCharity) {
-        message = `💝 ${player.name} пожертвовал $${currentDealCard.cost.toLocaleString()} на ${currentDealCard.name}`;
+        message = `💝 ${player.username} пожертвовал $${currentDealCard.cost.toLocaleString()} на ${currentDealCard.name}`;
       } else {
-        message = `✅ ${player.name} купил ${currentDealCard.name} за $${currentDealCard.cost.toLocaleString()}`;
+        message = `✅ ${player.username} купил ${currentDealCard.name} за $${currentDealCard.cost.toLocaleString()}`;
       }
       
       setToast({
@@ -1671,7 +1949,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         severity: isExpense ? 'warning' : isCharity ? 'info' : 'success'
       });
       
-      console.log(`✅ [OriginalGameBoard] Игрок ${player.name} ${isExpense ? 'потратил на' : isCharity ? 'пожертвовал на' : 'купил'} ${currentDealCard.name}`);
+      console.log(`✅ [OriginalGameBoard] Игрок ${player.username} ${isExpense ? 'потратил на' : isCharity ? 'пожертвовал на' : 'купил'} ${currentDealCard.name}`);
     } else {
       setToast({
         open: true,
@@ -1717,8 +1995,9 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const handlePassCardToSpecificPlayer = (playerIndex) => {
     if (!currentDealCard) return;
     
-    const currentPlayerData = players[currentPlayer];
-    const targetPlayer = players[playerIndex];
+    const currentPlayerData = getCurrentPlayer();
+    const targetPlayer = getPlayerByIndex(playerIndex);
+    const assets = getCurrentPlayerAssets();
     
     // Проверяем, есть ли уже такой актив у целевого игрока
     const existingAssetIndex = assets.findIndex(asset => 
@@ -1727,11 +2006,13 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     
     if (existingAssetIndex !== -1) {
       // Если актив уже есть, увеличиваем количество
-      setAssets(prev => prev.map((asset, index) => 
+      const currentAssets = getCurrentPlayerAssets();
+      const updatedAssets = currentAssets.map((asset, index) => 
         index === existingAssetIndex 
           ? { ...asset, quantity: asset.quantity + 1 }
           : asset
-      ));
+      );
+      updateCurrentPlayerAssets(updatedAssets);
     } else {
       // Если актива нет, создаем новый
       const newAsset = {
@@ -1751,7 +2032,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         maxQuantity: currentDealCard.maxQuantity || 1
       };
       
-      setAssets(prev => [...prev, newAsset]);
+      const currentAssets = getCurrentPlayerAssets();
+      updateCurrentPlayerAssets([...currentAssets, newAsset]);
     }
     
     setToast({
@@ -1769,7 +2051,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция для расчета денежного потока (PAYDAY)
   const getCashFlow = () => {
-    const totalIncome = assets.reduce((sum, asset) => sum + (asset.income || 0), 0);
+    const totalIncome = getCurrentPlayerAssets().reduce((sum, asset) => sum + (asset.income || 0), 0);
     // Здесь нужно вычесть ежемесячные расходы игрока
     // Пока что используем фиксированные расходы для примера
     const totalExpenses = 4500; // Пример: расходы $4,500
@@ -1945,14 +2227,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     // Продаем одну единицу актива
     if (asset.quantity > 1) {
       // Если у игрока больше одной единицы, уменьшаем количество
-      setAssets(prev => prev.map(a => 
+      const currentAssets = getCurrentPlayerAssets();
+      const updatedAssets = currentAssets.map(a => 
         a.id === asset.id 
           ? { ...a, quantity: a.quantity - 1 }
           : a
-      ));
+      );
+      updateCurrentPlayerAssets(updatedAssets);
     } else {
       // Если это последняя единица, удаляем актив
-      setAssets(prev => prev.filter(a => a.id !== asset.id));
+      const currentAssets = getCurrentPlayerAssets();
+      updateCurrentPlayerAssets(currentAssets.filter(a => a.id !== asset.id));
     }
     
     // Добавляем деньги игроку (продаем по текущей цене)
@@ -2103,16 +2388,23 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   // Функции для кнопок управления игрой
   const handlePlayerTurn = (playerIndex) => {
     if (playerIndex === currentPlayer) {
-      console.log(`🎯 [OriginalGameBoard] Ход игрока ${players[playerIndex].name} уже активен`);
+      const player = getPlayerByIndex(playerIndex);
+      console.log(`🎯 [OriginalGameBoard] Ход игрока ${player?.username || 'Игрок'} уже активен`);
       return;
     }
     
-    console.log(`🎯 [OriginalGameBoard] Переключение на игрока ${players[playerIndex].name}`);
-    setCurrentPlayer(playerIndex);
+    const player = getPlayerByIndex(playerIndex);
+    console.log(`🎯 [OriginalGameBoard] Переключение на игрока ${player?.username || 'Игрок'}`);
     
-    // Сбрасываем таймер для нового игрока
+    // Синхронизируем с сервером
+    if (socket.connected && roomIdRef.current) {
+      socket.emit('changePlayerTurn', roomIdRef.current, playerIndex);
+    }
+    
+    // Обновляем локально для отзывчивости
+    setCurrentPlayer(playerIndex);
     setTurnTimeLeft(120);
-    setTimerProgress(100);
+    setTimerProgress(0);
     setIsTurnEnding(false);
     setCanRollDice(true);
     setDiceRolled(false);
@@ -2120,7 +2412,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     // Показываем уведомление
     setToast({
       open: true,
-      message: `🎯 Ход передан игроку ${players[playerIndex].name}`,
+      message: `🎯 Ход передан игроку ${player?.username || 'Игрок'}`,
       severity: 'info'
     });
   };
@@ -2132,9 +2424,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     // Проверяем, есть ли дополнительный ход
     if (hasExtraTurn) {
       setHasExtraTurn(false);
+      const player = getCurrentPlayer();
       setToast({
         open: true,
-        message: `🎯 Дополнительный ход! ${players[currentPlayer].name} ходит еще раз!`,
+        message: `🎯 Дополнительный ход! ${player?.username || 'Игрок'} ходит еще раз!`,
         severity: 'success'
       });
       
@@ -2145,28 +2438,34 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       setCanRollDice(true);
       setDiceRolled(false);
       
-      console.log(`🎯 [OriginalGameBoard] Дополнительный ход для игрока ${players[currentPlayer].name}`);
+      console.log(`🎯 [OriginalGameBoard] Дополнительный ход для игрока ${player?.username || 'Игрок'}`);
       return;
     }
     
-    const nextPlayer = (currentPlayer + 1) % players.length;
-    setCurrentPlayer(nextPlayer);
+    const nextPlayer = (currentPlayer + 1) % gamePlayers.length;
     
-    // Сбрасываем таймер для нового игрока
+    // Синхронизируем с сервером
+    if (socket.connected && roomIdRef.current) {
+      socket.emit('changePlayerTurn', roomIdRef.current, nextPlayer);
+    }
+    
+    // Обновляем локально для отзывчивости
+    setCurrentPlayer(nextPlayer);
     setTurnTimeLeft(120);
-    setTimerProgress(100);
+    setTimerProgress(0);
     setIsTurnEnding(false);
     setCanRollDice(true);
     setDiceRolled(false);
     
     // Показываем уведомление
+    const nextPlayerData = getPlayerByIndex(nextPlayer);
     setToast({
       open: true,
-      message: `⏭️ Ход передан игроку ${players[nextPlayer].name}`,
+      message: `⏭️ Ход передан игроку ${nextPlayerData?.username || 'Игрок'}`,
       severity: 'info'
     });
     
-    console.log(`⏭️ [OriginalGameBoard] Ход передан игроку ${players[nextPlayer].name}`);
+    console.log(`⏭️ [OriginalGameBoard] Ход передан игроку ${nextPlayerData?.username || 'Игрок'}`);
   };
 
   // Функции для банковских операций
@@ -2200,7 +2499,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     }
 
     // Выполняем перевод
-    const currentPlayerName = players[currentPlayer]?.name || 'Неизвестно';
+    const currentPlayerData = getCurrentPlayer();
+    const currentPlayerName = currentPlayerData?.username || 'Неизвестно';
     const newTransfer = {
       id: Date.now(),
       from: currentPlayerName,
@@ -2237,10 +2537,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функции для работы с активами
   const getTotalAssetsValue = () => {
+    const assets = getCurrentPlayerAssets();
     return assets.reduce((total, asset) => total + (asset.value * (asset.quantity || 1)), 0);
   };
 
   const getTotalAssetsIncome = () => {
+    const assets = getCurrentPlayerAssets();
     return assets.reduce((total, asset) => total + (asset.income * (asset.quantity || 1)), 0);
   };
 
@@ -2269,15 +2571,26 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             setIsTurnEnding(false);
           }
           
+          // Синхронизируем таймер с сервером каждые 5 секунд
+          if (newTime % 5 === 0 && socket.connected && roomIdRef.current) {
+            socket.emit('syncTurnTimer', roomIdRef.current, newTime, newTime <= 10);
+          }
+          
           // Если время истекло
           if (newTime <= 0) {
             console.log('⏰ Время хода истекло!');
             // Автоматически переходим к следующему игроку
             setTimeout(() => {
-              const nextPlayer = (currentPlayer + 1) % players.length;
+              const nextPlayer = (currentPlayer + 1) % gamePlayers.length;
+              
+              // Синхронизируем с сервером
+              if (socket.connected && roomIdRef.current) {
+                socket.emit('changePlayerTurn', roomIdRef.current, nextPlayer);
+              }
+              
               setCurrentPlayer(nextPlayer);
               setTurnTimeLeft(120);
-              setTimerProgress(100);
+              setTimerProgress(0);
               setIsTurnEnding(false);
               setCanRollDice(true);
               setDiceRolled(false);
@@ -2285,7 +2598,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               // Показываем уведомление
               setToast({
                 open: true,
-                message: `⏰ Ход передан игроку ${players[nextPlayer].name} (время истекло)`,
+                message: `⏰ Ход передан игроку ${gamePlayers[nextPlayer]?.username || 'Неизвестный игрок'} (время истекло)`,
                 severity: 'warning'
               });
             }, 1000);
@@ -2299,7 +2612,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [turnTimeLeft, currentPlayer, players]);
+  }, [turnTimeLeft, currentPlayer, gamePlayers]);
 
   return (
     <Fragment>
@@ -2375,18 +2688,18 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             gap: isMobile ? 1 : 2
           }}>
             <Avatar sx={{ 
-              bgcolor: players[currentPlayer]?.color,
+              bgcolor: getCurrentPlayer()?.color || '#8B5CF6',
               width: isMobile ? 35 : 40,
               height: isMobile ? 35 : 40
             }}>
-              {players[currentPlayer]?.name.charAt(0)}
+              {getCurrentPlayer()?.username?.charAt(0) || '?'}
             </Avatar>
             <Box>
               <Typography variant={isMobile ? "body1" : "h6"} sx={{ color: 'white', fontWeight: 'bold' }}>
-                {players[currentPlayer]?.name}
+                {getCurrentPlayer()?.username || 'Игрок'}
               </Typography>
               <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: isMobile ? '0.8rem' : 'inherit' }}>
-                {players[currentPlayer]?.profession}
+                {getCurrentPlayer()?.profession?.name || getCurrentPlayer()?.profession || 'Профессия'}
               </Typography>
               {isOnBigCircle && (
                 <Typography variant="body2" sx={{ color: '#22C55E', fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 'bold' }}>
@@ -3122,7 +3435,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           {(() => {
             // Группируем игроков по позициям
             const playersByPosition = {};
-            players.forEach(player => {
+            gamePlayers.forEach(player => {
               if (!playersByPosition[player.position]) {
                 playersByPosition[player.position] = [];
               }
@@ -3130,8 +3443,9 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             });
             
             // Рендерим фишки с учетом перекрытия
-            const playerTokens = players.map((player, playerIndex) => {
+            const playerTokens = gamePlayers.map((player, playerIndex) => {
               let cellIndex, angle, radius, x, y;
+              const isConnected = player.isConnected !== false; // По умолчанию считаем подключенным
               
               if (isOnBigCircle && player.position >= 25) {
                 // Фишки на большом круге (позиции 25-76)
@@ -3197,9 +3511,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     sx={{
                       width: '100%',
                       height: '100%',
-                      background: `linear-gradient(135deg, ${player.color} 0%, ${player.color}DD 100%)`,
+                      background: isConnected 
+                        ? `linear-gradient(135deg, ${player.color} 0%, ${player.color}CC 50%, ${player.color}AA 100%)`
+                        : `linear-gradient(135deg, #666 0%, #444 100%)`,
                       borderRadius: '50%',
-                      border: movingPlayerId === player.id ? '4px solid #FFD700' : '3px solid white',
+                      border: movingPlayerId === player.id ? '4px solid #FFD700' : 
+                              isConnected ? '3px solid rgba(255,255,255,0.9)' : '3px solid #999',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -3208,23 +3525,32 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       color: 'white',
                       boxShadow: movingPlayerId === player.id 
                         ? '0 0 20px rgba(255, 215, 0, 0.8), 0 4px 15px rgba(0,0,0,0.4)' 
-                        : '0 4px 15px rgba(0,0,0,0.4), 0 0 10px rgba(255,255,255,0.3)',
+                        : isConnected 
+                          ? `0 4px 15px rgba(0,0,0,0.4), 0 0 12px ${player.color}40, 0 0 6px ${player.color}60`
+                          : '0 4px 15px rgba(0,0,0,0.4), 0 0 5px rgba(255,255,255,0.1)',
                       cursor: 'pointer',
                       transition: 'all 0.3s ease',
                       animation: movingPlayerId === player.id ? 'pulse 1s infinite' : 'none',
+                      opacity: isConnected ? 1 : 0.6,
                       '@keyframes pulse': {
-                        '0%': { boxShadow: '0 0 20px rgba(255, 215, 0, 0.8), 0 4px 15px rgba(0,0,0,0.4)' },
-                        '50%': { boxShadow: '0 0 30px rgba(255, 215, 0, 1), 0 4px 15px rgba(0,0,0,0.4)' },
-                        '100%': { boxShadow: '0 0 20px rgba(255, 215, 0, 0.8), 0 4px 15px rgba(0,0,0,0.4)' }
+                        '0%': { 
+                          boxShadow: `0 0 20px rgba(255, 215, 0, 0.8), 0 4px 15px rgba(0,0,0,0.4), 0 0 12px ${player.color}40` 
+                        },
+                        '50%': { 
+                          boxShadow: `0 0 30px rgba(255, 215, 0, 1), 0 4px 15px rgba(0,0,0,0.4), 0 0 18px ${player.color}60` 
+                        },
+                        '100%': { 
+                          boxShadow: `0 0 20px rgba(255, 215, 0, 0.8), 0 4px 15px rgba(0,0,0,0.4), 0 0 12px ${player.color}40` 
+                        }
                       },
                       '&:hover': {
                         transform: 'scale(1.2)',
-                        boxShadow: '0 8px 25px rgba(0,0,0,0.5), 0 0 20px rgba(255,255,255,0.4)'
+                        boxShadow: `0 8px 25px rgba(0,0,0,0.5), 0 0 20px ${player.color}80, 0 0 10px ${player.color}60`
                       }
                     }}
-                    title={`${player.name} - ${player.profession} (позиция: ${player.position})`}
+                    title={`${player.username} - ${player.profession} (позиция: ${player.position})`}
                   >
-                    {player.name.charAt(0)}
+                    {player.username?.charAt(0) || '?'}
                   </Box>
                 </motion.div>
               );
@@ -3335,7 +3661,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               fullWidth
               onClick={() => {
                 console.log('👤 [OriginalGameBoard] Кнопка профиля игрока нажата');
-                openPlayerModal(players[currentPlayer]);
+                openPlayerModal(getCurrentPlayer());
               }}
               sx={{
                 p: 0,
@@ -3356,7 +3682,13 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     {playerData?.username || 'MAG'}
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#94A3B8', fontSize: isMobile ? '0.8rem' : 'inherit' }}>
-                    💼 Менеджер
+                    {(() => {
+                      const currentPlayer = gamePlayers.find(p => p.socketId === socket?.id);
+                      if (currentPlayer?.profession) {
+                        return `💼 ${currentPlayer.profession.name}`;
+                      }
+                      return '💼 Менеджер';
+                    })()}
                   </Typography>
                   
                   {/* Информация о детях */}
@@ -3365,6 +3697,54 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       👶 {childrenCount}
                     </Typography>
                   </Box>
+                  
+                  {/* Информация об очередности хода */}
+                  {turnOrder.length > 0 && (
+                    <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                      <Typography variant="body2" sx={{ color: '#94A3B8', fontSize: '0.8rem', mb: 0.5 }}>
+                        🎲 Очередность хода:
+                      </Typography>
+                      {turnOrder.map((player, index) => (
+                        <Typography 
+                          key={player.username}
+                          variant="body2" 
+                          sx={{ 
+                            color: player.username === playerData?.username ? '#10B981' : '#94A3B8', 
+                            fontSize: '0.7rem',
+                            fontWeight: player.username === playerData?.username ? 'bold' : 'normal'
+                          }}
+                        >
+                          {index + 1}. {player.username}
+                          {player.username === playerData?.username && ' (Вы)'}
+                        </Typography>
+                      ))}
+                    </Box>
+                  )}
+                  
+                  {/* Информация об активах */}
+                  {gamePlayers.length > 0 && (() => {
+                    const currentPlayer = gamePlayers.find(p => p.socketId === socket?.id);
+                    if (currentPlayer && (currentPlayer.assets?.length > 0 || currentPlayer.liabilities?.length > 0)) {
+                      return (
+                        <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                          <Typography variant="body2" sx={{ color: '#94A3B8', fontSize: '0.8rem', mb: 0.5 }}>
+                            🏠 Активы и обязательства:
+                          </Typography>
+                          {currentPlayer.assets?.map((asset, index) => (
+                            <Typography key={asset.id} variant="body2" sx={{ color: '#10B981', fontSize: '0.7rem' }}>
+                              🏠 {asset.name}: ${asset.value?.toLocaleString() || 'N/A'}
+                            </Typography>
+                          ))}
+                          {currentPlayer.liabilities?.map((liability, index) => (
+                            <Typography key={liability.id} variant="body2" sx={{ color: '#EF4444', fontSize: '0.7rem' }}>
+                              💳 {liability.name}: ${liability.amount?.toLocaleString() || 'N/A'}
+                            </Typography>
+                          ))}
+                        </Box>
+                      );
+                    }
+                    return null;
+                  })()}
                   
                   {/* Кнопка для быстрого открытия карточки профессии */}
                   <Button
@@ -3434,10 +3814,19 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                   <AccountBalance /> Банк
                 </Typography>
                 <Typography variant={isMobile ? "h5" : "h4"} sx={{ color: '#10B981', fontWeight: 'bold' }}>
-                  ${bankBalance.toLocaleString()}
+                  ${(() => {
+                    const currentPlayer = gamePlayers.find(p => p.socketId === socket?.id);
+                    return currentPlayer?.balance || bankBalance;
+                  })().toLocaleString()}
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#94A3B8', mt: 1, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
-                  Доход: $1,200 | Расходы: $800
+                  {(() => {
+                    const currentPlayer = gamePlayers.find(p => p.socketId === socket?.id);
+                    if (currentPlayer?.profession) {
+                      return `Доход: $${currentPlayer.profession.salary?.toLocaleString() || '0'} | Расходы: $${currentPlayer.profession.totalExpenses?.toLocaleString() || '0'}`;
+                    }
+                    return 'Доход: $1,200 | Расходы: $800';
+                  })()}
                 </Typography>
                 
                                   {/* Информация о кредитах */}
@@ -3579,7 +3968,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   {/* Показываем только Дом */}
-                  {assets
+                  {getCurrentPlayerAssets()
                     .filter(asset => asset.type === 'house') // Только дом
                     .map((asset) => (
                       <Chip 
@@ -3599,9 +3988,9 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     ))}
                   
                   {/* Показываем количество скрытых активов */}
-                  {assets.length > 1 && (
+                  {getCurrentPlayerAssets().length > 1 && (
                     <Chip 
-                      label={`+${assets.length - 1} еще...`}
+                      label={`+${getCurrentPlayerAssets().length - 1} еще...`}
                       size="small" 
                       sx={{ 
                         background: 'rgba(107, 114, 128, 0.2)', 
@@ -3733,7 +4122,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           </Box>
         </motion.div>
 
-        {/* Очередность игроков - перенесено вниз */}
+        {/* Список всех игроков в комнате */}
         <motion.div
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
@@ -3747,92 +4136,101 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             mb: isMobile ? 1 : 2
           }}>
             <Typography variant={isMobile ? "body1" : "h6"} sx={{ color: 'white', mb: isMobile ? 1 : 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Group /> Очередность игроков
+              <Group /> Игроки в комнате
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Button
-                variant="text"
-                fullWidth
-                onClick={() => handlePlayerTurn(0)}
-                sx={{
-                  p: isMobile ? 0.5 : 1,
-                  background: currentPlayer === 0 ? '#8B5CF6' : 'transparent',
-                  color: 'white',
-                  borderRadius: isMobile ? '6px' : '8px',
-                  textTransform: 'none',
-                  fontSize: isMobile ? '0.8rem' : '0.9rem',
-                  fontWeight: 'bold',
-                  border: currentPlayer === 0 ? 'none' : '1px solid rgba(255,255,255,0.3)',
-                  '&:hover': {
-                    background: currentPlayer === 0 ? '#7C3AED' : 'rgba(255,255,255,0.1)'
-                  }
-                }}
-              >
-                1. MAG {currentPlayer === 0 ? '(Ход)' : ''}
-              </Button>
-              <Button
-                variant="text"
-                fullWidth
-                onClick={() => handlePlayerTurn(1)}
-                sx={{
-                  p: isMobile ? 0.5 : 1,
-                  background: currentPlayer === 1 ? '#8B5CF6' : 'transparent',
-                  color: 'white',
-                  borderRadius: isMobile ? '6px' : '8px',
-                  textTransform: 'none',
-                  fontSize: isMobile ? '0.8rem' : '0.9rem',
-                  fontWeight: 'bold',
-                  border: currentPlayer === 1 ? 'none' : '1px solid rgba(255,255,255,0.3)',
-                  '&:hover': {
-                    background: currentPlayer === 1 ? '#7C3AED' : 'rgba(255,255,255,0.1)'
-                  }
-                }}
-              >
-                2. Алексей {currentPlayer === 1 ? '(Ход)' : ''}
-              </Button>
-              <Button
-                variant="text"
-                fullWidth
-                onClick={() => handlePlayerTurn(2)}
-                sx={{
-                  p: isMobile ? 0.5 : 1,
-                  background: currentPlayer === 2 ? '#8B5CF6' : 'transparent',
-                  color: 'white',
-                  borderRadius: isMobile ? '6px' : '8px',
-                  textTransform: 'none',
-                  fontSize: isMobile ? '0.8rem' : '0.9rem',
-                  fontWeight: 'bold',
-                  border: currentPlayer === 2 ? 'none' : '1px solid rgba(255,255,255,0.3)',
-                  '&:hover': {
-                    background: currentPlayer === 2 ? '#7C3AED' : 'rgba(255,255,255,0.1)'
-                  }
-                }}
-              >
-                3. Мария {currentPlayer === 2 ? '(Ход)' : ''}
-              </Button>
-              <Button
-                variant="text"
-                fullWidth
-                onClick={() => handlePlayerTurn(3)}
-                sx={{
-                  p: isMobile ? 0.5 : 1,
-                  background: currentPlayer === 3 ? '#8B5CF6' : 'transparent',
-                  color: 'white',
-                  borderRadius: isMobile ? '6px' : '8px',
-                  textTransform: 'none',
-                  fontSize: isMobile ? '0.8rem' : '0.9rem',
-                  fontWeight: 'bold',
-                  border: currentPlayer === 3 ? 'none' : '1px solid rgba(255,255,255,0.3)',
-                  '&:hover': {
-                    background: currentPlayer === 3 ? '#7C3AED' : 'rgba(255,255,255,0.1)'
-                  }
-                }}
-              >
-                4. Дмитрий {currentPlayer === 3 ? '(Ход)' : ''}
-              </Button>
+              {gamePlayers.length > 0 ? (
+                gamePlayers.map((player, index) => {
+                  const isCurrentPlayer = player.socketId === socket?.id;
+                  const isCurrentTurn = currentTurn === player.username;
+                  const isConnected = player.isConnected !== false; // По умолчанию считаем подключенным
+                  
+                  return (
+                    <Box
+                      key={player.socketId}
+                      sx={{
+                        p: isMobile ? 0.5 : 1,
+                        background: isCurrentTurn ? '#8B5CF6' : isCurrentPlayer ? 'rgba(139, 92, 246, 0.3)' : 'transparent',
+                        color: isConnected ? 'white' : 'rgba(255,255,255,0.5)',
+                        borderRadius: isMobile ? '6px' : '8px',
+                        border: isCurrentTurn ? 'none' : `1px solid ${isConnected ? 'rgba(255,255,255,0.3)' : 'rgba(255,0,0,0.3)'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        cursor: 'pointer',
+                        opacity: isConnected ? 1 : 0.6,
+                        '&:hover': {
+                          background: isCurrentTurn ? '#7C3AED' : 'rgba(255,255,255,0.1)'
+                        }
+                      }}
+                    >
+                      <Avatar sx={{ 
+                        width: isMobile ? 24 : 32, 
+                        height: isMobile ? 24 : 32,
+                        bgcolor: isConnected ? (player.color || '#8B5CF6') : '#666',
+                        fontSize: isMobile ? '0.7rem' : '0.8rem'
+                      }}>
+                        {player.username?.charAt(0) || '?'}
+                      </Avatar>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: isCurrentTurn ? 'bold' : 'normal',
+                          fontSize: isMobile ? '0.8rem' : '0.9rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.5
+                        }}>
+                          {player.username || 'Неизвестный игрок'}
+                          {isCurrentPlayer && ' (Вы)'}
+                          {isCurrentTurn && ' (Ход)'}
+                          {!isConnected && ' 🔴'}
+                        </Typography>
+                        {player.profession && (
+                          <Typography variant="caption" sx={{ 
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            fontSize: isMobile ? '0.7rem' : '0.8rem'
+                          }}>
+                            💼 {player.profession.name || player.profession}
+                          </Typography>
+                        )}
+                      </Box>
+                      {player.balance !== undefined && (
+                        <Typography variant="caption" sx={{ 
+                          color: '#10B981',
+                          fontSize: isMobile ? '0.7rem' : '0.8rem',
+                          fontWeight: 'bold'
+                        }}>
+                          ${player.balance?.toLocaleString() || '0'}
+                        </Typography>
+                      )}
+                    </Box>
+                  );
+                })
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 2 }}>
+                  <Typography variant="body2" sx={{ 
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    mb: 1
+                  }}>
+                    Игроки загружаются...
+                  </Typography>
+                  <Typography variant="caption" sx={{ 
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    fontSize: '0.75rem',
+                    display: 'block',
+                    mb: 0.5
+                  }}>
+                    Подключение к комнате {roomId}
+                  </Typography>
+                  <Typography variant="caption" sx={{ 
+                    color: 'rgba(255, 255, 255, 0.4)',
+                    fontSize: '0.7rem'
+                  }}>
+                    Socket: {socket?.connected ? '✅' : '❌'} | Игроков: {gamePlayers.length} | Room: {roomId}
+                  </Typography>
+                </Box>
+              )}
             </Box>
-            
-
           </Box>
         </motion.div>
 
@@ -3911,10 +4309,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                   mx: 'auto',
                   mb: 2
                 }}>
-                  {selectedPlayer.name?.charAt(0) || '?'}
+                  {selectedPlayer.username?.charAt(0) || '?'}
                 </Avatar>
                 <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold', mb: 1 }}>
-                  {selectedPlayer.name}
+                  {selectedPlayer.username}
                 </Typography>
                 <Typography variant="h6" sx={{ color: '#94A3B8', mb: 2 }}>
                   {selectedPlayer.profession}
@@ -3953,7 +4351,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 
                 {/* Статус хода */}
                 <Box sx={{
-                  background: currentPlayer === players.findIndex(p => p.name === selectedPlayer.name) 
+                  background: currentPlayer === gamePlayers.findIndex(p => p.username === selectedPlayer.username) 
                     ? 'rgba(16, 185, 129, 0.2)' 
                     : 'rgba(107, 114, 128, 0.2)',
                   borderRadius: '10px',
@@ -3961,12 +4359,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                   display: 'inline-block'
                 }}>
                   <Typography variant="body2" sx={{ 
-                    color: currentPlayer === players.findIndex(p => p.name === selectedPlayer.name) 
+                    color: currentPlayer === gamePlayers.findIndex(p => p.username === selectedPlayer.username) 
                       ? '#10B981' 
                       : '#6B7280',
                     fontWeight: 'bold'
                   }}>
-                    {currentPlayer === players.findIndex(p => p.name === selectedPlayer.name) 
+                    {currentPlayer === gamePlayers.findIndex(p => p.username === selectedPlayer.username) 
                       ? '🎯 Активный ход' 
                       : '⏳ Ожидание хода'}
                   </Typography>
@@ -4045,9 +4443,9 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 </Typography>
                 
                 <Typography variant="body2" sx={{ color: '#94A3B8', textAlign: 'center', lineHeight: 1.6 }}>
-                  Игрок {selectedPlayer.name} участвует в игре "Energy of Money". 
+                  Игрок {selectedPlayer.username} участвует в игре "Energy of Money". 
                   {selectedPlayer.profession && ` Профессия: ${selectedPlayer.profession}.`}
-                  {currentPlayer === players.findIndex(p => p.name === selectedPlayer.name) 
+                  {currentPlayer === gamePlayers.findIndex(p => p.username === selectedPlayer.username) 
                     ? ' Сейчас его ход!' 
                     : ' Ожидает своей очереди.'}
                 </Typography>
@@ -4137,7 +4535,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               </Typography>
               
               <Box sx={{ display: 'grid', gap: 2 }}>
-                {assets.map((asset) => (
+                {getCurrentPlayerAssets().map((asset) => (
                   <Box
                     key={asset.id}
                     sx={{
@@ -4355,7 +4753,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               </Typography>
               
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {players.map((player, index) => (
+                {gamePlayers.map((player, index) => (
                   index !== currentPlayer && (
                     <Button
                       key={player.id}
@@ -4374,7 +4772,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         transition: 'all 0.2s ease-in-out'
                       }}
                     >
-                      🎯 {player.name}
+                      🎯 {player.username}
                     </Button>
                   )
                 ))}
@@ -4483,9 +4881,9 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       }
                     }}
                   >
-                    {players.map((player, index) => (
-                      <MenuItem key={index} value={player.name} disabled={index === currentPlayer}>
-                        {player.name} {index === currentPlayer ? '(Вы)' : ''}
+                    {gamePlayers.map((player, index) => (
+                      <MenuItem key={index} value={player.username} disabled={index === currentPlayer}>
+                        {player.username} {index === currentPlayer ? '(Вы)' : ''}
                       </MenuItem>
                     ))}
                   </Select>
@@ -4662,7 +5060,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         
         <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
           <Typography variant="h6" sx={{ color: '#92400E', mb: 2 }}>
-            {players[currentPlayer]?.name}, вы попали на клетку "Ребенок"!
+            {gamePlayers[currentPlayer]?.name}, вы попали на клетку "Ребенок"!
           </Typography>
           <Typography variant="body1" sx={{ color: '#92400E', mb: 3 }}>
             Бросьте дополнительный кубик, чтобы узнать, родился ли ребенок:
@@ -4725,7 +5123,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         
         <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
           <Typography variant="h6" sx={{ color: '#92400E', mb: 2 }}>
-            {players[currentPlayer]?.name}, вы попали на клетку "Благотворительность"!
+            {gamePlayers[currentPlayer]?.name}, вы попали на клетку "Благотворительность"!
           </Typography>
           <Typography variant="body1" sx={{ color: '#92400E', mb: 3 }}>
             Стоимость благотворительности: <strong>${charityCost.toLocaleString()}</strong>
@@ -4959,7 +5357,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         
         <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
           <Typography variant="h6" sx={{ color: 'white', mb: 3 }}>
-            {players[currentPlayer]?.name}, выберите тип сделки:
+            {gamePlayers[currentPlayer]?.name}, выберите тип сделки:
           </Typography>
           
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
@@ -5178,7 +5576,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           </Typography>
           
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {players.map((player, index) => (
+            {gamePlayers.map((player, index) => (
               index !== currentPlayer && (
                 <Button
                   key={player.id}
@@ -5197,7 +5595,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     transition: 'all 0.2s ease-in-out'
                   }}
                 >
-                  🎯 {player.name}
+                  🎯 {player.username}
                 </Button>
               )
             ))}
@@ -5603,7 +6001,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         playerAssets={currentPlayerAssets}
         onAccept={handleMarketAccept}
         onDecline={handleMarketDecline}
-        currentPlayer={players[currentPlayer]}
+        currentPlayer={gamePlayers[currentPlayer]}
       />
 
       {/* Модальное окно карточки расходов */}
@@ -5611,7 +6009,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         open={showExpenseCardModal}
         onClose={() => setShowExpenseCardModal(false)}
         expenseCard={currentExpenseCard}
-        currentPlayer={players[currentPlayer]}
+        currentPlayer={gamePlayers[currentPlayer]}
         onPay={handleExpensePay}
         onTakeCredit={handleExpenseTakeCredit}
       />
@@ -5743,11 +6141,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       width: 40,
                       height: 40
                     }}>
-                      {player.name.charAt(0)}
+                      {player.username?.charAt(0) || '?'}
                     </Avatar>
                     <Box>
                       <Typography variant="h6" sx={{ color: '#FFFFFF', fontWeight: 'bold' }}>
-                        {player.name}
+                        {player.username}
                         {player.hasWon && <span style={{ color: '#F59E0B', marginLeft: '8px' }}>👑</span>}
                       </Typography>
                       <Typography variant="body2" sx={{ color: '#94A3B8' }}>
