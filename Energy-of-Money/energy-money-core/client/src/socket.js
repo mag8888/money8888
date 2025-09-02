@@ -1,29 +1,29 @@
 import io from 'socket.io-client';
 
 // Конфигурация для разработки и продакшена
-const SERVER_PORT = process.env.NODE_ENV === 'production' ? 5000 : 5000;
-const SERVER_HOST = process.env.NODE_ENV === 'production' ? window.location.hostname : 'localhost';
+const SERVER_PORT = 5000;
+const SERVER_HOST = window.location.hostname || 'localhost';
 
 // Базовый URL для сервера
 const baseUrl = process.env.NODE_ENV === 'production' 
-  ? `${window.location.protocol}//${window.location.hostname}:${SERVER_PORT}`
-  : `http://${SERVER_HOST}:${SERVER_PORT}`;
+  ? `${window.location.protocol}//${SERVER_HOST}:${SERVER_PORT}`
+  : `${window.location.protocol}//${SERVER_HOST}:${SERVER_PORT}`;
 
 console.log('🔌 [Socket] Configuration:', { baseUrl, env: process.env.NODE_ENV });
 
-// Создаем Socket.IO экземпляр с улучшенными настройками
+// Создаем Socket.IO экземпляр с оптимизированными настройками
 const socket = io(baseUrl, {
-  transports: ['websocket', 'polling'],
+  transports: ['websocket'],
   reconnection: true,
-  reconnectionAttempts: 10,
-  reconnectionDelay: 1000,
-  reconnectionDelayMax: 10000,
-  timeout: 15000,
-  autoConnect: false,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 2000,
+  reconnectionDelayMax: 5000,
+  timeout: 10000,
+  autoConnect: false, // Отключаем автоматическое подключение
   forceNew: false,
   upgrade: true,
   rememberUpgrade: true,
-  maxReconnectionAttempts: 10
+  maxReconnectionAttempts: 5
 });
 
 // Состояние подключения

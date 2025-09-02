@@ -17,11 +17,16 @@ import {
 function AppRouter() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [currentRoom, setCurrentRoom] = useState(null);
 
-  // Загружаем сохраненного пользователя (если есть)
+  // Загружаем сохраненного пользователя и текущую комнату (если есть)
   useEffect(() => {
     const savedUser = localStorage.getItem('energy_of_money_user');
+    const savedRoom = localStorage.getItem('energy_of_money_current_room');
+    
     console.log('🔍 [App] Загружаем пользователя из localStorage:', savedUser);
+    console.log('🔍 [App] Загружаем текущую комнату из localStorage:', savedRoom);
+    
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
@@ -32,6 +37,10 @@ function AppRouter() {
       }
     } else {
       console.log('⚠️ [App] Пользователь не найден в localStorage');
+    }
+    
+    if (savedRoom) {
+      setCurrentRoom(savedRoom);
     }
   }, []);
 
@@ -60,11 +69,26 @@ function AppRouter() {
     setUser(null);
     localStorage.removeItem('energy_of_money_user');
     localStorage.removeItem('energy_of_money_player_name');
+    localStorage.removeItem('energy_of_money_current_room');
     navigate('/register'); // Переходим на страницу регистрации
+  };
+
+  const handleReturnToGame = () => {
+    if (currentRoom) {
+      navigate(`/room/${currentRoom}/original`);
+    }
+  };
+
+  const handleClearCurrentRoom = () => {
+    localStorage.removeItem('energy_of_money_current_room');
+    setCurrentRoom(null);
   };
 
   const handleSetupComplete = ({ roomId }) => {
     if (!roomId) return;
+    // Сохраняем информацию о текущей комнате
+    localStorage.setItem('energy_of_money_current_room', roomId);
+    setCurrentRoom(roomId);
     navigate(`/room/${roomId}/original`);
   };
 
@@ -74,7 +98,10 @@ function AppRouter() {
       <OriginalGameBoard 
         roomId={roomId}
         playerData={playerData}
-        onExit={() => navigate('/')}
+        onExit={() => {
+          // Не очищаем currentRoom при выходе, чтобы игрок мог вернуться
+          navigate('/');
+        }}
       />
     );
   };
@@ -182,6 +209,71 @@ function AppRouter() {
                 </button>
               </div>
               
+              {/* Кнопка возврата в игру */}
+              {currentRoom && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: '20px',
+                  padding: '20px',
+                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                  borderRadius: '15px',
+                  margin: '20px',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+                }}>
+                  <button
+                    onClick={handleReturnToGame}
+                    style={{
+                      padding: '15px 30px',
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      background: 'linear-gradient(45deg, #10B981, #059669)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      boxShadow: '0 5px 15px rgba(0,0,0,0.2)',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = '0 7px 20px rgba(0,0,0,0.3)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = '0 5px 15px rgba(0,0,0,0.2)';
+                    }}
+                  >
+                    🔄 Вернуться в игру (Комната: {currentRoom})
+                  </button>
+                  <button
+                    onClick={handleClearCurrentRoom}
+                    style={{
+                      padding: '15px 30px',
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      background: 'linear-gradient(45deg, #EF4444, #DC2626)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      boxShadow: '0 5px 15px rgba(0,0,0,0.2)',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = '0 7px 20px rgba(0,0,0,0.3)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = '0 5px 15px rgba(0,0,0,0.2)';
+                    }}
+                  >
+                    ❌ Забыть комнату
+                  </button>
+                </div>
+              )}
+
               {/* Существующий компонент RoomSelection */}
               <RoomSelection playerData={playerData} onRoomSelect={handleRoomSelect} onLogout={handleLogout} />
             </div>

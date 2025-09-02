@@ -21,6 +21,7 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CASHFLOW_THEME, COMPONENT_STYLES } from '../styles/cashflow-theme';
+import { getColorByIndex, getContrastTextColor } from '../styles/playerColors';
 import ProfessionDetails from './ProfessionDetails';
 import BankOperations from './BankOperations';
 
@@ -260,6 +261,10 @@ const StylishControlPanel = ({
                   const status = getPlayerStatus(player);
                   const isActive = player.id === currentTurn;
                   
+                  // Получаем уникальный цвет для каждого игрока
+                  const playerColor = player.color || getColorByIndex(index);
+                  const textColor = getContrastTextColor(playerColor);
+                  
                   return (
                     <motion.div
                       key={player.id}
@@ -278,9 +283,9 @@ const StylishControlPanel = ({
                         sx={{
                           p: 2,
                           background: isActive 
-                            ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
-                            : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                          color: 'white',
+                            ? `linear-gradient(135deg, ${playerColor} 0%, ${playerColor}dd 100%)`
+                            : `linear-gradient(135deg, ${playerColor}dd 0%, ${playerColor}bb 100%)`,
+                          color: textColor,
                           borderRadius: '12px',
                           textTransform: 'none',
                           fontSize: '1rem',
@@ -406,7 +411,8 @@ const StylishControlPanel = ({
                     height: 80, 
                     mx: 'auto', 
                     mb: 2,
-                    background: CASHFLOW_THEME.effects.gradients.secondary,
+                    bgcolor: getColorByIndex(0), // Используем первый цвет для текущего игрока
+                    color: getContrastTextColor(getColorByIndex(0)),
                     fontSize: '32px',
                     fontWeight: 'bold'
                   }}>

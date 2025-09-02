@@ -41,6 +41,14 @@ const ProfessionCard = ({ profession, isSelected, onClick }) => {
     return colors[category] || '#666';
   };
 
+  const format = (n) => Number(n || 0).toLocaleString();
+
+  const principalAuto = (profession.creditAuto || 0) * 20;
+  const principalEducation = (profession.creditEducation || 0) * 20;
+  const principalHousing = (profession.creditHousing || 0) * 200;
+  const principalCards = (profession.creditCards || 0) * 20;
+  const principalTotal = principalAuto + principalEducation + principalHousing + principalCards;
+
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
@@ -129,31 +137,67 @@ const ProfessionCard = ({ profession, isSelected, onClick }) => {
 
           {/* Детали расходов */}
           <Box sx={{ mb: 1.5 }}>
-            <Typography variant="caption" sx={{ color: '#666', mb: 0.5, display: 'block', fontSize: '0.7rem' }}>
-              <strong>Налоги:</strong> ${profession.taxAmount} ({Math.round(profession.taxRate * 100)}%)
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#666', mb: 0.5, display: 'block', fontSize: '0.7rem' }}>
-              <strong>Прочие расходы:</strong> ${profession.otherExpenses}
-            </Typography>
-            {profession.creditAuto > 0 && (
-              <Typography variant="caption" sx={{ color: '#666', mb: 0.5, display: 'block', fontSize: '0.7rem' }}>
-                <strong>Кредит на авто:</strong> ${profession.creditAuto} + ${profession.creditAuto * 20} (тело)
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#666', mb: 0.5 }}>
+              <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                <strong>Налоги:</strong> ${format(profession.taxAmount)} ({Math.round((profession.taxRate || 0) * 100)}%)
               </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#666', mb: 0.5 }}>
+              <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                <strong>Прочие расходы:</strong> ${format(profession.otherExpenses)}
+              </Typography>
+            </Box>
+            {profession.creditAuto > 0 && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.5 }}>
+                <Typography variant="caption" sx={{ color: '#666', fontSize: '0.7rem' }}>
+                  <strong>Кредит на авто:</strong> ${format(profession.creditAuto)}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#9C27B0', fontSize: '0.7rem' }}>
+                  ${format(principalAuto)} (тело)
+                </Typography>
+              </Box>
             )}
             {profession.creditEducation > 0 && (
-              <Typography variant="caption" sx={{ color: '#666', mb: 0.5, display: 'block', fontSize: '0.7rem' }}>
-                <strong>Образовательный кредит:</strong> ${profession.creditEducation} + ${profession.creditEducation * 20} (тело)
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.5 }}>
+                <Typography variant="caption" sx={{ color: '#666', fontSize: '0.7rem' }}>
+                  <strong>Образовательный кредит:</strong> ${format(profession.creditEducation)}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#9C27B0', fontSize: '0.7rem' }}>
+                  ${format(principalEducation)} (тело)
+                </Typography>
+              </Box>
             )}
             {profession.creditHousing > 0 && (
-              <Typography variant="caption" sx={{ color: '#666', mb: 0.5, display: 'block', fontSize: '0.7rem' }}>
-                <strong>Ипотека:</strong> ${profession.creditHousing} + ${profession.creditHousing * 200} (тело)
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.5 }}>
+                <Typography variant="caption" sx={{ color: '#666', fontSize: '0.7rem' }}>
+                  <strong>Ипотека:</strong> ${format(profession.creditHousing)}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#9C27B0', fontSize: '0.7rem' }}>
+                  ${format(principalHousing)} (тело)
+                </Typography>
+              </Box>
             )}
             {profession.creditCards > 0 && (
-              <Typography variant="caption" sx={{ color: '#666', mb: 0.5, display: 'block', fontSize: '0.7rem' }}>
-                <strong>Кредитные карты:</strong> ${profession.creditCards} + ${profession.creditCards * 20} (тело)
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.5 }}>
+                <Typography variant="caption" sx={{ color: '#666', fontSize: '0.7rem' }}>
+                  <strong>Кредитные карты:</strong> ${format(profession.creditCards)}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#9C27B0', fontSize: '0.7rem' }}>
+                  ${format(principalCards)} (тело)
+                </Typography>
+              </Box>
+            )}
+
+            {/* Итого по телу кредита */}
+            {principalTotal > 0 && (
+              <Box sx={{ mt: 1, p: 1, bgcolor: '#f5f5f5', borderRadius: 1, display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="caption" sx={{ color: '#333', fontWeight: 'bold', fontSize: '0.75rem' }}>
+                  Итого тело кредитов
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#333', fontWeight: 'bold', fontSize: '0.75rem' }}>
+                  ${format(principalTotal)}
+                </Typography>
+              </Box>
             )}
           </Box>
 

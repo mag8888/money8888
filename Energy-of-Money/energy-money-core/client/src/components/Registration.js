@@ -82,8 +82,9 @@ const Registration = ({ onRegister }) => {
     setError('');
 
     try {
-      // Эмулируем проверку пользователя (в реальном приложении здесь будет API вызов)
-      const userExists = Math.random() > 0.5; // Временно для демонстрации
+      // Проверяем localStorage для существующих пользователей
+      const existingUsers = JSON.parse(localStorage.getItem('energy_of_money_users') || '[]');
+      const userExists = existingUsers.some(user => user.email === formData.email);
       
       if (userExists) {
         setIsExistingUser(true);
@@ -113,8 +114,9 @@ const Registration = ({ onRegister }) => {
     setError('');
 
     try {
-      // Эмулируем проверку уникальности (в реальном приложении здесь будет API вызов)
-      const isUnique = Math.random() > 0.3; // Временно для демонстрации
+      // Проверяем localStorage для уникальности username
+      const existingUsers = JSON.parse(localStorage.getItem('energy_of_money_users') || '[]');
+      const isUnique = !existingUsers.some(user => user.username === formData.username);
       
       if (isUnique) {
         if (isExistingUser) {
@@ -153,14 +155,34 @@ const Registration = ({ onRegister }) => {
     setError('');
 
     try {
-      // Эмулируем регистрацию/вход (в реальном приложении здесь будет API вызов)
+      // Эмулируем регистрацию/вход
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const userData = {
         id: `user_${Date.now()}`,
         username: formData.username,
-        email: formData.email
+        email: formData.email,
+        password: formData.password // Сохраняем пароль для проверки
       };
+
+      // Сохраняем пользователя в localStorage
+      const existingUsers = JSON.parse(localStorage.getItem('energy_of_money_users') || '[]');
+      
+      if (isExistingUser) {
+        // Обновляем существующего пользователя
+        const userIndex = existingUsers.findIndex(user => user.email === formData.email);
+        if (userIndex !== -1) {
+          existingUsers[userIndex] = userData;
+        } else {
+          existingUsers.push(userData);
+        }
+      } else {
+        // Добавляем нового пользователя
+        existingUsers.push(userData);
+      }
+      
+      localStorage.setItem('energy_of_money_users', JSON.stringify(existingUsers));
+      localStorage.setItem('energy_of_money_user', JSON.stringify(userData));
 
       console.log('✅ [Registration] User authenticated:', userData);
       onRegister(userData);

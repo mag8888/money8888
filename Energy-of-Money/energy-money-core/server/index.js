@@ -19,8 +19,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Создаем Socket.IO сервер
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
-    methods: ["GET", "POST"]
+    origin: (origin, callback) => {
+      // Разрешаем все источники в dev-среде
+      callback(null, true);
+    },
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -770,12 +774,14 @@ io.on('connection', (socket) => {
       
       // Подготавливаем полные данные игроков для игры
       const gamePlayersData = room.turnOrder.map((player, index) => {
-        // Получаем данные профессии
+        // Получаем данные профессии (персональные профессии игроков поддерживаются)
         let professionData = null;
         if (room.professionType === 'shared' && room.sharedProfession) {
           professionData = room.sharedProfession;
+        } else if (player.profession) {
+          professionData = player.profession; // индивидуальная профессия игрока
         } else if (room.hostProfession && player.socketId === room.hostId) {
-          professionData = room.hostProfession;
+          professionData = room.hostProfession; // профессия хоста как резерв
         }
         
         // Создаем начальные активы на основе профессии
@@ -868,7 +874,7 @@ io.on('connection', (socket) => {
           professionId: professionData?.id || null,
           
           // Игровые данные
-          balance: professionData?.balance || 2000,
+          balance: professionData?.balance || 3000,
           position: 0,
           cashFlow: professionData?.cashFlow || 0,
           monthlyIncome: professionData?.salary || 0,
@@ -1088,6 +1094,7 @@ io.on('connection', (socket) => {
         isPublic: room.password === '', // Комната считается открытой, если нет пароля
         professionType: room.professionType || 'individual',
         hostProfession: room.hostProfession || null,
+        sharedProfession: room.sharedProfession || null,
         createdAt: room.createdAt
       });
       
@@ -1139,6 +1146,7 @@ io.on('connection', (socket) => {
           isPublic: room.password === '',
           professionType: room.professionType || 'individual',
           hostProfession: room.hostProfession || null,
+          sharedProfession: room.sharedProfession || null,
           createdAt: room.createdAt
         });
         
@@ -1190,6 +1198,18 @@ io.on('connection', (socket) => {
           to: recipient, 
           amount 
         });
+        
+        // Отправляем уведомление получателю
+        const recipientSocket = Array.from(io.sockets.sockets.values())
+          .find(s => s.id === recipientPlayer.socketId);
+        
+        if (recipientSocket) {
+          recipientSocket.emit('bankTransferReceived', {
+            amount: amount,
+            fromPlayer: player.username,
+            newBalance: recipientPlayer.balance
+          });
+        }
       }
       
       // Отправляем обновление всем игрокам в комнате

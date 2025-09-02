@@ -6,10 +6,11 @@ import ProfessionDetails from './ProfessionDetails';
 import MarketCardModal from './MarketCardModal';
 import ExpenseCardModal from './ExpenseCardModal';
 import BreakModal from './BreakModal';
+import BankModule from './BankModule';
 import { MarketDeckManager, checkPlayerHasMatchingAsset } from '../data/marketCards';
 import { ExpenseDeckManager } from '../data/expenseCards';
 import { CELL_CONFIG } from '../data/gameCells';
-import { PLAYER_COLORS, assignPlayerColor } from '../styles/playerColors';
+import { PLAYER_COLORS, assignPlayerColor, getColorByIndex, getContrastTextColor } from '../styles/playerColors';
 import { 
   Timer, 
   ExitToApp,
@@ -51,7 +52,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       id: player.id || player.socketId,
       username: player.username || 'Игрок',
       socketId: player.socketId,
-      balance: player.balance || 2000,
+      balance: player.balance || 3000,
       position: player.position || 0,
       ready: player.ready || false,
       profession: player.profession || null,
@@ -111,6 +112,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         0%, 100% { transform: translateX(0); }
         25% { transform: translateX(-5px); }
         75% { transform: translateX(5px); }
+      }
+      
+      @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
       }
     `;
     document.head.appendChild(style);
@@ -260,32 +266,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     };
 
     // Обработчики банковских переводов
-    const handleBankTransferSuccess = (data) => {
-      console.log('✅ [OriginalGameBoard] Перевод выполнен успешно:', data);
-      
-      // Добавляем запись в историю переводов
-      const newTransfer = {
-        id: Date.now(),
-        from: getCurrentPlayer()?.username || 'Игрок',
-        to: selectedRecipient,
-        amount: data.amount || parseFloat(transferAmount),
-        type: 'transfer',
-        timestamp: new Date().toLocaleString('ru-RU'),
-        status: 'completed'
-      };
-      
-      setTransferHistory(prev => [newTransfer, ...prev]);
-      
-      setToast({
-        open: true,
-        message: data.message || 'Перевод выполнен успешно',
-        severity: 'success'
-      });
-      
-      // Сбрасываем форму
-      setTransferAmount('');
-      setSelectedRecipient('');
-    };
+
 
     const handleBankTransferError = (data) => {
       console.log('❌ [OriginalGameBoard] Ошибка перевода:', data);
@@ -303,7 +284,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     socket.on('playerPositionUpdate', handlePlayerPositionUpdate);
     socket.on('playerTurnChanged', handlePlayerTurnChanged);
     socket.on('turnTimerSynced', handleTurnTimerSynced);
-    socket.on('bankTransferSuccess', handleBankTransferSuccess);
+
     socket.on('bankTransferError', handleBankTransferError);
 
     // Запрашиваем актуальный список игроков при подключении
@@ -315,7 +296,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       console.log('🚪 [OriginalGameBoard] Пытаемся присоединиться к комнате:', roomIdRef.current);
       socket.emit('joinRoom', roomIdRef.current, {
         username: playerData?.username || 'Игрок',
-        socketId: socket.id
+        socketId: socket.id,
+        profession: playerData?.profession || null // Передаем профессию игрока
       });
     }
 
@@ -327,7 +309,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       socket.off('playerPositionUpdate', handlePlayerPositionUpdate);
       socket.off('playerTurnChanged', handlePlayerTurnChanged);
       socket.off('turnTimerSynced', handleTurnTimerSynced);
-      socket.off('bankTransferSuccess', handleBankTransferSuccess);
+
       socket.off('bankTransferError', handleBankTransferError);
     };
   }, []); // Убираем roomId из зависимостей, чтобы избежать ререндеров
@@ -459,7 +441,6 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   
   // Состояние для модальных окон
   const [showPlayerModal, setShowPlayerModal] = useState(false);
-  const [showBankModal, setShowBankModal] = useState(false);
   const [showAssetsModal, setShowAssetsModal] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
 
@@ -471,10 +452,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   });
 
   // Состояние для банковских операций
-  const [bankBalance, setBankBalance] = useState(2500);
-  const [transferAmount, setTransferAmount] = useState('');
-  const [selectedRecipient, setSelectedRecipient] = useState('');
-  const [transferHistory, setTransferHistory] = useState([]);
+  const initialBalance = playerData?.profession?.balance ?? 0;
+  const [bankBalance, setBankBalance] = useState(initialBalance);
+
+  // Синхронизация банковского баланса с данными профессии (только при первой загрузке)
+  useEffect(() => {
+    if (playerData?.profession?.balance !== undefined && bankBalance === 0) {
+      const newBalance = playerData.profession.balance;
+      console.log('🏦 [OriginalGameBoard] Инициализация баланса из профессии:', newBalance);
+      setBankBalance(newBalance);
+    }
+  }, [playerData?.profession?.balance, playerData?.username, bankBalance]);
 
   // Состояние для карточек рынка
   const [showMarketCardModal, setShowMarketCardModal] = useState(false);
@@ -499,7 +487,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [selectedProfessionId, setSelectedProfessionId] = useState(null);
 
   // Состояние для игровой логики
-  const [playerMoney, setPlayerMoney] = useState(2500); // Деньги игрока
+  const [playerMoney, setPlayerMoney] = useState(initialBalance); // Деньги игрока
   const [childrenCount, setChildrenCount] = useState(0); // Количество детей
   const [showChildModal, setShowChildModal] = useState(false); // Модал рождения ребенка
   const [showConfetti, setShowConfetti] = useState(false); // Анимация конфети
@@ -749,16 +737,32 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     setShowPlayerModal(true);
   };
   
-  const openBankModal = () => {
-    setShowBankModal(true);
-  };
+
   
   const openAssetsModal = () => {
     setShowAssetsModal(true);
   };
 
-  const openProfessionCard = (professionId) => {
-    setSelectedProfessionId(professionId);
+  // Временная заглушка для openBankModal (для совместимости с кэшем браузера)
+  const openBankModal = () => {
+    console.log('⚠️ [OriginalGameBoard] openBankModal deprecated - используйте BankModule');
+  };
+
+  const openProfessionCard = (professionLike) => {
+    // Поддержка объекта профессии, id или имени
+    let professionObj = null;
+    if (professionLike && typeof professionLike === 'object') {
+      professionObj = professionLike;
+    } else if (typeof professionLike === 'number') {
+      professionObj = { id: professionLike };
+    } else if (typeof professionLike === 'string') {
+      professionObj = { name: professionLike };
+    }
+    if (!professionObj) {
+      const me = gamePlayers.find(p => p.socketId === socket?.id);
+      professionObj = me?.profession || playerData?.profession || null;
+    }
+    setSelectedProfessionId(professionObj);
     setShowProfessionCard(true);
   };
 
@@ -817,7 +821,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   
   const closeModals = () => {
     setShowPlayerModal(false);
-    setShowBankModal(false);
+
     setShowAssetsModal(false);
     setShowProfessionCard(false);
     setShowCreditModal(false);
@@ -1535,19 +1539,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     // Синхронизируем с сервером
     syncPlayerData(player.socketId, { balance: newBalance });
     
-    // Добавляем запись в историю транзакций
-    const newTransaction = {
-      id: Date.now(),
-      from: 'Банк',
-      to: player.username || 'Игрок',
-      amount: cashFlow,
-      type: 'salary',
-      timestamp: new Date().toLocaleString('ru-RU'),
-      status: 'completed',
-      description: `Зарплата (Cash Flow)`
-    };
-    
-    setTransferHistory(prev => [newTransaction, ...prev]);
+
     
     setToast({
       open: true,
@@ -2302,8 +2294,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     const player = getCurrentPlayer();
     if (!player) return 0;
     
-    // Получаем доходы от активов
-    const totalIncome = getCurrentPlayerAssets().reduce((sum, asset) => sum + (asset.income || 0), 0);
+    // Доход = зарплата профессии + доход от активов
+    const salary = player.profession && typeof player.profession === 'object' ? (player.profession.salary || 0) : 0;
+    const assetsIncome = getCurrentPlayerAssets().reduce((sum, asset) => sum + (asset.income || 0), 0);
+    const totalIncome = salary + assetsIncome;
     
     // Получаем расходы из профессии игрока
     let totalExpenses = 0;
@@ -2509,11 +2503,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     
     setToast({
       open: true,
-      message: `💰 Продано: ${asset.name} (${stockType}) за $${asset.cost.toLocaleString()}`,
+      message: `💰 Продано: ${asset.name} (${stockType}) за $${(asset.cost ?? 0).toLocaleString()}`,
       severity: 'success'
     });
     
-    console.log(`💰 [OriginalGameBoard] Продан актив: ${asset.name} за $${asset.cost.toLocaleString()}`);
+    console.log(`💰 [OriginalGameBoard] Продан актив: ${asset.name} за $${(asset.cost ?? 0).toLocaleString()}`);
   };
 
 
@@ -2730,97 +2724,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     console.log(`⏭️ [OriginalGameBoard] Ход передан игроку ${nextPlayerData?.username || 'Игрок'}`);
   };
 
-  // Функции для банковских операций
-  const handleTransfer = () => {
-    if (!transferAmount || !selectedRecipient) {
-      setToast({
-        open: true,
-        message: '❌ Заполните сумму и выберите получателя',
-        severity: 'error'
-      });
-      return;
-    }
 
-    const amount = parseFloat(transferAmount);
-    if (isNaN(amount) || amount <= 0) {
-      setToast({
-        open: true,
-        message: '❌ Введите корректную сумму',
-        severity: 'error'
-      });
-      return;
-    }
-
-    const currentPlayerData = getCurrentPlayer();
-    if (!currentPlayerData) {
-      setToast({
-        open: true,
-        message: '❌ Игрок не найден',
-        severity: 'error'
-      });
-      return;
-    }
-
-    if (amount > (currentPlayerData.balance || 0)) {
-      setToast({
-        open: true,
-        message: '❌ Недостаточно средств на счете',
-        severity: 'error'
-      });
-      return;
-    }
-
-    // Отправляем запрос на сервер
-    if (socket && roomId && currentPlayerData.socketId) {
-      socket.emit('bankTransfer', {
-        roomId,
-        playerId: currentPlayerData.socketId,
-        recipient: selectedRecipient,
-        amount
-      });
-    } else {
-      // Fallback для локального режима
-      const currentPlayerName = currentPlayerData.username || 'Неизвестно';
-      const newTransfer = {
-        id: Date.now(),
-        from: currentPlayerName,
-        to: selectedRecipient,
-        amount: amount,
-        type: 'transfer',
-        timestamp: new Date().toLocaleString('ru-RU'),
-        status: 'completed'
-      };
-
-      // Обновляем историю переводов
-      setTransferHistory(prev => [newTransfer, ...prev]);
-      
-      // Обновляем баланс игрока локально
-      const newBalance = (currentPlayerData.balance || 0) - amount;
-      setGamePlayers(prev => prev.map(p => 
-        p.socketId === currentPlayerData.socketId 
-          ? { ...p, balance: newBalance }
-          : p
-      ));
-    }
-    
-    // Сбрасываем форму
-    setTransferAmount('');
-    setSelectedRecipient('');
-
-    // Показываем уведомление об успехе
-    setToast({
-      open: true,
-      message: `✅ Перевод $${amount} игроку ${selectedRecipient} выполнен успешно`,
-      severity: 'success'
-    });
-
-    console.log(`🏦 [OriginalGameBoard] Перевод выполнен: ${currentPlayerData.username} → ${selectedRecipient} $${amount}`);
-  };
-
-  const resetTransferForm = () => {
-    setTransferAmount('');
-    setSelectedRecipient('');
-  };
 
   // Функции для работы с активами
   const getTotalAssetsValue = () => {
@@ -3975,7 +3879,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 1 : 2, width: '100%' }}>
-                <Avatar sx={{ bgcolor: '#8B5CF6', width: isMobile ? 40 : 50, height: isMobile ? 40 : 50 }}>
+                <Avatar sx={{ 
+                  bgcolor: getColorByIndex(0), // Используем первый цвет для текущего игрока
+                  width: isMobile ? 40 : 50, 
+                  height: isMobile ? 40 : 50,
+                  color: getContrastTextColor(getColorByIndex(0))
+                }}>
                   {playerData?.username?.charAt(0) || 'M'}
                 </Avatar>
                 <Box sx={{ flex: 1, textAlign: 'left' }}>
@@ -4033,12 +3942,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                           </Typography>
                           {currentPlayer.assets?.map((asset, index) => (
                             <Typography key={asset.id} variant="body2" sx={{ color: '#10B981', fontSize: '0.7rem' }}>
-                              🏠 {asset.name}: ${asset.value?.toLocaleString() || 'N/A'}
+                              🏠 {asset.name}: ${(asset.value ?? 0).toLocaleString()}
                             </Typography>
                           ))}
                           {currentPlayer.liabilities?.map((liability, index) => (
                             <Typography key={liability.id} variant="body2" sx={{ color: '#EF4444', fontSize: '0.7rem' }}>
-                              💳 {liability.name}: ${liability.amount?.toLocaleString() || 'N/A'}
+                              💳 {liability.name}: ${(liability.amount ?? 0).toLocaleString()}
                             </Typography>
                           ))}
                         </Box>
@@ -4053,7 +3962,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     size="small"
                     onClick={(e) => {
                       e.stopPropagation(); // Предотвращаем открытие модального окна профиля
-                      openProfessionCard('engineer'); // Менеджер = инженер
+                      // Определяем ID профессии на основе данных текущего игрока
+                      const currentPlayer = gamePlayers.find(p => p.socketId === socket?.id);
+                      const profession = playerData?.profession || currentPlayer?.profession;
+                      
+                      if (profession) {
+                        // Если есть объект профессии, передаем его напрямую
+                        openProfessionCard(profession);
+                      } else {
+                        // Fallback на ID профессии
+                        openProfessionCard('engineer');
+                      }
                     }}
                     sx={{
                       mt: 1,
@@ -4082,148 +4001,18 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
 
         {/* 3. Банк */}
-        <motion.div
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-        >
-          <Box sx={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: isMobile ? '10px' : '15px',
-            padding: isMobile ? '15px' : '20px',
-            border: '1px solid rgba(255, 255, 255, 0.2)'
-          }}>
-            <Button
-              variant="text"
-              fullWidth
-              onClick={() => {
-                console.log('🏦 [OriginalGameBoard] Кнопка банка нажата');
-                openBankModal();
-              }}
-              sx={{
-                p: 0,
-                background: 'transparent',
-                color: 'transparent',
-                textTransform: 'none',
-                '&:hover': {
-                  background: 'rgba(255,255,255,0.05)'
-                }
-              }}
-            >
-              <Box sx={{ textAlign: 'center', width: '100%' }}>
-                <Typography variant={isMobile ? "body1" : "h6"} sx={{ color: 'white', mb: isMobile ? 1 : 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                  <AccountBalance /> Банк
-                </Typography>
-                <Typography variant={isMobile ? "h5" : "h4"} sx={{ color: '#10B981', fontWeight: 'bold' }}>
-                  ${(() => {
-                    const currentPlayer = gamePlayers.find(p => p.socketId === socket?.id);
-                    return currentPlayer?.balance || bankBalance;
-                  })().toLocaleString()}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#94A3B8', mt: 1, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
-                  {(() => {
-                    const currentPlayer = gamePlayers.find(p => p.socketId === socket?.id);
-                    if (currentPlayer?.profession) {
-                      return `Доход: $${currentPlayer.profession.salary?.toLocaleString() || '0'} | Расходы: $${currentPlayer.profession.totalExpenses?.toLocaleString() || '0'}`;
-                    }
-                    return 'Доход: $1,200 | Расходы: $800';
-                  })()}
-                </Typography>
-                
-                                  {/* Информация о кредитах */}
-                  <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                    <Typography variant="body2" sx={{ color: '#94A3B8', mb: 1, fontSize: '0.8rem' }}>
-                      💳 Кредит: ${playerCredit.toLocaleString()}
-                    </Typography>
-                    {playerCredit > 0 && (
-                      <Typography variant="body2" sx={{ color: '#EF4444', mb: 1, fontSize: '0.7rem' }}>
-                        💸 Платежи: ${Math.floor(playerCredit / 1000) * 100}/мес
-                      </Typography>
-                    )}
-                    <Typography variant="body2" sx={{ color: '#94A3B8', mb: 1, fontSize: '0.8rem' }}>
-                      Макс: ${getMaxCredit().toLocaleString()}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#94A3B8', mb: 1, fontSize: '0.8rem' }}>
-                      PAYDAY: ${getCashFlow().toLocaleString()}/мес
-                    </Typography>
-                    
-                    {/* Простой статус кредита */}
-                    <Box sx={{ 
-                      background: 'rgba(255, 255, 255, 0.05)', 
-                      borderRadius: '8px', 
-                      p: 1, 
-                      mb: 2,
-                      border: `1px solid ${playerCredit > 0 ? '#EF4444' : '#10B981'}40`
-                    }}>
-                      <Typography variant="body2" sx={{ color: playerCredit > 0 ? '#EF4444' : '#10B981', fontSize: '0.7rem', textAlign: 'center', fontWeight: 'bold' }}>
-                        {playerCredit > 0 ? '💳 Есть кредит' : '✅ Без кредитов'}
-                      </Typography>
-                    </Box>
-                    
-
-                  
-                  {/* Кнопки управления кредитом */}
-                  <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                    <Button
-                      variant="contained"
-                      onClick={() => setShowCreditModal(true)}
-                      sx={{
-                        flex: 1,
-                        background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        py: 1,
-                        borderRadius: '8px',
-                        fontSize: '0.7rem',
-                        '&:hover': {
-                          background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
-                          transform: 'scale(1.02)'
-                        },
-                        transition: 'all 0.2s ease-in-out'
-                      }}
-                    >
-                      💳 Взять
-                    </Button>
-                    
-                    {playerCredit > 0 && (
-                      <Button
-                        variant="contained"
-                        onClick={() => {
-                          setShowCreditModal(true);
-                          // Фокус на погашении кредита
-                          setTimeout(() => {
-                            const payoffField = document.querySelector('input[placeholder="сумма погашения"]');
-                            if (payoffField) {
-                              payoffField.focus();
-                            }
-                          }, 100);
-                        }}
-                        sx={{
-                          flex: 1,
-                          background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                          color: 'white',
-                          fontWeight: 'bold',
-                          py: 1,
-                          borderRadius: '8px',
-                          fontSize: '0.7rem',
-                          '&:hover': {
-                            background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                            transform: 'scale(1.02)'
-                          },
-                          transition: 'all 0.2s ease-in-out'
-                        }}
-                      >
-                        💰 Погасить
-                      </Button>
-                    )}
-                  </Box>
-                  
-
-                </Box>
-              </Box>
-            </Button>
-          </Box>
-        </motion.div>
+                <BankModule
+          playerData={playerData}
+          gamePlayers={gamePlayers}
+          socket={socket}
+          bankBalance={bankBalance}
+          playerCredit={playerCredit}
+          getMaxCredit={getMaxCredit}
+          getCashFlow={getCashFlow}
+          setShowCreditModal={setShowCreditModal}
+          roomId={roomId}
+          onBankBalanceChange={setBankBalance}
+        />
 
         {/* 4. Активы */}
         <motion.div
@@ -4274,7 +4063,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     .map((asset) => (
                       <Chip 
                         key={asset.id}
-                        label={`${asset.icon} ${asset.name}: $${asset.value.toLocaleString()}`} 
+                        label={`${asset.icon} ${asset.name}: $${(asset.value ?? 0).toLocaleString()}`} 
                         size="small" 
                         sx={{ 
                           background: `${asset.color}20`, 
@@ -4501,7 +4290,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                           fontSize: isMobile ? '0.7rem' : '0.8rem',
                           fontWeight: 'bold'
                         }}>
-                          ${player.balance?.toLocaleString() || '0'}
+                          ${(player.balance ?? 0).toLocaleString()}
                         </Typography>
                       )}
                     </Box>
@@ -4619,36 +4408,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                   {typeof selectedPlayer.profession === 'object' ? selectedPlayer.profession.name : selectedPlayer.profession}
                 </Typography>
                 
-                {/* Кнопка для открытия карточки профессии */}
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => {
-                    // Определяем ID профессии на основе названия
-                    let professionId = 'engineer'; // по умолчанию
-                    if (selectedPlayer.profession?.includes('Учитель')) professionId = 'teacher';
-                    else if (selectedPlayer.profession?.includes('Полицейский')) professionId = 'police';
-                    else if (selectedPlayer.profession?.includes('Дворник')) professionId = 'janitor';
-                    else if (selectedPlayer.profession?.includes('Инженер')) professionId = 'engineer';
-                    else if (selectedPlayer.profession?.includes('Врач')) professionId = 'doctor';
-                    
-                    openProfessionCard(professionId);
-                  }}
-                  sx={{
-                    color: '#8B5CF6',
-                    borderColor: '#8B5CF6',
-                    borderRadius: '8px',
-                    textTransform: 'none',
-                    fontSize: '0.8rem',
-                    fontWeight: '500',
-                    '&:hover': {
-                      backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                      borderColor: '#7C3AED'
-                    }
-                  }}
-                >
-                  📋 Открыть карточку профессии
-                </Button>
+
                 
                 {/* Статус хода */}
                 <Box sx={{
@@ -4915,7 +4675,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                           💰 Стоимость
                         </Typography>
                         <Typography variant="h6" sx={{ color: '#10B981', fontWeight: 'bold' }}>
-                          ${asset.value.toLocaleString()}
+                          ${(asset.value ?? 0).toLocaleString()}
                         </Typography>
                       </Box>
                       
@@ -4930,7 +4690,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                           {asset.isExpense ? '🔧 Расходы' : asset.income === 0 ? '💝 Благотворительность' : asset.isDividendStock ? '💎 Дивиденды/мес' : '📈 Доход/мес'}
                         </Typography>
                         <Typography variant="h6" sx={{ color: asset.isExpense ? '#EF4444' : asset.income === 0 ? '#F59E0B' : '#3B82F6', fontWeight: 'bold' }}>
-                          {asset.isExpense ? 'Только траты' : asset.income === 0 ? 'Без дохода' : `$${(asset.isDividendStock ? asset.dividendYield : asset.income).toLocaleString()}`}
+                          {asset.isExpense ? 'Только траты' : asset.income === 0 ? 'Без дохода' : `$${((asset.isDividendStock ? asset.dividendYield : asset.income) ?? 0).toLocaleString()}`}
                         </Typography>
                       </Box>
                     </Box>
@@ -4947,7 +4707,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         🎯 Цена покупки
                       </Typography>
                       <Typography variant="h6" sx={{ color: '#8B5CF6', fontWeight: 'bold' }}>
-                        ${asset.cost.toLocaleString()}
+                        ${(asset.cost ?? 0).toLocaleString()}
                       </Typography>
                     </Box>
                     
@@ -5107,227 +4867,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         </DialogActions>
       </Dialog>
 
-      {/* Модальное окно банка */}
-      <Dialog
-        open={showBankModal}
-        onClose={closeModals}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            background: 'linear-gradient(135deg, #1F2937 0%, #374151 100%)',
-            borderRadius: '20px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)'
-          }
-        }}
-      >
-        <DialogTitle sx={{ 
-          color: 'white', 
-          textAlign: 'center',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          pb: 2
-        }}>
-          🏦 Банковские операции
-        </DialogTitle>
-        
-        <DialogContent sx={{ pt: 3 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            
-            {/* 1. Текущий баланс */}
-            <Box sx={{
-              background: 'rgba(16, 185, 129, 0.1)',
-              borderRadius: '15px',
-              padding: '20px',
-              border: '1px solid rgba(16, 185, 129, 0.3)'
-            }}>
-              <Typography variant="h6" sx={{ color: '#10B981', mb: 1, textAlign: 'center' }}>
-                💰 Текущий баланс
-              </Typography>
-              <Typography variant="h3" sx={{ color: '#10B981', fontWeight: 'bold', textAlign: 'center' }}>
-                ${bankBalance.toLocaleString()}
-              </Typography>
-            </Box>
 
-            {/* 2. Перевод средств */}
-            <Box sx={{
-              background: 'rgba(139, 92, 246, 0.1)',
-              borderRadius: '15px',
-              padding: '20px',
-              border: '1px solid rgba(139, 92, 246, 0.3)'
-            }}>
-              <Typography variant="h6" sx={{ color: '#8B5CF6', mb: 2, textAlign: 'center' }}>
-                💸 Перевод средств
-              </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {/* Выбор получателя */}
-                <FormControl fullWidth>
-                  <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                    Выберите получателя
-                  </InputLabel>
-                  <Select
-                    value={selectedRecipient}
-                    onChange={(e) => setSelectedRecipient(e.target.value)}
-                    sx={{
-                      color: 'white',
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'rgba(255, 255, 255, 0.3)'
-                      },
-                      '&:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'rgba(255, 255, 255, 0.5)'
-                      },
-                      '& .MuiSvgIcon-root': {
-                        color: 'rgba(255, 255, 255, 0.7)'
-                      }
-                    }}
-                  >
-                    {gamePlayers.map((player, index) => (
-                      <MenuItem key={index} value={player.username} disabled={index === currentPlayer}>
-                        {player.username} {index === currentPlayer ? '(Вы)' : ''}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
 
-                {/* Сумма перевода */}
-                <TextField
-                  fullWidth
-                  label="Сумма перевода ($)"
-                  type="number"
-                  value={transferAmount}
-                  onChange={(e) => setTransferAmount(e.target.value)}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      color: 'white',
-                      '& fieldset': {
-                        borderColor: 'rgba(255, 255, 255, 0.3)'
-                      },
-                      '&:hover fieldset': {
-                        borderColor: 'rgba(255, 255, 255, 0.5)'
-                      },
-                      '& .MuiInputLabel-root': {
-                        color: 'rgba(255, 255, 255, 0.7)'
-                      }
-                    }
-                  }}
-                />
-
-                {/* Кнопки действий */}
-                <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                  <Button
-                    variant="contained"
-                    onClick={handleTransfer}
-                    disabled={!transferAmount || !selectedRecipient}
-                    sx={{
-                      flex: 1,
-                      background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
-                      color: 'white',
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)'
-                      },
-                      '&:disabled': {
-                        background: 'rgba(139, 92, 246, 0.5)'
-                      }
-                    }}
-                  >
-                    💸 Выполнить перевод
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    onClick={resetTransferForm}
-                    sx={{
-                      borderColor: 'rgba(255, 255, 255, 0.3)',
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      '&:hover': {
-                        borderColor: 'rgba(255, 255, 255, 0.5)',
-                        background: 'rgba(255, 255, 255, 0.05)'
-                      }
-                    }}
-                  >
-                    🔄 Сбросить
-                  </Button>
-                </Box>
-              </Box>
-            </Box>
-
-            {/* 3. История переводов */}
-            <Box sx={{
-              background: 'rgba(59, 130, 246, 0.1)',
-              borderRadius: '15px',
-              padding: '20px',
-              border: '1px solid rgba(59, 130, 246, 0.3)'
-            }}>
-              <Typography variant="h6" sx={{ color: '#3B82F6', mb: 2, textAlign: 'center' }}>
-                📋 История переводов
-              </Typography>
-              
-              <List sx={{ maxHeight: '200px', overflow: 'auto' }}>
-                {transferHistory.map((transfer, index) => (
-                  <React.Fragment key={transfer.id}>
-                    <ListItem sx={{ 
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      borderRadius: '8px',
-                      mb: 1
-                    }}>
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography sx={{ color: 'white', fontWeight: 'bold' }}>
-                              {transfer.type === 'salary' ? '💰 Зарплата' : `${transfer.from} → ${transfer.to}`}
-                            </Typography>
-                            <Typography sx={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem' }}>
-                              {transfer.timestamp || `${transfer.date} ${transfer.time}`}
-                            </Typography>
-                          </Box>
-                        }
-                        secondary={
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography sx={{ 
-                              color: transfer.type === 'salary' ? '#EAB308' : '#10B981', 
-                              fontWeight: 'bold' 
-                            }}>
-                              ${transfer.amount.toLocaleString()}
-                            </Typography>
-                            {transfer.description && (
-                              <Typography sx={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.7rem' }}>
-                                {transfer.description}
-                              </Typography>
-                            )}
-                          </Box>
-                        }
-                      />
-                    </ListItem>
-                    {index < transferHistory.length - 1 && <Divider sx={{ background: 'rgba(255, 255, 255, 0.1)' }} />}
-                  </React.Fragment>
-                ))}
-              </List>
-            </Box>
-          </Box>
-        </DialogContent>
-
-        <DialogActions sx={{ 
-          p: 3, 
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-          justifyContent: 'center'
-        }}>
-          <Button
-            onClick={closeModals}
-            sx={{
-              background: 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
-              color: 'white',
-              px: 4,
-              py: 1.5,
-              borderRadius: '10px',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #4B5563 0%, #374151 100%)'
-              }
-            }}
-          >
-            ✋ Закрыть
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Toast уведомления */}
       <Snackbar
@@ -6301,7 +5842,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       <ProfessionDetails
         isOpen={showProfessionCard}
         onClose={() => setShowProfessionCard(false)}
-        profession={selectedProfessionId ? { id: selectedProfessionId } : null}
+        profession={(() => {
+          if (!selectedProfessionId) return playerData?.profession || null;
+          return selectedProfessionId;
+        })()}
       />
 
       {/* Модальное окно карточки рынка */}
@@ -6470,10 +6014,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       +{player.points} очков
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#94A3B8' }}>
-                      Доход: ${player.passiveIncome.toLocaleString()}
+                      Доход: ${(player.passiveIncome ?? 0).toLocaleString()}
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#94A3B8' }}>
-                      Баланс: ${player.balance.toLocaleString()}
+                      Баланс: ${(player.balance ?? 0).toLocaleString()}
                     </Typography>
                     {player.isOnBigCircle && (
                       <Typography variant="body2" sx={{ color: '#94A3B8' }}>

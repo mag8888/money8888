@@ -29,7 +29,7 @@ export class GameState {
       draft.players.set(playerId, {
         id: playerId,
         username: playerData.username || `Player ${playerId}`,
-        balance: 2000,
+        balance: 3000,
         position: 0,
         ready: false,
         ...playerData
