@@ -3473,11 +3473,25 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               let offsetY = 0;
               
               if (totalPlayersOnCell > 1) {
-                // Если на клетке несколько игроков, размещаем их по кругу
-                const offsetRadius = 8; // Радиус смещения от центра клетки
+                // Если на клетке несколько игроков, размещаем их по кругу ближе к центру
+                let offsetRadius;
+                
+                // Адаптивный радиус в зависимости от количества игроков
+                if (totalPlayersOnCell === 2) {
+                  offsetRadius = 8; // Для 2 игроков - ближе к центру
+                } else if (totalPlayersOnCell === 3) {
+                  offsetRadius = 10; // Для 3 игроков
+                } else {
+                  offsetRadius = 12; // Для 4+ игроков
+                }
+                
                 const offsetAngle = (playerIndexInCell * 360) / totalPlayersOnCell;
                 offsetX = Math.cos((offsetAngle - 90) * Math.PI / 180) * offsetRadius;
                 offsetY = Math.sin((offsetAngle - 90) * Math.PI / 180) * offsetRadius;
+              } else {
+                // Если игрок один на клетке, размещаем его точно в центре
+                offsetX = 0;
+                offsetY = 0;
               }
               
               return (
@@ -3502,8 +3516,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     top: '50%',
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
-                    width: '32px',
-                    height: '32px',
+                    width: '28px',
+                    height: '28px',
                     zIndex: 4
                   }}
                 >
