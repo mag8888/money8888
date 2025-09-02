@@ -2,7 +2,7 @@ import React, { useState, useEffect, Fragment, useRef } from 'react';
 import socket from '../socket';
 import { Box, Typography, Button, LinearProgress, Avatar, Chip, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, List, ListItem, ListItemText, Divider, Grid, useMediaQuery, useTheme, IconButton } from '@mui/material';
 import { motion } from 'framer-motion';
-import FullProfessionCard from './FullProfessionCard';
+import ProfessionDetails from './ProfessionDetails';
 import MarketCardModal from './MarketCardModal';
 import ExpenseCardModal from './ExpenseCardModal';
 import BreakModal from './BreakModal';
@@ -259,6 +259,43 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       setTimerProgress(progress);
     };
 
+    // Обработчики банковских переводов
+    const handleBankTransferSuccess = (data) => {
+      console.log('✅ [OriginalGameBoard] Перевод выполнен успешно:', data);
+      
+      // Добавляем запись в историю переводов
+      const newTransfer = {
+        id: Date.now(),
+        from: getCurrentPlayer()?.username || 'Игрок',
+        to: selectedRecipient,
+        amount: data.amount || parseFloat(transferAmount),
+        type: 'transfer',
+        timestamp: new Date().toLocaleString('ru-RU'),
+        status: 'completed'
+      };
+      
+      setTransferHistory(prev => [newTransfer, ...prev]);
+      
+      setToast({
+        open: true,
+        message: data.message || 'Перевод выполнен успешно',
+        severity: 'success'
+      });
+      
+      // Сбрасываем форму
+      setTransferAmount('');
+      setSelectedRecipient('');
+    };
+
+    const handleBankTransferError = (data) => {
+      console.log('❌ [OriginalGameBoard] Ошибка перевода:', data);
+      setToast({
+        open: true,
+        message: data.message || 'Ошибка при выполнении перевода',
+        severity: 'error'
+      });
+    };
+
     // Подписываемся на события
     socket.on('playersUpdate', handlePlayersUpdate);
     socket.on('roomData', handleRoomData);
@@ -266,6 +303,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     socket.on('playerPositionUpdate', handlePlayerPositionUpdate);
     socket.on('playerTurnChanged', handlePlayerTurnChanged);
     socket.on('turnTimerSynced', handleTurnTimerSynced);
+    socket.on('bankTransferSuccess', handleBankTransferSuccess);
+    socket.on('bankTransferError', handleBankTransferError);
 
     // Запрашиваем актуальный список игроков при подключении
     if (socket.connected && roomIdRef.current) {
@@ -288,6 +327,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       socket.off('playerPositionUpdate', handlePlayerPositionUpdate);
       socket.off('playerTurnChanged', handlePlayerTurnChanged);
       socket.off('turnTimerSynced', handleTurnTimerSynced);
+      socket.off('bankTransferSuccess', handleBankTransferSuccess);
+      socket.off('bankTransferError', handleBankTransferError);
     };
   }, []); // Убираем roomId из зависимостей, чтобы избежать ререндеров
 
@@ -453,7 +494,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   // Состояние для активов - теперь используем данные из gamePlayers
   // Удалено локальное состояние assets - используем gamePlayers[currentPlayer]?.assets
 
-  // Состояние для FullProfessionCard
+  // Состояние для ProfessionDetails
   const [showProfessionCard, setShowProfessionCard] = useState(false);
   const [selectedProfessionId, setSelectedProfessionId] = useState(null);
 
@@ -1476,18 +1517,45 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   // Функция обработки клетки PayDay
   const handlePayDayCell = () => {
     const player = getCurrentPlayer();
-    const salary = getPlayerSalary(player.profession);
+    if (!player) return;
     
-    // Добавляем зарплату
-    setPlayerMoney(prev => prev + salary);
+    // Рассчитываем cash flow (доходы - расходы)
+    const cashFlow = getCashFlow();
+    
+    // Добавляем cash flow к балансу
+    const newBalance = (player.balance || 0) + cashFlow;
+    
+    // Обновляем баланс игрока
+    setGamePlayers(prev => prev.map(p => 
+      p.socketId === player.socketId 
+        ? { ...p, balance: newBalance }
+        : p
+    ));
+    
+    // Синхронизируем с сервером
+    syncPlayerData(player.socketId, { balance: newBalance });
+    
+    // Добавляем запись в историю транзакций
+    const newTransaction = {
+      id: Date.now(),
+      from: 'Банк',
+      to: player.username || 'Игрок',
+      amount: cashFlow,
+      type: 'salary',
+      timestamp: new Date().toLocaleString('ru-RU'),
+      status: 'completed',
+      description: `Зарплата (Cash Flow)`
+    };
+    
+    setTransferHistory(prev => [newTransaction, ...prev]);
     
     setToast({
       open: true,
-      message: `💰 ${player?.username || 'Игрок'} получил зарплату: $${salary.toLocaleString()}`,
+      message: `💰 ${player?.username || 'Игрок'} получил зарплату (Cash Flow): $${cashFlow.toLocaleString()}`,
       severity: 'success'
     });
     
-    console.log(`💰 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} получил зарплату: $${salary}`);
+    console.log(`💰 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} получил зарплату (Cash Flow): $${cashFlow}`);
   };
 
   // Функция обработки клетки потери работы
@@ -1530,7 +1598,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     // Сбрасываем игрока к начальным условиям
     setPlayerMoney(2000); // Начальные деньги
     setCurrentPlayerAssets([]);
-    setCurrentPlayerLiabilities([]);
+    // setCurrentPlayerLiabilities([]); // Функция не определена, убираем
     
     // Перемещаем игрока на позицию 1
     const updatedPlayers = [...gamePlayers];
@@ -2231,15 +2299,29 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция для расчета денежного потока (PAYDAY)
   const getCashFlow = () => {
+    const player = getCurrentPlayer();
+    if (!player) return 0;
+    
+    // Получаем доходы от активов
     const totalIncome = getCurrentPlayerAssets().reduce((sum, asset) => sum + (asset.income || 0), 0);
-    // Здесь нужно вычесть ежемесячные расходы игрока
-    // Пока что используем фиксированные расходы для примера
-    const totalExpenses = 4500; // Пример: расходы $4,500
+    
+    // Получаем расходы из профессии игрока
+    let totalExpenses = 0;
+    if (player.profession && typeof player.profession === 'object') {
+      totalExpenses = player.profession.totalExpenses || 0;
+    } else {
+      // Fallback для старых данных
+      totalExpenses = 4500; // Пример: расходы $4,500
+    }
     
     // Вычитаем платежи по кредиту: за каждые $1,000 кредита - $100/мес
     const creditPayments = Math.floor(playerCredit / 1000) * 100;
     
-    return totalIncome - totalExpenses - creditPayments;
+    const cashFlow = totalIncome - totalExpenses - creditPayments;
+    
+    console.log(`💰 [OriginalGameBoard] Расчет Cash Flow: доходы $${totalIncome} - расходы $${totalExpenses} - кредиты $${creditPayments} = $${cashFlow}`);
+    
+    return cashFlow;
   };
 
   // Функция для расчета максимального кредита
@@ -2669,7 +2751,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       return;
     }
 
-    if (amount > bankBalance) {
+    const currentPlayerData = getCurrentPlayer();
+    if (!currentPlayerData) {
+      setToast({
+        open: true,
+        message: '❌ Игрок не найден',
+        severity: 'error'
+      });
+      return;
+    }
+
+    if (amount > (currentPlayerData.balance || 0)) {
       setToast({
         open: true,
         message: '❌ Недостаточно средств на счете',
@@ -2678,23 +2770,38 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       return;
     }
 
-    // Выполняем перевод
-    const currentPlayerData = getCurrentPlayer();
-    const currentPlayerName = currentPlayerData?.username || 'Неизвестно';
-    const newTransfer = {
-      id: Date.now(),
-      from: currentPlayerName,
-      to: selectedRecipient,
-      amount: amount,
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-    };
+    // Отправляем запрос на сервер
+    if (socket && roomId && currentPlayerData.socketId) {
+      socket.emit('bankTransfer', {
+        roomId,
+        playerId: currentPlayerData.socketId,
+        recipient: selectedRecipient,
+        amount
+      });
+    } else {
+      // Fallback для локального режима
+      const currentPlayerName = currentPlayerData.username || 'Неизвестно';
+      const newTransfer = {
+        id: Date.now(),
+        from: currentPlayerName,
+        to: selectedRecipient,
+        amount: amount,
+        type: 'transfer',
+        timestamp: new Date().toLocaleString('ru-RU'),
+        status: 'completed'
+      };
 
-    // Обновляем историю переводов
-    setTransferHistory(prev => [newTransfer, ...prev]);
-    
-    // Списываем средства
-    setBankBalance(prev => prev - amount);
+      // Обновляем историю переводов
+      setTransferHistory(prev => [newTransfer, ...prev]);
+      
+      // Обновляем баланс игрока локально
+      const newBalance = (currentPlayerData.balance || 0) - amount;
+      setGamePlayers(prev => prev.map(p => 
+        p.socketId === currentPlayerData.socketId 
+          ? { ...p, balance: newBalance }
+          : p
+      ));
+    }
     
     // Сбрасываем форму
     setTransferAmount('');
@@ -2707,7 +2814,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       severity: 'success'
     });
 
-    console.log(`🏦 [OriginalGameBoard] Перевод выполнен: ${currentPlayerName} → ${selectedRecipient} $${amount}`);
+    console.log(`🏦 [OriginalGameBoard] Перевод выполнен: ${currentPlayerData.username} → ${selectedRecipient} $${amount}`);
   };
 
   const resetTransferForm = () => {
@@ -4509,7 +4616,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                   {selectedPlayer.username}
                 </Typography>
                 <Typography variant="h6" sx={{ color: '#94A3B8', mb: 2 }}>
-                  {selectedPlayer.profession}
+                  {typeof selectedPlayer.profession === 'object' ? selectedPlayer.profession.name : selectedPlayer.profession}
                 </Typography>
                 
                 {/* Кнопка для открытия карточки профессии */}
@@ -4638,7 +4745,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 
                 <Typography variant="body2" sx={{ color: '#94A3B8', textAlign: 'center', lineHeight: 1.6 }}>
                   Игрок {selectedPlayer.username} участвует в игре "Energy of Money". 
-                  {selectedPlayer.profession && ` Профессия: ${selectedPlayer.profession}.`}
+                  {selectedPlayer.profession && ` Профессия: ${typeof selectedPlayer.profession === 'object' ? selectedPlayer.profession.name : selectedPlayer.profession}.`}
                   {currentPlayer === gamePlayers.findIndex(p => p.username === selectedPlayer.username) 
                     ? ' Сейчас его ход!' 
                     : ' Ожидает своей очереди.'}
@@ -5165,18 +5272,28 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     }}>
                       <ListItemText
                         primary={
-                          <Typography sx={{ color: 'white', fontWeight: 'bold' }}>
-                            {transfer.from} → {transfer.to}
-                          </Typography>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography sx={{ color: 'white', fontWeight: 'bold' }}>
+                              {transfer.type === 'salary' ? '💰 Зарплата' : `${transfer.from} → ${transfer.to}`}
+                            </Typography>
+                            <Typography sx={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem' }}>
+                              {transfer.timestamp || `${transfer.date} ${transfer.time}`}
+                            </Typography>
+                          </Box>
                         }
                         secondary={
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography sx={{ color: '#10B981', fontWeight: 'bold' }}>
+                            <Typography sx={{ 
+                              color: transfer.type === 'salary' ? '#EAB308' : '#10B981', 
+                              fontWeight: 'bold' 
+                            }}>
                               ${transfer.amount.toLocaleString()}
                             </Typography>
-                            <Typography sx={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem' }}>
-                              {transfer.date} {transfer.time}
-                            </Typography>
+                            {transfer.description && (
+                              <Typography sx={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.7rem' }}>
+                                {transfer.description}
+                              </Typography>
+                            )}
                           </Box>
                         }
                       />
@@ -6181,10 +6298,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       )}
 
       {/* Полная карточка профессии */}
-      <FullProfessionCard
-        open={showProfessionCard}
+      <ProfessionDetails
+        isOpen={showProfessionCard}
         onClose={() => setShowProfessionCard(false)}
-        professionId={selectedProfessionId}
+        profession={selectedProfessionId ? { id: selectedProfessionId } : null}
       />
 
       {/* Модальное окно карточки рынка */}

@@ -33,6 +33,8 @@ import {
   Close as CloseIcon,
   ArrowForward as ArrowForwardIcon
 } from '@mui/icons-material';
+import ProfessionDetails from './ProfessionDetails';
+import ProfessionCard from './ProfessionCard';
 
 // CSS анимация для сердечка
 const heartbeatAnimation = {
@@ -356,109 +358,13 @@ const ProfessionModal = ({ open, onClose, onSelectProfession, profession, player
                 {PROFESSIONS.map((prof) => (
                   <Grid item xs={12} sm={6} md={4} key={prof.id}>
                     <motion.div variants={itemVariants}>
-                      <Card 
-                        elevation={8}
-                        sx={{
-                          borderRadius: 3,
-                          cursor: 'pointer',
-                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                          border: `2px solid ${prof.color}`,
-                          position: 'relative',
-                          '&:hover': {
-                            transform: 'translateY(-8px) scale(1.02)',
-                            boxShadow: `0 20px 40px ${prof.color}40`
-                          }
-                        }}
+                      <ProfessionCard
+                        profession={prof}
+                        isSelected={selectedProfession?.id === prof.id}
                         onClick={() => handleSelectProfession(prof)}
-                      >
-                        {/* Сердечко для выбранной профессии */}
-                        {selectedProfession?.id === prof.id && (
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              top: -12,
-                              right: -12,
-                              zIndex: 1,
-                              background: '#ff4081',
-                              borderRadius: '50%',
-                              width: 40,
-                              height: 40,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: '0 6px 12px rgba(255, 64, 129, 0.4)',
-                              animation: 'heartbeat 1.5s ease-in-out infinite'
-                            }}
-                          >
-                            <Typography sx={{ color: 'white', fontSize: '20px', fontWeight: 'bold' }}>
-                              ❤️
-                    </Typography>
-                  </Box>
-                        )}
-                        
-                        <CardContent sx={{ p: 3, textAlign: 'center' }}>
-                          <Typography variant="h1" sx={{ mb: 2 }}>
-                            {prof.icon}
-                          </Typography>
-                          
-                          <Typography variant="h6" sx={{ 
-                            fontWeight: 700, 
-                            color: prof.color,
-                            mb: 2
-                          }}>
-                            {prof.name}
-                    </Typography>
-                          
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                            {prof.description}
-                    </Typography>
-                          
-                          <Box sx={{ mb: 2 }}>
-                            <Chip 
-                              label={`Зарплата: ${formatCurrency(prof.salary)}`}
-                              size="small"
-                              sx={{ 
-                                bgcolor: '#4caf50', 
-                                color: 'white',
-                                fontWeight: 600,
-                                mb: 1
-                              }}
-                            />
-                            <Chip 
-                              label={`Расходы: ${formatCurrency(prof.expenses)}`}
-                              size="small"
-                              sx={{ 
-                                bgcolor: '#f44336', 
-                                color: 'white',
-                                fontWeight: 600,
-                                mb: 1
-                              }}
-                            />
-                            {prof.passiveIncome > 0 && (
-                              <Chip 
-                                label={`Пассивный доход: ${formatCurrency(prof.passiveIncome)}`}
-                                size="small"
-                                sx={{ 
-                                  bgcolor: '#ff9800', 
-                                  color: 'white',
-                                  fontWeight: 600
-                                }}
-                              />
-                            )}
-                  </Box>
-                          
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                            <Typography variant="caption" color="text.secondary">
-                              Сложность: {prof.difficulty}
-                    </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Рост: {prof.growth}
-                    </Typography>
-                  </Box>
-                        </CardContent>
-                      </Card>
+                      />
                     </motion.div>
-                </Grid>
+                  </Grid>
                 ))}
               </Grid>
             </motion.div>

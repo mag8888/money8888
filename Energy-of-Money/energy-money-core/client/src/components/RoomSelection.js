@@ -31,7 +31,8 @@ import {
 import { MenuItem } from '@mui/material';
 import socket, { connectSocket } from '../socket';
 import { PROFESSIONS } from '../data/professions';
-import ProfessionDetailsModal from './ProfessionDetailsModal';
+
+import ProfessionDetails from './ProfessionDetails';
 import ProfessionCard from './ProfessionCard';
 
 const RoomSelection = ({ playerData, onRoomSelect, 
@@ -976,7 +977,6 @@ const RoomSelection = ({ playerData, onRoomSelect,
                            profession={profession}
                            isSelected={selectedProfession?.id === profession.id}
                            onClick={() => setSelectedProfession(profession)}
-                           onDetailsClick={handleProfessionDetails}
                          />
                        </Grid>
                      ))}
@@ -1270,8 +1270,8 @@ const RoomSelection = ({ playerData, onRoomSelect,
       </Fab>
 
       {/* Модальное окно с подробной информацией о профессии */}
-      <ProfessionDetailsModal
-        open={showProfessionDetails}
+      <ProfessionDetails
+        isOpen={showProfessionDetails}
         profession={selectedProfessionForDetails}
         onClose={handleCloseProfessionDetails}
       />

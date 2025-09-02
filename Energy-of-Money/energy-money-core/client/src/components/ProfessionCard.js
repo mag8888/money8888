@@ -6,12 +6,11 @@ import {
   CardContent,
   Chip,
   Grid,
-  Divider,
-  Button
+  Divider
 } from '@mui/material';
 import { motion } from 'framer-motion';
 
-const ProfessionCard = ({ profession, isSelected, onClick, onDetailsClick }) => {
+const ProfessionCard = ({ profession, isSelected, onClick }) => {
   if (!profession) return null;
 
   const getDifficultyColor = (difficulty) => {
@@ -138,7 +137,22 @@ const ProfessionCard = ({ profession, isSelected, onClick, onDetailsClick }) => 
             </Typography>
             {profession.creditAuto > 0 && (
               <Typography variant="caption" sx={{ color: '#666', mb: 0.5, display: 'block', fontSize: '0.7rem' }}>
-                <strong>Кредит на авто:</strong> ${profession.creditAuto}
+                <strong>Кредит на авто:</strong> ${profession.creditAuto} + ${profession.creditAuto * 20} (тело)
+              </Typography>
+            )}
+            {profession.creditEducation > 0 && (
+              <Typography variant="caption" sx={{ color: '#666', mb: 0.5, display: 'block', fontSize: '0.7rem' }}>
+                <strong>Образовательный кредит:</strong> ${profession.creditEducation} + ${profession.creditEducation * 20} (тело)
+              </Typography>
+            )}
+            {profession.creditHousing > 0 && (
+              <Typography variant="caption" sx={{ color: '#666', mb: 0.5, display: 'block', fontSize: '0.7rem' }}>
+                <strong>Ипотека:</strong> ${profession.creditHousing} + ${profession.creditHousing * 200} (тело)
+              </Typography>
+            )}
+            {profession.creditCards > 0 && (
+              <Typography variant="caption" sx={{ color: '#666', mb: 0.5, display: 'block', fontSize: '0.7rem' }}>
+                <strong>Кредитные карты:</strong> ${profession.creditCards} + ${profession.creditCards * 20} (тело)
               </Typography>
             )}
           </Box>
@@ -190,31 +204,7 @@ const ProfessionCard = ({ profession, isSelected, onClick, onDetailsClick }) => 
             />
           </Box>
 
-          {/* Кнопка подробнее */}
-          <Box sx={{ mt: 1.5 }}>
-            <Button
-              variant="outlined"
-              size="small"
-              fullWidth
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onDetailsClick) onDetailsClick(profession);
-              }}
-              sx={{
-                borderRadius: 1,
-                fontSize: '0.7rem',
-                py: 0.5,
-                borderColor: getCategoryColor(profession.category),
-                color: getCategoryColor(profession.category),
-                '&:hover': {
-                  borderColor: getCategoryColor(profession.category),
-                  backgroundColor: `${getCategoryColor(profession.category)}10`
-                }
-              }}
-            >
-              📋 Подробнее
-            </Button>
-          </Box>
+
 
           {/* Статус выбора */}
           {isSelected && (

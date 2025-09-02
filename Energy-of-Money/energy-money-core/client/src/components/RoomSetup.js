@@ -23,10 +23,10 @@ import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import socket from '../socket';
 import { PROFESSIONS } from '../data/professions';
+import ProfessionDetails from './ProfessionDetails';
 import ProfessionCard from './ProfessionCard';
-import PlayerProfessionCard from './PlayerProfessionCard';
 import PlayerAssetsModal from './PlayerAssetsModal';
-import ProfessionDetailsModal from './ProfessionDetailsModal';
+
 
 const RoomSetup = ({ playerData, onRoomSetup }) => {
   const { roomId } = useParams();
@@ -34,8 +34,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   
   console.log('🏗️ [RoomSetup] Компонент инициализирован');
   console.log('🏗️ [RoomSetup] Импортированные компоненты:', { 
-    ProfessionCard: !!ProfessionCard, 
-    PlayerProfessionCard: !!PlayerProfessionCard, 
+    ProfessionDetails: !!ProfessionDetails, 
     PlayerAssetsModal: !!PlayerAssetsModal 
   });
   
@@ -539,6 +538,11 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   const getPlayerProfession = (player) => {
     console.log('💼 [RoomSetup] getPlayerProfession вызван с игроком:', player);
     if (player.profession && player.profession !== 'none') {
+      // Если профессия уже объект, возвращаем её
+      if (typeof player.profession === 'object') {
+        return player.profession;
+      }
+      // Если профессия строка, ищем в массиве
       const profession = PROFESSIONS.find(p => p.name === player.profession);
       console.log('💼 [RoomSetup] Найдена профессия:', profession);
       return profession;
@@ -802,11 +806,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                           {selectedProfession.name}
                         </Typography>
                       </Box>
-                    ) : (
-                      <Typography variant="h6" sx={{ color: '#ff9800', mb: 1 }}>
-                        ⚠️ Профессия не выбрана
-                      </Typography>
-                    )}
+                    ) : null}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       <Chip 
                         label={isReady ? '✅ Готов к игре' : '⏳ Не готов'} 
@@ -1030,7 +1030,6 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                             profession={profession}
                             isSelected={selectedProfession?.id === profession.id}
                             onClick={() => handleProfessionSelect(profession)}
-                            onDetailsClick={handleProfessionDetails}
                           />
                         </Grid>
                       ))}
@@ -1186,7 +1185,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                           </Typography>
                           {player.profession && player.profession !== 'none' ? (
                             <Chip 
-                              label={player.profession} 
+                              label={typeof player.profession === 'object' ? player.profession.name : player.profession} 
                               size="small" 
                               sx={{ 
                                 bgcolor: 'rgba(255, 255, 255, 0.2)', 
@@ -1195,18 +1194,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                                 border: '1px solid rgba(255, 255, 255, 0.3)'
                               }}
                             />
-                          ) : (
-                            <Chip 
-                              label="Профессия не выбрана" 
-                              size="small" 
-                              sx={{ 
-                                bgcolor: 'rgba(255, 255, 255, 0.2)', 
-                                color: 'white',
-                                fontWeight: 'bold',
-                                border: '1px solid rgba(255, 255, 255, 0.3)'
-                              }}
-                            />
-                          )}
+                          ) : null}
                         </Box>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                           <Typography variant="h4" sx={{ color: 'rgba(255, 255, 255, 0.8)' }} title="Нажмите для просмотра карточки">
@@ -1411,8 +1399,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
       </Box>
 
       {/* Модальное окно карточки игрока */}
-      <PlayerProfessionCard
-        player={selectedPlayer}
+      <ProfessionDetails
         profession={selectedPlayer ? getPlayerProfession(selectedPlayer) : null}
         isOpen={showPlayerCard}
         onClose={closePlayerCard}
@@ -1750,22 +1737,6 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
         </Box>
       )}
 
-      {/* Модальное окно карточки игрока */}
-      <PlayerProfessionCard
-        player={selectedPlayer}
-        profession={selectedPlayer ? getPlayerProfession(selectedPlayer) : null}
-        isOpen={showPlayerCard}
-        onClose={closePlayerCard}
-      />
-
-      {/* Модальное окно активов игрока */}
-      <PlayerAssetsModal
-        player={selectedPlayer}
-        profession={selectedPlayer ? getPlayerProfession(selectedPlayer) : null}
-        isOpen={showPlayerAssets}
-        onClose={closePlayerAssets}
-      />
-
       {/* Модальное окно банка */}
       {showBankModal && (
         <Box
@@ -1949,8 +1920,8 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
       )}
 
       {/* Модальное окно с подробной информацией о профессии */}
-      <ProfessionDetailsModal
-        open={showProfessionDetails}
+      <ProfessionDetails
+        isOpen={showProfessionDetails}
         profession={selectedProfessionForDetails}
         onClose={handleCloseProfessionDetails}
       />

@@ -21,7 +21,7 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CASHFLOW_THEME, COMPONENT_STYLES } from '../styles/cashflow-theme';
-import FullProfessionCard from './FullProfessionCard';
+import ProfessionDetails from './ProfessionDetails';
 import BankOperations from './BankOperations';
 
 // 🎨 Стильная панель управления Cashflow
@@ -687,10 +687,10 @@ const StylishControlPanel = ({
       </Box>
       
       {/* Полная карточка профессии */}
-      <FullProfessionCard
-        open={showProfessionCard}
+      <ProfessionDetails
+        isOpen={showProfessionCard}
         onClose={() => setShowProfessionCard(false)}
-        professionId={selectedProfessionId}
+        profession={selectedProfessionId ? { id: selectedProfessionId } : null}
       />
 
       {/* Банковские операции */}
