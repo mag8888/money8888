@@ -560,30 +560,53 @@ io.on('connection', (socket) => {
       }
       
       // Проверяем, не находится ли игрок уже в комнате
-      const existingPlayer = room.currentPlayers.find(p => p.socketId === socket.id);
-      if (existingPlayer) {
-        console.log('🔗 [SERVER] Player already in room:', { roomId, username: existingPlayer.username });
+      const playerInRoom = room.currentPlayers.find(p => p.socketId === socket.id);
+      if (playerInRoom) {
+        console.log('🔗 [SERVER] Player already in room:', { roomId, username: playerInRoom.username });
         socket.emit('roomJoined', { success: true, roomId });
         return;
       }
       
-      // Проверяем, есть ли отключенный игрок с таким же именем (переподключение)
-      const disconnectedPlayer = room.currentPlayers.find(p => 
-        p.username === playerData?.username && p.isConnected === false
+      // Проверяем, есть ли игрок с таким же именем (переподключение или дублирование)
+      const existingPlayer = room.currentPlayers.find(p => 
+        p.username === playerData?.username
       );
       
-      if (disconnectedPlayer) {
-        // Переподключаем отключенного игрока
-        const playerIndex = room.currentPlayers.findIndex(p => p.socketId === disconnectedPlayer.socketId);
-        room.currentPlayers[playerIndex] = {
-          ...disconnectedPlayer,
-          socketId: socket.id,
-          isConnected: true,
-          reconnectedAt: Date.now()
-        };
-        console.log('🔗 [SERVER] Player reconnected:', { roomId, username: disconnectedPlayer.username });
+      if (existingPlayer) {
+        // Если игрок уже подключен с другим socketId, обновляем его socketId
+        if (existingPlayer.isConnected && existingPlayer.socketId !== socket.id) {
+          console.log('🔄 [SERVER] Player reconnecting with new socket:', { 
+            roomId, 
+            username: existingPlayer.username, 
+            oldSocketId: existingPlayer.socketId,
+            newSocketId: socket.id 
+          });
+          
+          // Обновляем socketId существующего игрока
+          const playerIndex = room.currentPlayers.findIndex(p => p.socketId === existingPlayer.socketId);
+          room.currentPlayers[playerIndex] = {
+            ...existingPlayer,
+            socketId: socket.id,
+            isConnected: true,
+            reconnectedAt: Date.now()
+          };
+        } else if (!existingPlayer.isConnected) {
+          // Переподключаем отключенного игрока
+          const playerIndex = room.currentPlayers.findIndex(p => p.socketId === existingPlayer.socketId);
+          room.currentPlayers[playerIndex] = {
+            ...existingPlayer,
+            socketId: socket.id,
+            isConnected: true,
+            reconnectedAt: Date.now()
+          };
+          console.log('🔗 [SERVER] Player reconnected:', { roomId, username: existingPlayer.username });
+        }
+        
         socket.join(roomId);
         socket.emit('roomJoined', { success: true, roomId });
+        
+        // Очищаем дублированных игроков
+        cleanupDuplicatePlayers(room);
         
         // Отправляем обновленный список игроков
         io.to(roomId).emit('playersUpdate', room.currentPlayers);
@@ -1427,6 +1450,38 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Функция для очистки дублированных игроков
+  const cleanupDuplicatePlayers = (room) => {
+    const playerMap = new Map();
+    const uniquePlayers = [];
+    
+    room.currentPlayers.forEach(player => {
+      const key = player.username;
+      if (!playerMap.has(key)) {
+        playerMap.set(key, player);
+        uniquePlayers.push(player);
+      } else {
+        // Если нашли дубликат, оставляем подключенного игрока
+        const existingPlayer = playerMap.get(key);
+        if (player.isConnected && !existingPlayer.isConnected) {
+          // Заменяем отключенного игрока на подключенного
+          const index = uniquePlayers.findIndex(p => p.username === key);
+          uniquePlayers[index] = player;
+          playerMap.set(key, player);
+        }
+      }
+    });
+    
+    if (uniquePlayers.length !== room.currentPlayers.length) {
+      console.log('🧹 [SERVER] Cleaned up duplicate players:', {
+        roomId: room.roomId,
+        before: room.currentPlayers.length,
+        after: uniquePlayers.length
+      });
+      room.currentPlayers = uniquePlayers;
+    }
+  };
+
   // Обработчик отключения клиента
   socket.on('disconnect', () => {
     console.log(`🔌 [SERVER] Client disconnected: ${socket.id}`);
@@ -1453,6 +1508,9 @@ io.on('connection', (socket) => {
           console.log(`🔌 [SERVER] Host disconnected, stopping break system for room: ${roomId}`);
           stopBreakSystem(roomId);
         }
+        
+        // Очищаем дублированных игроков
+        cleanupDuplicatePlayers(room);
         
         // Отправляем обновленный список игроков
         io.to(roomId).emit('playersUpdate', room.currentPlayers);
