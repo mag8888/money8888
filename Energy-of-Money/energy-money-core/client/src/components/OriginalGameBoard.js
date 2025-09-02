@@ -8,6 +8,7 @@ import ExpenseCardModal from './ExpenseCardModal';
 import BreakModal from './BreakModal';
 import { MarketDeckManager, checkPlayerHasMatchingAsset } from '../data/marketCards';
 import { ExpenseDeckManager } from '../data/expenseCards';
+import { CELL_CONFIG } from '../data/gameCells';
 import { PLAYER_COLORS, assignPlayerColor } from '../styles/playerColors';
 import { 
   Timer, 
@@ -1179,11 +1180,71 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const handleCellAction = (position) => {
     const player = getCurrentPlayer();
     
-    // Всегда логика большого круга
+    // Определяем, на каком круге находится игрок
+    if (position >= 1 && position <= 24) {
+      // Малый круг (1-24)
+      handleSmallCircleCellAction(position);
+    } else if (position >= 25 && position <= 76) {
+      // Большой круг (25-76)
       handleBigCircleCellAction(position);
+    }
   };
 
-
+  // Функция обработки действий клетки на малом круге
+  const handleSmallCircleCellAction = (position) => {
+    const player = getCurrentPlayer();
+    
+    console.log(`🎯 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} попал на клетку ${position} (малый круг)`);
+    
+    // Получаем тип клетки из конфигурации
+    const cellConfig = CELL_CONFIG.innerCircle[position - 1]; // position 1-24, массив 0-23
+    
+    if (!cellConfig) {
+      console.error('❌ [OriginalGameBoard] Не найдена конфигурация для клетки:', position);
+      return;
+    }
+    
+    switch (cellConfig.type) {
+      case 'opportunity':
+        // Клетка возможностей - игрок выбирает малую или большую сделку
+        handleOpportunityCell();
+        break;
+        
+      case 'market':
+        // Клетка рынка - показываем карточку рынка
+        handleMarketCell();
+        break;
+        
+      case 'doodad':
+        // Клетка трат - обязательные расходы
+        handleDoodadCell();
+        break;
+        
+      case 'charity':
+        // Клетка благотворительности
+        handleCharityAction();
+        break;
+        
+      case 'payday':
+        // Клетка PayDay - получение зарплаты
+        handlePayDayCell();
+        break;
+        
+      case 'child':
+        // Клетка рождения ребенка
+        handleChildBirth();
+        break;
+        
+      case 'downsized':
+        // Клетка потери работы
+        handleDownsizedCell();
+        break;
+        
+      default:
+        console.log(`ℹ️ [OriginalGameBoard] Клетка ${position} (${cellConfig.type}) - действие не реализовано`);
+        break;
+    }
+  };
 
   // Функция обработки действий клетки на большом круге
   const handleBigCircleCellAction = (position) => {
@@ -1394,6 +1455,105 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     console.log(`❤️ [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} попал на клетку благотворительности (малый круг). Стоимость: $${charityAmount}`);
   };
 
+  // Функция обработки клетки возможностей (сделки)
+  const handleOpportunityCell = () => {
+    console.log('🎯 [OriginalGameBoard] Игрок попал на клетку возможностей - показываем выбор сделки');
+    setShowDealTypeModal(true);
+  };
+
+  // Функция обработки клетки рынка
+  const handleMarketCell = () => {
+    console.log('🎯 [OriginalGameBoard] Игрок попал на клетку рынка - показываем карточку рынка');
+    handleMarketAction();
+  };
+
+  // Функция обработки клетки трат (всякая всячина)
+  const handleDoodadCell = () => {
+    console.log('🎯 [OriginalGameBoard] Игрок попал на клетку трат - показываем карточку расходов');
+    handleExpenseAction();
+  };
+
+  // Функция обработки клетки PayDay
+  const handlePayDayCell = () => {
+    const player = getCurrentPlayer();
+    const salary = getPlayerSalary(player.profession);
+    
+    // Добавляем зарплату
+    setPlayerMoney(prev => prev + salary);
+    
+    setToast({
+      open: true,
+      message: `💰 ${player?.username || 'Игрок'} получил зарплату: $${salary.toLocaleString()}`,
+      severity: 'success'
+    });
+    
+    console.log(`💰 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} получил зарплату: $${salary}`);
+  };
+
+  // Функция обработки клетки потери работы
+  const handleDownsizedCell = () => {
+    const player = getCurrentPlayer();
+    const assets = getCurrentPlayerAssets();
+    
+    // Рассчитываем общие расходы
+    const totalExpenses = assets.reduce((sum, asset) => sum + (asset.monthlyExpense || 0), 0);
+    const professionExpenses = player.profession?.totalExpenses || 0;
+    const totalMonthlyExpenses = totalExpenses + professionExpenses;
+    
+    // Игрок теряет работу на 3 месяца
+    const lossAmount = totalMonthlyExpenses * 3;
+    
+    if (playerMoney >= lossAmount) {
+      // У игрока достаточно денег
+      setPlayerMoney(prev => prev - lossAmount);
+      
+      setToast({
+        open: true,
+        message: `💸 ${player?.username || 'Игрок'} потерял работу на 3 месяца. Потеряно: $${lossAmount.toLocaleString()}`,
+        severity: 'warning'
+      });
+    } else {
+      // Банкротство - продаем все активы и начинаем с начала
+      handleBankruptcy();
+    }
+    
+    console.log(`💸 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} потерял работу. Потеря: $${lossAmount}`);
+  };
+
+  // Функция обработки банкротства
+  const handleBankruptcy = () => {
+    const player = getCurrentPlayer();
+    
+    // Продаем все активы
+    const totalAssetValue = getCurrentPlayerAssets().reduce((sum, asset) => sum + (asset.value || 0), 0);
+    
+    // Сбрасываем игрока к начальным условиям
+    setPlayerMoney(2000); // Начальные деньги
+    setCurrentPlayerAssets([]);
+    setCurrentPlayerLiabilities([]);
+    
+    // Перемещаем игрока на позицию 1
+    const updatedPlayers = [...gamePlayers];
+    const playerIndex = updatedPlayers.findIndex(p => p.socketId === player.socketId);
+    if (playerIndex !== -1) {
+      updatedPlayers[playerIndex].position = 1;
+      setGamePlayers(updatedPlayers);
+      
+      // Отправляем обновление позиции на сервер
+      if (socket.connected && roomIdRef.current) {
+        socket.emit('playerMove', roomIdRef.current, player.socketId, 1);
+      }
+    }
+    
+    setToast({
+      open: true,
+      message: `💀 ${player?.username || 'Игрок'} обанкротился! Все активы проданы, начинаем с позиции 1`,
+      severity: 'error'
+    });
+    
+    console.log(`💀 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} обанкротился! Продано активов на: $${totalAssetValue}`);
+  };
+
   // Функция обработки карточек рынка
   const handleMarketAction = () => {
     const player = getCurrentPlayer();
@@ -1563,18 +1723,35 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     
     if (!currentExpenseCard) return;
     
-    // Списываем деньги с баланса игрока
-    const newBalance = (player?.balance || 0) - currentExpenseCard.cost;
+    const currentBalance = player?.balance || 0;
+    const expenseCost = currentExpenseCard.cost;
     
-    // Синхронизируем с сервером
-    syncPlayerData(player?.socketId, { balance: newBalance });
-    
-    // Обновляем локально для отзывчивости
-    setGamePlayers(prev => prev.map(p => 
-      p.socketId === player?.socketId 
-        ? { ...p, balance: newBalance }
-        : p
-    ));
+    // Проверяем, достаточно ли денег
+    if (currentBalance >= expenseCost) {
+      // У игрока достаточно денег - списываем
+      const newBalance = currentBalance - expenseCost;
+      
+      // Синхронизируем с сервером
+      syncPlayerData(player?.socketId, { balance: newBalance });
+      
+      // Обновляем локально для отзывчивости
+      setGamePlayers(prev => prev.map(p => 
+        p.socketId === player?.socketId 
+          ? { ...p, balance: newBalance }
+          : p
+      ));
+      
+      setToast({
+        open: true,
+        message: `💸 ${player?.username || 'Игрок'} заплатил $${expenseCost.toLocaleString()} за ${currentExpenseCard.name}`,
+        severity: 'info'
+      });
+      
+      console.log(`💸 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} заплатил $${expenseCost} за ${currentExpenseCard.name}`);
+    } else {
+      // У игрока недостаточно денег - банкротство
+      handleBankruptcy();
+    }
     
     // Откладываем карточку в отбой
     expenseDeckManager.discardCard(currentExpenseCard);
@@ -1583,16 +1760,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     setExpenseDeckCount(expenseDeckManager.getDeckCount());
     setExpenseDiscardCount(expenseDeckManager.getDiscardCount());
     
-    setToast({
-      open: true,
-              message: `💸 ${player?.username || 'Игрок'} заплатил $${currentExpenseCard.cost.toLocaleString()} за ${currentExpenseCard.name}`,
-      severity: 'info'
-    });
-    
     setShowExpenseCardModal(false);
     setCurrentExpenseCard(null);
-    
-    console.log(`💸 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} заплатил $${currentExpenseCard.cost} за ${currentExpenseCard.name}`);
   };
 
   // Функция взятия кредита для оплаты расхода
