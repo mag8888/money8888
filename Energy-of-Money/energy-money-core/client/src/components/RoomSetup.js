@@ -1212,19 +1212,19 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                           <Typography variant="h4" sx={{ color: 'rgba(255, 255, 255, 0.8)' }} title="Нажмите для просмотра карточки">
                             👆
                           </Typography>
-                          <Button
-                              size="small"
-                              variant="outlined"
+                          <Box
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handlePlayerAssetsClick(player);
                               }}
                               sx={{
-                                minWidth: 'auto',
+                                cursor: 'pointer',
                                 p: 0.5,
-                                borderColor: '#4caf50',
+                                border: '1px solid #4caf50',
+                                borderRadius: 1,
                                 color: '#4caf50',
                                 fontSize: '0.7rem',
+                                textAlign: 'center',
                                 '&:hover': {
                                   bgcolor: 'rgba(76, 175, 80, 0.1)'
                                 }
@@ -1232,7 +1232,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                               title="Просмотреть активы"
                             >
                               💼
-                            </Button>
+                            </Box>
                           </Box>
                         </Box>
                       </Button>
