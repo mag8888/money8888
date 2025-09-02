@@ -607,7 +607,8 @@ io.on('connection', (socket) => {
         socketId: socket.id,
         ready: false,
         isConnected: true,
-        joinedAt: Date.now()
+        joinedAt: Date.now(),
+        profession: playerData?.profession || null // Сохраняем профессию игрока
       };
       
       room.currentPlayers.push(player);
@@ -639,6 +640,36 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('❌ [SERVER] Error joining room:', error);
       socket.emit('joinRoomError', { success: false, error: 'Ошибка присоединения к комнате' });
+    }
+  });
+  
+  // Обновление профессии игрока
+  socket.on('updateProfession', (roomId, profession) => {
+    console.log('💼 [SERVER] updateProfession requested:', { roomId, profession });
+    
+    try {
+      const room = rooms.get(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Комната не найдена' });
+        return;
+      }
+      
+      // Находим игрока в комнате
+      const player = room.currentPlayers.find(p => p.socketId === socket.id);
+      if (player) {
+        player.profession = profession;
+        console.log('💼 [SERVER] Player profession updated:', { 
+          roomId, 
+          username: player.username, 
+          profession: profession?.name || profession 
+        });
+        
+        // Отправляем обновленный список игроков всем в комнате
+        io.to(roomId).emit('playersUpdate', room.currentPlayers);
+      }
+    } catch (error) {
+      console.error('❌ [SERVER] Error updating profession:', error);
+      socket.emit('error', { message: 'Ошибка обновления профессии' });
     }
   });
   

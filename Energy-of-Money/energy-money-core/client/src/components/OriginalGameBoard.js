@@ -1315,18 +1315,29 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция получения зарплаты по профессии
   const getPlayerSalary = (profession) => {
-    switch (profession) {
-      case 'Инженер':
-        return 5000;
-      case 'Менеджер':
-        return 4500;
-      case 'Дизайнер':
-        return 4000;
-      case 'Программист':
-        return 6000;
-      default:
-        return 4000;
+    // Если профессия - объект, используем salary из объекта
+    if (profession && typeof profession === 'object' && profession.salary) {
+      return profession.salary;
     }
+    
+    // Если профессия - строка, используем старую логику
+    if (typeof profession === 'string') {
+      switch (profession) {
+        case 'Инженер':
+          return 5000;
+        case 'Менеджер':
+          return 4500;
+        case 'Дизайнер':
+          return 4000;
+        case 'Программист':
+          return 6000;
+        default:
+          return 4000;
+      }
+    }
+    
+    // По умолчанию
+    return 4000;
   };
 
   // Функция рождения ребенка
@@ -2699,7 +2710,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 {getCurrentPlayer()?.username || 'Игрок'}
               </Typography>
               <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: isMobile ? '0.8rem' : 'inherit' }}>
-                {getCurrentPlayer()?.profession?.name || getCurrentPlayer()?.profession || 'Профессия'}
+                {getCurrentPlayer()?.profession?.name || getCurrentPlayer()?.profession || 'Без профессии'}
               </Typography>
               {isOnBigCircle && (
                 <Typography variant="body2" sx={{ color: '#22C55E', fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 'bold' }}>
@@ -3562,7 +3573,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         boxShadow: `0 8px 25px rgba(0,0,0,0.5), 0 0 20px ${player.color}80, 0 0 10px ${player.color}60`
                       }
                     }}
-                    title={`${player.username} - ${player.profession} (позиция: ${player.position})`}
+                    title={`${player.username} - ${player.profession?.name || player.profession || 'Без профессии'} (позиция: ${player.position})`}
                   >
                     {player.username?.charAt(0) || '?'}
                   </Box>
@@ -3699,9 +3710,9 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     {(() => {
                       const currentPlayer = gamePlayers.find(p => p.socketId === socket?.id);
                       if (currentPlayer?.profession) {
-                        return `💼 ${currentPlayer.profession.name}`;
+                        return `💼 ${currentPlayer.profession?.name || currentPlayer.profession || 'Без профессии'}`;
                       }
-                      return '💼 Менеджер';
+                      return '💼 Без профессии';
                     })()}
                   </Typography>
                   
@@ -4204,7 +4215,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                             color: 'rgba(255, 255, 255, 0.7)',
                             fontSize: isMobile ? '0.7rem' : '0.8rem'
                           }}>
-                            💼 {player.profession.name || player.profession}
+                            💼 {player.profession?.name || player.profession || 'Без профессии'}
                           </Typography>
                         )}
                       </Box>
