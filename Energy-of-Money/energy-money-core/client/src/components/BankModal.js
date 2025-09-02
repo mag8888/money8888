@@ -65,6 +65,7 @@ const BankModal = ({
   const [isTransferring, setIsTransferring] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isConnected, setIsConnected] = useState(socket?.connected || false);
 
   // Добавление CSS анимации shimmer
   useEffect(() => {
@@ -86,13 +87,22 @@ const BankModal = ({
     };
   }, []);
 
-  // Получение текущего игрока
+  // Получение текущего игрока по user ID (мемоизированное)
   const getCurrentPlayer = useCallback(() => {
-    if (!gamePlayers || !Array.isArray(gamePlayers) || !socket?.id) {
+    if (!gamePlayers || !Array.isArray(gamePlayers) || !playerData?.id) {
       return null;
     }
-    return gamePlayers.find(p => p.socketId === socket.id);
-  }, [gamePlayers, socket?.id]);
+    
+    // Ищем игрока по user ID (постоянный идентификатор)
+    let player = gamePlayers.find(p => p.id === playerData.id || p.userId === playerData.id);
+    
+    // Fallback: если не найден по user ID, ищем по username (для совместимости со старыми данными)
+    if (!player && playerData?.username) {
+      player = gamePlayers.find(p => p.username === playerData.username);
+    }
+    
+    return player;
+  }, [gamePlayers, playerData?.id, playerData?.username]);
 
   // Получение начального баланса из профессии
   const getInitialBalance = useCallback(() => {
@@ -117,27 +127,27 @@ const BankModal = ({
 
   // Получение списка получателей (все игроки кроме текущего)
   const getRecipients = useCallback(() => {
-    if (!gamePlayers || !Array.isArray(gamePlayers) || !socket?.id) {
+    if (!gamePlayers || !Array.isArray(gamePlayers) || !playerData?.id) {
       return [];
     }
     return gamePlayers.filter(player => 
-      player.socketId !== socket.id && 
+      (player.id !== playerData.id && player.userId !== playerData.id) && 
       player.username && 
       player.username.trim() !== ''
     );
-  }, [gamePlayers, socket?.id]);
+  }, [gamePlayers, playerData?.id]);
 
   // Сохранение истории транзакций в localStorage
   const saveTransactionHistory = useCallback((history) => {
     try {
-      if (socket?.id && roomId) {
-        localStorage.setItem(`bank_history_${socket.id}_${roomId}`, JSON.stringify(history));
-        console.log('💾 [BankModal] История сохранена:', history.length, 'записей');
+      if (playerData?.id && roomId) {
+        localStorage.setItem(`bank_history_${playerData.id}_${roomId}`, JSON.stringify(history));
+        console.log('💾 [BankModal] История сохранена:', history.length, 'записей для пользователя', playerData.id);
       }
     } catch (error) {
       console.error('❌ [BankModal] Ошибка сохранения истории:', error);
     }
-  }, [socket?.id, roomId]);
+  }, [playerData?.id, roomId]);
 
   // Сброс формы перевода
   const resetTransferForm = useCallback(() => {
@@ -150,14 +160,39 @@ const BankModal = ({
   const handleTransfer = useCallback(async () => {
     if (!transferAmount || !selectedRecipient || isTransferring) return;
     
+    // Проверяем соединение с сервером
+    if (!socket || !socket.connected) {
+      setError('Нет соединения с сервером. Попробуйте позже.');
+      return;
+    }
+    
     const amount = parseFloat(transferAmount);
     if (amount <= 0) {
       setError('Сумма должна быть больше нуля');
       return;
     }
     
-    if (amount > bankBalance) {
-      setError('Недостаточно средств на счету');
+    // Проверяем баланс - используем реальный баланс игрока, если доступен
+    const currentPlayer = getCurrentPlayer();
+    const actualBalance = currentPlayer?.balance !== undefined ? currentPlayer.balance : (bankBalance || 0);
+    
+    // Временная отладка для исправления ошибки перевода
+    console.log('🔍 [BankModal] Проверка баланса для перевода:', {
+      amount: parseFloat(transferAmount),
+      currentPlayerBalance: currentPlayer?.balance,
+      bankBalance: bankBalance,
+      actualBalance: actualBalance,
+      hasEnoughFunds: parseFloat(transferAmount) <= actualBalance,
+      playerData: currentPlayer ? {
+        id: currentPlayer.id,
+        userId: currentPlayer.userId,
+        username: currentPlayer.username,
+        balance: currentPlayer.balance
+      } : null
+    });
+    
+    if (amount > actualBalance) {
+      setError(`Недостаточно средств на счету. Доступно: $${actualBalance.toLocaleString()}`);
       return;
     }
 
@@ -172,7 +207,7 @@ const BankModal = ({
     setError('');
 
     try {
-      console.log('💸 [BankModal] Начинаем перевод:', { amount, recipient: selectedRecipient });
+      // Перевод начат
       
       // Создаем транзакцию
       const transaction = {
@@ -184,7 +219,7 @@ const BankModal = ({
         from: getCurrentPlayer()?.username || playerData?.username || 'Игрок',
         to: selectedRecipient,
         status: 'pending',
-        balanceAfter: bankBalance - amount
+        balanceAfter: (bankBalance || 0) - amount
       };
 
       // Добавляем транзакцию в историю
@@ -195,11 +230,32 @@ const BankModal = ({
       // Отправляем на сервер (если есть WebSocket)
       if (socket && roomId) {
         const currentPlayer = getCurrentPlayer();
+        
+        console.log('📤 [BankModal] Отправляем на сервер:', {
+          amount: amount,
+          currentBalance: actualBalance,
+          calculation: `${actualBalance} - ${amount} = ${actualBalance - amount}`,
+          recipient: selectedRecipient
+        });
+        
+        // ПРОВЕРКА ФОРМУЛЫ НА КЛИЕНТЕ
+        console.log('🧮 [BankModal] Формула баланса (клиент):', {
+          формула: 'старый_баланс - сумма_перевода = новый_баланс',
+          старый_баланс: actualBalance,
+          сумма_перевода: amount,
+          новый_баланс: actualBalance - amount,
+          проверка: `${actualBalance} - ${amount} = ${actualBalance - amount}`,
+          корректно: (actualBalance - amount) === (actualBalance - amount)
+        });
+        
         socket.emit('bankTransfer', {
           roomId,
-          playerId: currentPlayer?.id || playerData?.id,
+          playerId: currentPlayer?.id || currentPlayer?.userId || playerData?.id, // Используем user ID
+          socketId: socket.id, // Добавляем socket ID для совместимости
+          username: currentPlayer?.username || playerData?.username, // Добавляем username
           recipient: selectedRecipient,
           amount: amount,
+          currentBalance: actualBalance, // Отправляем текущий баланс для проверки
           transactionId: transaction.id
         });
       }
@@ -223,26 +279,38 @@ const BankModal = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    const initialBalance = getInitialBalance();
-    console.log('🏦 [BankModal] Инициализация баланса:', initialBalance);
+    // Приоритет источников данных:
+    // 1. Реальный баланс игрока (если доступен)
+    // 2. Внешний баланс (bankBalance prop)
+    // 3. Начальный баланс из профессии
+    const currentPlayer = getCurrentPlayer();
+    let balanceToSet = 0;
+    
+    if (currentPlayer?.balance !== undefined && currentPlayer.balance !== null) {
+      balanceToSet = Number(currentPlayer.balance);
+    } else if (externalBankBalance !== undefined && externalBankBalance !== null && externalBankBalance > 0) {
+      balanceToSet = Number(externalBankBalance);
+    } else {
+      balanceToSet = getInitialBalance();
+    }
     
     // Устанавливаем баланс
-    setBankBalance(initialBalance);
+    setBankBalance(balanceToSet);
     
-    // Уведомляем родительский компонент
-    if (onBankBalanceChange) {
-      onBankBalanceChange(initialBalance);
+    // Уведомляем родительский компонент только если баланс изменился
+    if (onBankBalanceChange && balanceToSet !== bankBalance) {
+      onBankBalanceChange(balanceToSet);
     }
     
     // Загружаем историю транзакций из localStorage
     let history = [];
-    if (socket?.id && roomId) {
-      const savedHistory = localStorage.getItem(`bank_history_${socket.id}_${roomId}`);
+    if (playerData?.id && roomId) {
+      const savedHistory = localStorage.getItem(`bank_history_${playerData.id}_${roomId}`);
       
       if (savedHistory) {
         try {
           history = JSON.parse(savedHistory);
-          console.log('📜 [BankModal] Загружена история транзакций:', history.length, 'записей');
+          console.log('📜 [BankModal] Загружена история транзакций:', history.length, 'записей для пользователя', playerData.id);
         } catch (error) {
           console.error('❌ [BankModal] Ошибка загрузки истории:', error);
           history = [];
@@ -251,17 +319,17 @@ const BankModal = ({
     }
     
     // Если истории нет, создаем начальную транзакцию
-    if (history.length === 0 && initialBalance > 0) {
+    if (history.length === 0 && balanceToSet > 0) {
       const initialTransaction = {
         id: `initial_${Date.now()}`,
         type: 'initial',
-        amount: initialBalance,
+        amount: balanceToSet,
         description: 'Начальный баланс профессии',
         timestamp: new Date().toLocaleString('ru-RU'),
         from: 'Банк',
         to: getCurrentPlayer()?.username || playerData?.username || 'Игрок',
         status: 'completed',
-        balanceAfter: initialBalance
+        balanceAfter: balanceToSet
       };
       
       history = [initialTransaction];
@@ -271,23 +339,47 @@ const BankModal = ({
     setTransferHistory(history);
     
     // Сохраняем историю в localStorage
-    if (socket?.id && roomId) {
-      localStorage.setItem(`bank_history_${socket.id}_${roomId}`, JSON.stringify(history));
+    if (playerData?.id && roomId) {
+      localStorage.setItem(`bank_history_${playerData.id}_${roomId}`, JSON.stringify(history));
     }
     
-  }, [isOpen, getInitialBalance, onBankBalanceChange, socket?.id, roomId, playerData?.username]);
+  }, [isOpen, getInitialBalance, onBankBalanceChange, playerData?.id, roomId]);
 
-  // Синхронизация с внешним балансом (только при первой загрузке)
+  // Синхронизация с внешним балансом и реальным балансом игрока
   useEffect(() => {
-    if (externalBankBalance !== undefined && bankBalance === 0) {
-      console.log('🔄 [BankModal] Инициализация баланса из внешнего источника:', externalBankBalance);
+    const currentPlayer = getCurrentPlayer();
+    
+    // Синхронизируем с реальным балансом игрока (приоритет)
+    if (currentPlayer?.balance !== undefined && currentPlayer.balance !== bankBalance) {
+      // Синхронизация с реальным балансом игрока
+      setBankBalance(currentPlayer.balance);
+      return; // Не проверяем внешний баланс, если есть реальный баланс игрока
+    }
+    
+    // Только если нет реального баланса игрока, используем внешний баланс
+    if (externalBankBalance !== undefined && externalBankBalance !== bankBalance && 
+        (currentPlayer?.balance === undefined || currentPlayer.balance === null)) {
+      // Синхронизация с внешним балансом
       setBankBalance(externalBankBalance);
     }
-  }, [externalBankBalance, bankBalance]);
+  }, [externalBankBalance, bankBalance, getCurrentPlayer]);
 
   // Обработчики socket событий для банковских операций
   useEffect(() => {
     if (!socket || !isOpen) return;
+    
+    // Обработка разрыва соединения
+    const handleDisconnect = () => {
+      console.log('🔌 [BankModal] WebSocket disconnected');
+      setIsConnected(false);
+      setError('Соединение с сервером потеряно. Попробуйте позже.');
+    };
+    
+    const handleConnect = () => {
+      console.log('🔌 [BankModal] WebSocket connected');
+      setIsConnected(true);
+      setError(''); // Очищаем ошибку при восстановлении соединения
+    };
 
     // Обработка успешного перевода
     const handleBankTransferSuccess = (data) => {
@@ -331,11 +423,11 @@ const BankModal = ({
         from: data.fromPlayer,
         to: getCurrentPlayer()?.username || playerData?.username || 'Игрок',
         status: 'completed',
-        balanceAfter: bankBalance + data.amount
+        balanceAfter: (bankBalance || 0) + data.amount
       };
 
       // Обновляем баланс
-      const newBalance = bankBalance + data.amount;
+      const newBalance = (bankBalance || 0) + data.amount;
       setBankBalance(newBalance);
       
       if (onBankBalanceChange) {
@@ -354,12 +446,16 @@ const BankModal = ({
     socket.on('bankTransferSuccess', handleBankTransferSuccess);
     socket.on('bankTransferError', handleBankTransferError);
     socket.on('bankTransferReceived', handleBankTransferReceived);
+    socket.on('disconnect', handleDisconnect);
+    socket.on('connect', handleConnect);
 
     // Очистка при размонтировании
     return () => {
       socket.off('bankTransferSuccess', handleBankTransferSuccess);
       socket.off('bankTransferError', handleBankTransferError);
       socket.off('bankTransferReceived', handleBankTransferReceived);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('connect', handleConnect);
     };
   }, [socket, isOpen, bankBalance, onBankBalanceChange, transferHistory, saveTransactionHistory, getCurrentPlayer, playerData?.username]);
 
@@ -402,6 +498,7 @@ const BankModal = ({
       maxWidth="lg"
       fullWidth
       fullScreen={isMobile}
+      hideBackdrop={true}
       PaperProps={{
         sx: {
           background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
@@ -443,17 +540,21 @@ const BankModal = ({
                     Текущий баланс
                   </Typography>
                   <Chip 
-                    label="Активен" 
+                    label={isConnected ? "Подключен" : "Отключен"} 
                     size="small" 
                     sx={{ 
-                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                      color: 'white',
+                      backgroundColor: isConnected ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                      color: isConnected ? '#10B981' : '#EF4444',
                       fontWeight: 'bold'
                     }} 
                   />
                 </Box>
                 <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  ${bankBalance.toLocaleString()}
+                  ${(() => {
+                    const currentPlayer = getCurrentPlayer();
+                    const actualBalance = currentPlayer?.balance !== undefined ? currentPlayer.balance : (bankBalance || 0);
+                    return actualBalance.toLocaleString();
+                  })()}
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.9 }}>
                   Доступно для операций
@@ -570,7 +671,7 @@ const BankModal = ({
                             }}
                           >
                             {getRecipients().map((player) => (
-                              <MenuItem key={player.socketId} value={player.username}>
+                              <MenuItem key={player.id || player.userId || player.socketId} value={player.username}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <Avatar sx={{ width: 24, height: 24, fontSize: 12 }}>
                                     {player.username.charAt(0).toUpperCase()}
@@ -613,7 +714,7 @@ const BankModal = ({
                           <Button
                             variant="contained"
                             onClick={handleTransfer}
-                            disabled={!transferAmount || !selectedRecipient || isTransferring || parseFloat(transferAmount) <= 0}
+                            disabled={!transferAmount || !selectedRecipient || isTransferring || parseFloat(transferAmount) <= 0 || !isConnected}
                             startIcon={<Send />}
                             sx={{
                               flex: 1,
@@ -704,29 +805,30 @@ const BankModal = ({
                               </ListItemIcon>
                               <ListItemText
                                 primary={
-                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                                  <Box component="span" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                    <Box component="span" sx={{ fontWeight: 'bold', fontSize: '1rem' }}>
                                       {transaction.description}
-                                    </Typography>
-                                    <Typography 
-                                      variant="h6" 
+                                    </Box>
+                                    <Box 
+                                      component="span" 
                                       sx={{ 
                                         fontWeight: 'bold',
+                                        fontSize: '1.25rem',
                                         color: getTransactionColor(transaction.type, transaction.amount)
                                       }}
                                     >
                                       {getAmountSign(transaction.type)}${transaction.amount.toLocaleString()}
-                                    </Typography>
+                                    </Box>
                                   </Box>
                                 }
                                 secondary={
-                                  <Box>
-                                    <Typography variant="body2" sx={{ opacity: 0.7 }}>
+                                  <Box component="span" sx={{ display: 'block' }}>
+                                    <Box component="span" sx={{ opacity: 0.7, fontSize: '0.875rem', display: 'block' }}>
                                       {transaction.from} → {transaction.to}
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ opacity: 0.5 }}>
+                                    </Box>
+                                    <Box component="span" sx={{ opacity: 0.5, fontSize: '0.875rem', display: 'block' }}>
                                       {transaction.timestamp}
-                                    </Typography>
+                                    </Box>
                                   </Box>
                                 }
                               />

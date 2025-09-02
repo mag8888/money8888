@@ -591,18 +591,45 @@ io.on('connection', (socket) => {
           room.currentPlayers[playerIndex] = {
             ...existingPlayer,
             socketId: socket.id,
+            id: socket.id, // Обновляем id для совместимости
+            userId: existingPlayer.userId || existingPlayer.id, // Сохраняем user ID
             isConnected: true,
             reconnectedAt: Date.now()
           };
+          
+          // Отправляем обновленные данные игроков всем в комнате
+          io.to(roomId).emit('playersUpdate', room.currentPlayers);
+          
+          // Отправляем данные игроков в игре конкретному игроку
+          socket.emit('gamePlayersData', {
+            players: room.currentPlayers,
+            currentTurn: room.currentTurn || '',
+            currentTurnIndex: room.currentTurnIndex || 0,
+            turnOrder: room.turnOrder || []
+          });
         } else if (!existingPlayer.isConnected) {
           // Переподключаем отключенного игрока
           const playerIndex = room.currentPlayers.findIndex(p => p.socketId === existingPlayer.socketId);
           room.currentPlayers[playerIndex] = {
             ...existingPlayer,
             socketId: socket.id,
+            id: socket.id, // Обновляем id для совместимости
+            userId: existingPlayer.userId || existingPlayer.id, // Сохраняем user ID
             isConnected: true,
             reconnectedAt: Date.now()
           };
+          
+          // Отправляем обновленные данные игроков всем в комнате
+          io.to(roomId).emit('playersUpdate', room.currentPlayers);
+          
+          // Отправляем данные игроков в игре конкретному игроку
+          socket.emit('gamePlayersData', {
+            players: room.currentPlayers,
+            currentTurn: room.currentTurn || '',
+            currentTurnIndex: room.currentTurnIndex || 0,
+            turnOrder: room.turnOrder || []
+          });
+          
           console.log('🔗 [SERVER] Player reconnected:', { roomId, username: existingPlayer.username });
         }
         
@@ -629,13 +656,15 @@ io.on('connection', (socket) => {
       
       // Добавляем игрока в комнату
       const player = {
-        id: socket.id,
+        id: socket.id, // Временно оставляем socket.id для совместимости
+        userId: playerData?.id, // Добавляем постоянный user ID
         username: playerData?.username || 'Игрок', // Извлекаем username из объекта
         socketId: socket.id,
         ready: false,
         isConnected: true,
         joinedAt: Date.now(),
-        profession: playerData?.profession || null // Сохраняем профессию игрока
+        profession: playerData?.profession || null, // Сохраняем профессию игрока
+        balance: playerData?.profession?.balance !== undefined ? Number(playerData.profession.balance) : 3000 // Устанавливаем начальный баланс
       };
       
       room.currentPlayers.push(player);
@@ -643,6 +672,10 @@ io.on('connection', (socket) => {
       console.log('🔗 [SERVER] Player joined room:', {
         roomId,
         username: player.username,
+        socketId: player.socketId,
+        userId: player.userId,
+        balance: player.balance,
+        professionBalance: playerData?.profession?.balance,
         totalPlayers: room.currentPlayers.length
       });
       
@@ -784,6 +817,20 @@ io.on('connection', (socket) => {
           professionData = room.hostProfession; // профессия хоста как резерв
         }
         
+        console.log(`🔍 [SERVER] Player ${player.username} profession data:`, {
+          professionType: room.professionType,
+          hasSharedProfession: !!room.sharedProfession,
+          hasPlayerProfession: !!player.profession,
+          hasHostProfession: !!room.hostProfession,
+          isHost: player.socketId === room.hostId,
+          professionData: professionData ? {
+            id: professionData.id,
+            name: professionData.name,
+            balance: professionData.balance,
+            balanceType: typeof professionData.balance
+          } : null
+        });
+        
         // Создаем начальные активы на основе профессии
         const initialAssets = [];
         const initialLiabilities = [];
@@ -874,7 +921,9 @@ io.on('connection', (socket) => {
           professionId: professionData?.id || null,
           
           // Игровые данные
-          balance: professionData?.balance || 3000,
+          balance: (professionData?.balance !== undefined && professionData?.balance !== null && !isNaN(professionData.balance)) 
+            ? Number(professionData.balance) 
+            : 3000,
           position: 0,
           cashFlow: professionData?.cashFlow || 0,
           monthlyIncome: professionData?.salary || 0,
@@ -1165,8 +1214,18 @@ io.on('connection', (socket) => {
   // 🏦 Банковские операции
   socket.on('bankTransfer', (data) => {
     try {
-      const { roomId, playerId, recipient, amount } = data;
-      console.log('🏦 [SERVER] Bank transfer request:', { roomId, playerId, recipient, amount });
+      const { roomId, playerId, socketId, username, recipient, amount, currentBalance, transactionId } = data;
+      console.log('🏦 [SERVER] Bank transfer request:', { roomId, playerId, socketId, username, recipient, amount, currentBalance, transactionId });
+      
+      // Проверяем на дублирование транзакций
+      if (transactionId) {
+        const room = rooms.get(roomId);
+        if (room && room.processedTransactions && room.processedTransactions.has(transactionId)) {
+          console.log('⚠️ [SERVER] Duplicate transaction detected:', transactionId);
+          socket.emit('bankTransferError', { message: 'Транзакция уже обработана' });
+          return;
+        }
+      }
       
       const room = rooms.get(roomId);
       if (!room) {
@@ -1174,32 +1233,151 @@ io.on('connection', (socket) => {
         return;
       }
       
-      const player = room.currentPlayers.find(p => p.id === playerId);
+      // Ищем игрока по user ID (приоритет), затем по username (fallback)
+      let player = room.currentPlayers.find(p => p.userId === playerId || p.id === playerId);
+      if (!player && username) {
+        player = room.currentPlayers.find(p => p.username === username);
+        console.log('🔄 [SERVER] Player found by username fallback:', { username, found: !!player });
+      }
+      
       if (!player) {
-        console.log('❌ [SERVER] Player not found for bank transfer:', playerId);
+        console.log('❌ [SERVER] Player not found for bank transfer:', { 
+          playerId, 
+          username,
+          availablePlayers: room.currentPlayers.map(p => ({ 
+            id: p.id, 
+            userId: p.userId, 
+            username: p.username, 
+            socketId: p.socketId 
+          }))
+        });
         return;
       }
       
-      // Проверяем баланс игрока
-      if (player.balance < amount) {
+      console.log('✅ [SERVER] Player found for transfer:', { 
+        id: player.id, 
+        userId: player.userId,
+        username: player.username, 
+        playerBalance: player.balance,
+        clientBalance: currentBalance,
+        requestedAmount: amount 
+      });
+      
+      // Логируем балансы всех игроков в комнате для отладки
+      console.log('📊 [SERVER] All players balances before transfer:', 
+        room.currentPlayers.map(p => ({ 
+          username: p.username, 
+          balance: p.balance || 0,
+          id: p.id,
+          userId: p.userId
+        }))
+      );
+      
+      // Особое внимание к получателю
+      const recipientBefore = room.currentPlayers.find(p => p.username === recipient);
+      if (recipientBefore) {
+        console.log('🎯 [SERVER] Recipient BEFORE transfer:', {
+          username: recipientBefore.username,
+          balance: recipientBefore.balance || 0,
+          id: recipientBefore.id,
+          userId: recipientBefore.userId
+        });
+      }
+      
+      // Проверяем баланс игрока - используем переданный currentBalance или player.balance
+      const actualBalance = currentBalance !== undefined ? currentBalance : (player.balance || 0);
+      
+      console.log('🔍 [SERVER] Balance validation:', {
+        playerUsername: player.username,
+        playerBalance: player.balance || 0,
+        clientBalance: currentBalance,
+        actualBalance: actualBalance,
+        requestedAmount: amount,
+        source: currentBalance !== undefined ? 'client' : 'server'
+      });
+      
+      if (actualBalance < amount) {
+        console.log('❌ [SERVER] Insufficient funds:', { 
+          actualBalance, 
+          requestedAmount: amount, 
+          difference: actualBalance - amount 
+        });
         socket.emit('bankTransferError', { message: 'Недостаточно средств' });
         return;
       }
       
-      // Выполняем перевод
-      player.balance -= amount;
+      // Выполняем перевод - обновляем баланс игрока
+      const playerOldBalance = player.balance || 0;
+      
+      // ПРИМЕНЯЕМ ФОРМУЛУ: старый_баланс - сумма_перевода = новый_баланс
+      const playerNewBalance = actualBalance - amount;
+      player.balance = playerNewBalance;
+      
+      // Дополнительная проверка формулы
+      console.log('🧮 [SERVER] Формула баланса отправителя:', {
+        формула: 'старый_баланс - сумма_перевода = новый_баланс',
+        старый_баланс: actualBalance,
+        сумма_перевода: amount,
+        новый_баланс: playerNewBalance,
+        проверка: `${actualBalance} - ${amount} = ${playerNewBalance}`,
+        корректно: (actualBalance - amount) === playerNewBalance
+      });
+      
+      console.log('💸 [SERVER] Player balance calculation:', {
+        username: player.username,
+        oldBalance: playerOldBalance,
+        actualBalance: actualBalance,
+        amount: amount,
+        newBalance: playerNewBalance,
+        calculation: `${actualBalance} - ${amount} = ${playerNewBalance}`
+      });
       
       // Ищем получателя в той же комнате
       const recipientPlayer = room.currentPlayers.find(p => p.username === recipient);
       if (recipientPlayer) {
-        recipientPlayer.balance += amount;
-        console.log('✅ [SERVER] Transfer completed between players:', { 
-          from: player.username, 
-          to: recipient, 
-          amount 
+        const recipientOldBalance = recipientPlayer.balance || 0;
+        
+        // ПРИМЕНЯЕМ ФОРМУЛУ: старый_баланс + сумма_перевода = новый_баланс
+        const recipientNewBalance = recipientOldBalance + amount;
+        recipientPlayer.balance = recipientNewBalance;
+        
+        // Дополнительная проверка формулы
+        console.log('🧮 [SERVER] Формула баланса получателя:', {
+          формула: 'старый_баланс + сумма_перевода = новый_баланс',
+          старый_баланс: recipientOldBalance,
+          сумма_перевода: amount,
+          новый_баланс: recipientNewBalance,
+          проверка: `${recipientOldBalance} + ${amount} = ${recipientNewBalance}`,
+          корректно: (recipientOldBalance + amount) === recipientNewBalance
         });
         
-        // Отправляем уведомление получателю
+        console.log('💰 [SERVER] Recipient balance update:', {
+          recipient: recipientPlayer.username,
+          oldBalance: recipientOldBalance,
+          amount: amount,
+          newBalance: recipientNewBalance,
+          calculation: `${recipientOldBalance} + ${amount} = ${recipientNewBalance}`
+        });
+        
+        // Дополнительная проверка после обновления
+        console.log('🔍 [SERVER] Recipient balance verification:', {
+          username: recipientPlayer.username,
+          actualBalance: recipientPlayer.balance,
+          expectedBalance: recipientNewBalance,
+          match: recipientPlayer.balance === recipientNewBalance
+        });
+        
+        console.log('✅ [SERVER] Transfer completed between players:', { 
+          from: player.username, 
+          fromOldBalance: actualBalance,
+          fromNewBalance: player.balance,
+          to: recipient, 
+          toOldBalance: recipientOldBalance,
+          toNewBalance: recipientPlayer.balance,
+          amount: amount
+        });
+        
+        // Отправляем уведомление получателю (используем socket ID только для отправки)
         const recipientSocket = Array.from(io.sockets.sockets.values())
           .find(s => s.id === recipientPlayer.socketId);
         
@@ -1209,11 +1387,50 @@ io.on('connection', (socket) => {
             fromPlayer: player.username,
             newBalance: recipientPlayer.balance
           });
+          console.log('📤 [SERVER] Transfer notification sent to recipient:', {
+            recipient: recipientPlayer.username,
+            socketId: recipientPlayer.socketId,
+            amount: amount
+          });
+        } else {
+          console.log('⚠️ [SERVER] Recipient socket not found:', {
+            recipient: recipientPlayer.username,
+            socketId: recipientPlayer.socketId
+          });
         }
+      }
+      
+      // Логируем балансы всех игроков после перевода
+      console.log('📊 [SERVER] All players balances after transfer:', 
+        room.currentPlayers.map(p => ({ 
+          username: p.username, 
+          balance: p.balance || 0,
+          id: p.id,
+          userId: p.userId
+        }))
+      );
+      
+      // Сохраняем ID обработанной транзакции
+      if (transactionId) {
+        if (!room.processedTransactions) {
+          room.processedTransactions = new Set();
+        }
+        room.processedTransactions.add(transactionId);
+        console.log('💾 [SERVER] Transaction ID saved:', transactionId);
       }
       
       // Отправляем обновление всем игрокам в комнате
       io.to(roomId).emit('playersUpdate', room.currentPlayers);
+      
+      console.log('✅ [SERVER] Bank transfer completed successfully:', {
+        playerId: player.id,
+        userId: player.userId,
+        username: player.username,
+        socketId: socket.id,
+        newBalance: player.balance,
+        recipient: recipient
+      });
+      
       socket.emit('bankTransferSuccess', { 
         message: `Перевод $${amount} выполнен успешно`,
         newBalance: player.balance 
@@ -1255,7 +1472,7 @@ io.on('connection', (socket) => {
       }
       
       // Выполняем погашение кредита
-      player.balance -= amount;
+      player.balance = (player.balance || 0) - amount;
       player.credits[creditType] -= amount;
       
       // Если кредит полностью погашен, удаляем его
@@ -1281,6 +1498,58 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('❌ [SERVER] Error in credit payment:', error);
       socket.emit('creditPaymentError', { message: 'Ошибка при погашении кредита' });
+    }
+  });
+
+  // Обработчик обновления баланса игрока (для кредитов)
+  socket.on('updatePlayerBalance', (data) => {
+    try {
+      const { roomId, playerId, newBalance, creditAmount } = data;
+      console.log('💰 [SERVER] Update player balance request:', { roomId, playerId, newBalance, creditAmount });
+      
+      const room = rooms.get(roomId);
+      if (!room) {
+        console.log('❌ [SERVER] Room not found for balance update:', roomId);
+        return;
+      }
+      
+      // Ищем игрока по user ID (приоритет), затем по socket ID (fallback)
+      let player = room.currentPlayers.find(p => p.userId === playerId || p.id === playerId);
+      if (!player) {
+        console.log('❌ [SERVER] Player not found for balance update:', { 
+          playerId, 
+          availablePlayers: room.currentPlayers.map(p => ({ 
+            id: p.id, 
+            userId: p.userId, 
+            username: p.username 
+          }))
+        });
+        return;
+      }
+      
+      // Обновляем баланс игрока
+      const oldBalance = player.balance || 0;
+      player.balance = newBalance;
+      
+      console.log('✅ [SERVER] Player balance updated via updatePlayerBalance:', { 
+        player: player.username, 
+        playerId: playerId,
+        oldBalance: oldBalance,
+        newBalance: player.balance,
+        creditAmount: creditAmount,
+        source: 'updatePlayerBalance'
+      });
+      
+      // Отправляем обновление всем игрокам в комнате
+      io.to(roomId).emit('playersUpdate', room.currentPlayers);
+      socket.emit('balanceUpdateSuccess', { 
+        message: `Баланс обновлен: $${newBalance.toLocaleString()}`,
+        newBalance: player.balance
+      });
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error in balance update:', error);
+      socket.emit('balanceUpdateError', { message: 'Ошибка при обновлении баланса' });
     }
   });
 

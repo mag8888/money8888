@@ -21,10 +21,23 @@ const BankModule = ({
   const [showBankModal, setShowBankModal] = useState(false);
   const [currentBalance, setCurrentBalance] = useState(0);
 
-  // Получение текущего игрока
+  // Получение текущего игрока по user ID (мемоизированное)
   const getCurrentPlayer = useCallback(() => {
-    return gamePlayers.find(p => p.socketId === socket?.id);
-  }, [gamePlayers, socket?.id]);
+    if (!gamePlayers || !Array.isArray(gamePlayers) || !playerData?.id) {
+      return null;
+    }
+    
+    // Ищем игрока по user ID (постоянный идентификатор)
+    let player = gamePlayers.find(p => p.id === playerData.id || p.userId === playerData.id);
+    
+    // Fallback: если не найден по user ID, ищем по username (для совместимости со старыми данными)
+    if (!player && playerData?.username) {
+      player = gamePlayers.find(p => p.username === playerData.username);
+      // Убираем избыточное логирование - только при первом успешном fallback
+    }
+    
+    return player;
+  }, [gamePlayers, playerData?.id, playerData?.username]);
 
   // Получение начального баланса из профессии
   const getInitialBalance = useCallback(() => {
@@ -53,28 +66,47 @@ const BankModule = ({
     let balance = 0;
 
     // Приоритет источников данных:
-    // 1. gamePlayers balance (актуальный баланс игрока)
-    // 2. playerData profession balance (баланс из профессии)
-    // 3. bankBalance prop (внешний баланс)
+    // 1. gamePlayers balance (актуальный баланс игрока) - ВЫСШИЙ ПРИОРИТЕТ
+    // 2. bankBalance prop (внешний баланс)
+    // 3. playerData profession balance (баланс из профессии)
     // 4. Начальный баланс из профессии
-    if (currentPlayer?.balance !== undefined) {
+    
+    console.log('🔍 [BankModule] Источники баланса:', {
+      currentPlayerBalance: currentPlayer?.balance,
+      bankBalanceProp: bankBalance,
+      professionBalance: playerData?.profession?.balance,
+      initialBalance: getInitialBalance(),
+      currentPlayer: currentPlayer
+    });
+    
+    if (currentPlayer?.balance !== undefined && currentPlayer.balance !== null) {
       balance = Number(currentPlayer.balance);
-    } else if (playerData?.profession?.balance !== undefined) {
-      balance = Number(playerData.profession.balance);
-    } else if (bankBalance !== undefined) {
+      console.log('✅ [BankModule] Используем баланс из gamePlayers:', balance);
+    } else if (bankBalance !== undefined && bankBalance !== null && bankBalance > 0) {
       balance = Number(bankBalance);
+      console.log('✅ [BankModule] Используем внешний баланс:', balance);
+    } else if (playerData?.profession?.balance !== undefined && playerData.profession.balance !== null) {
+      balance = Number(playerData.profession.balance);
+      console.log('✅ [BankModule] Используем баланс из профессии:', balance);
     } else {
       balance = getInitialBalance();
+      console.log('✅ [BankModule] Используем начальный баланс:', balance);
     }
 
-    setCurrentBalance(balance);
-    console.log('🏦 [BankModule] Обновлен баланс:', balance, {
-      currentPlayerBalance: currentPlayer?.balance,
-      professionBalance: playerData?.profession?.balance,
-      bankBalanceProp: bankBalance,
-      initialBalance: getInitialBalance()
-    });
-  }, [gamePlayers, playerData?.profession?.balance, bankBalance, getCurrentPlayer, getInitialBalance]);
+    // Обновляем баланс только если он действительно изменился
+    if (balance !== currentBalance) {
+      setCurrentBalance(balance);
+      // Логируем только при реальном изменении баланса
+      console.log('🏦 [BankModule] Баланс изменен:', {
+        userId: playerData?.id,
+        username: playerData?.username,
+        newBalance: balance,
+        previousBalance: currentBalance,
+        source: currentPlayer?.balance !== undefined ? 'player' : 
+                bankBalance > 0 ? 'external' : 'initial'
+      });
+    }
+  }, [gamePlayers, playerData?.profession?.balance, bankBalance, getCurrentPlayer, getInitialBalance, currentBalance]);
 
   // Обработка изменения баланса
   const handleBankBalanceChange = useCallback((newBalance) => {

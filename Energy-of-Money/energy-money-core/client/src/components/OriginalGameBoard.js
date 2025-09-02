@@ -23,7 +23,7 @@ import {
 } from '@mui/icons-material';
 
 const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
-  console.log('🎮 [OriginalGameBoard] Компонент загружен:', { roomId, playerData });
+  // Отладочные логи удалены для предотвращения спама
   
   // Ref для хранения roomId
   const roomIdRef = useRef(roomId);
@@ -166,11 +166,31 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Обработчики Socket.IO событий для обновления списка игроков
   useEffect(() => {
-    console.log('🔌 [OriginalGameBoard] Настраиваем обработчики Socket.IO событий');
+    // Настраиваем обработчики Socket.IO событий
 
     // Обработчик обновления списка игроков
     const handlePlayersUpdate = (playersList) => {
-      console.log('👥 [OriginalGameBoard] Получен обновленный список игроков:', playersList);
+      // Получен обновленный список игроков
+      console.log('🔄 [OriginalGameBoard] handlePlayersUpdate received:', playersList.map(p => ({
+        username: p.username,
+        balance: p.balance,
+        socketId: p.socketId,
+        id: p.id,
+        userId: p.userId
+      })));
+      
+      // Дополнительная проверка для текущего игрока
+      const currentPlayerData = playersList.find(p => 
+        p.id === playerData?.id || p.userId === playerData?.id || p.username === playerData?.username
+      );
+      if (currentPlayerData) {
+        console.log('🎯 [OriginalGameBoard] Текущий игрок в обновлении:', {
+          username: currentPlayerData.username,
+          balance: currentPlayerData.balance,
+          id: currentPlayerData.id,
+          userId: currentPlayerData.userId
+        });
+      }
       
       // Инициализируем полную структуру для каждого игрока с учетом цветов
       const initializedPlayers = playersList.map((player, index) => {
@@ -199,7 +219,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         });
         
         if (hasChanges) {
-          console.log('🔄 [OriginalGameBoard] Обнаружены изменения в данных игроков, обновляем');
+          // Обнаружены изменения в данных игроков, обновляем
           return initializedPlayers;
         }
         
@@ -212,7 +232,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
     // Обработчик получения данных комнаты
     const handleRoomData = (roomData) => {
-      console.log('🏠 [OriginalGameBoard] Получены данные комнаты:', roomData);
+      // Получены данные комнаты
       if (roomData.currentPlayers) {
         // Инициализируем полную структуру для каждого игрока с учетом цветов
         const initializedPlayers = roomData.currentPlayers.map((player, index) => {
@@ -225,9 +245,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
     // Обработчик успешного присоединения к комнате
     const handleRoomJoined = (data) => {
-      console.log('✅ [OriginalGameBoard] Успешно присоединились к комнате:', data);
-      // Запрашиваем данные комнаты после успешного присоединения
+      // Успешно присоединились к комнате
+      console.log('✅ [OriginalGameBoard] Успешно присоединились к комнате:', data.roomId);
+      // Запрашиваем данные комнаты и игроков после успешного присоединения
       socket.emit('getRoomData', roomIdRef.current);
+      socket.emit('getGamePlayersData', roomIdRef.current);
     };
 
     // Обработчик обновления позиции игрока
@@ -287,18 +309,105 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
     socket.on('bankTransferError', handleBankTransferError);
 
+    // Обработка ошибки "Комната не найдена"
+    const handleRoomNotFound = () => {
+      console.log('❌ [OriginalGameBoard] Room not found, redirecting to room selection...');
+      alert('Комната не найдена. Перенаправляем к выбору комнат...');
+      
+      // Очищаем localStorage от несуществующей комнаты
+      localStorage.removeItem('energy_of_money_current_room');
+      
+      // Перенаправляем к выбору комнат
+      window.location.href = '/';
+    };
+
+    socket.on('roomNotFound', handleRoomNotFound);
+
+    // Обработчик получения данных игроков в игре
+    const handleGamePlayersData = (data) => {
+      console.log('🎮 [OriginalGameBoard] Получены данные игроков в игре:', data);
+      if (data.players && Array.isArray(data.players)) {
+        // Инициализируем полную структуру для каждого игрока с учетом цветов
+        const initializedPlayers = data.players.map((player, index) => {
+          return initializePlayerData(player, data.players);
+        });
+        
+        // Обновляем socketId для текущего игрока, если он переподключился
+        const currentSocketId = socket?.id;
+        if (currentSocketId && playerData?.username) {
+          // Ищем игрока по username (так как socketId изменился)
+          const currentPlayerIndex = initializedPlayers.findIndex(p => 
+            p.username === playerData.username
+          );
+          
+          if (currentPlayerIndex !== -1) {
+            const oldSocketId = initializedPlayers[currentPlayerIndex].socketId;
+            initializedPlayers[currentPlayerIndex].socketId = currentSocketId;
+            initializedPlayers[currentPlayerIndex].id = currentSocketId;
+            console.log('🔄 [OriginalGameBoard] Обновлен socketId для игрока:', {
+              username: initializedPlayers[currentPlayerIndex].username,
+              oldSocketId: oldSocketId,
+              newSocketId: currentSocketId
+            });
+          } else {
+            console.log('⚠️ [OriginalGameBoard] Игрок не найден для обновления socketId:', {
+              username: playerData.username,
+              currentSocketId: currentSocketId,
+              availablePlayers: initializedPlayers.map(p => ({ username: p.username, socketId: p.socketId }))
+            });
+          }
+        }
+        
+        setGamePlayers(initializedPlayers);
+        setCurrentPlayer(data.currentTurnIndex || 0);
+        
+        // Сохраняем в localStorage
+        localStorage.setItem('potok-deneg_gamePlayers', JSON.stringify(initializedPlayers));
+        localStorage.setItem('potok-deneg_currentTurn', data.currentTurn || '');
+        localStorage.setItem('potok-deneg_turnOrder', JSON.stringify(data.turnOrder || []));
+      }
+    };
+
+    socket.on('gamePlayersData', handleGamePlayersData);
+
+    // Обработчики обновления баланса
+    const handleBalanceUpdateSuccess = (data) => {
+      console.log('✅ [OriginalGameBoard] Баланс обновлен:', data);
+      setToast({
+        open: true,
+        message: data.message,
+        severity: 'success'
+      });
+    };
+
+    const handleBalanceUpdateError = (data) => {
+      console.error('❌ [OriginalGameBoard] Ошибка обновления баланса:', data);
+      setToast({
+        open: true,
+        message: data.message,
+        severity: 'error'
+      });
+    };
+
+    socket.on('balanceUpdateSuccess', handleBalanceUpdateSuccess);
+    socket.on('balanceUpdateError', handleBalanceUpdateError);
+
     // Запрашиваем актуальный список игроков при подключении
     if (socket.connected && roomIdRef.current) {
-      console.log('📡 [OriginalGameBoard] Запрашиваем список игроков для комнаты:', roomIdRef.current);
-      socket.emit('getRoomData', roomIdRef.current);
+      console.log('🔄 [OriginalGameBoard] Запрашиваем актуальные данные игры...');
       
-      // Также попробуем присоединиться к комнате, если еще не присоединены
-      console.log('🚪 [OriginalGameBoard] Пытаемся присоединиться к комнате:', roomIdRef.current);
+      // Сначала присоединяемся к комнате (это обновит socketId на сервере)
       socket.emit('joinRoom', roomIdRef.current, {
         username: playerData?.username || 'Игрок',
         socketId: socket.id,
         profession: playerData?.profession || null // Передаем профессию игрока
       });
+      
+      // Затем запрашиваем данные комнаты
+      socket.emit('getRoomData', roomIdRef.current);
+      
+      // И данные игроков в игре
+      socket.emit('getGamePlayersData', roomIdRef.current);
     }
 
     // Очистка при размонтировании
@@ -311,6 +420,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       socket.off('turnTimerSynced', handleTurnTimerSynced);
 
       socket.off('bankTransferError', handleBankTransferError);
+      socket.off('roomNotFound', handleRoomNotFound);
+      socket.off('gamePlayersData', handleGamePlayersData);
+      socket.off('balanceUpdateSuccess', handleBalanceUpdateSuccess);
+      socket.off('balanceUpdateError', handleBalanceUpdateError);
     };
   }, []); // Убираем roomId из зависимостей, чтобы избежать ререндеров
 
@@ -2313,7 +2426,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     
     const cashFlow = totalIncome - totalExpenses - creditPayments;
     
-    console.log(`💰 [OriginalGameBoard] Расчет Cash Flow: доходы $${totalIncome} - расходы $${totalExpenses} - кредиты $${creditPayments} = $${cashFlow}`);
+    // Отладочный лог удален для предотвращения спама
     
     return cashFlow;
   };
@@ -2348,8 +2461,30 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       return;
     }
     
+    // Обновляем локальное состояние
     setPlayerCredit(prev => prev + amount);
     setPlayerMoney(prev => prev + amount);
+    
+    // Обновляем данные игрока на сервере
+    if (socket && roomId) {
+      const currentPlayer = gamePlayers.find(p => p.socketId === socket.id);
+      if (currentPlayer) {
+        // Отправляем обновление баланса на сервер
+        socket.emit('updatePlayerBalance', {
+          roomId,
+          playerId: currentPlayer.id,
+          newBalance: currentPlayer.balance + amount,
+          creditAmount: amount
+        });
+        
+        // Обновляем локальные данные игроков
+        setGamePlayers(prev => prev.map(player => 
+          player.socketId === socket.id 
+            ? { ...player, balance: player.balance + amount }
+            : player
+        ));
+      }
+    }
     
     setToast({
       open: true,
@@ -2382,8 +2517,30 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       return;
     }
     
+    // Обновляем локальное состояние
     setPlayerCredit(prev => prev + amount);
     setPlayerMoney(prev => prev + amount);
+    
+    // Обновляем данные игрока на сервере
+    if (socket && roomId) {
+      const currentPlayer = gamePlayers.find(p => p.socketId === socket.id);
+      if (currentPlayer) {
+        // Отправляем обновление баланса на сервер
+        socket.emit('updatePlayerBalance', {
+          roomId,
+          playerId: currentPlayer.id,
+          newBalance: currentPlayer.balance + amount,
+          creditAmount: amount
+        });
+        
+        // Обновляем локальные данные игроков
+        setGamePlayers(prev => prev.map(player => 
+          player.socketId === socket.id 
+            ? { ...player, balance: player.balance + amount }
+            : player
+        ));
+      }
+    }
     
     // Закрываем модальное окно кредитов и возвращаемся к сделке
     setShowCreditModal(false);
@@ -3861,20 +4018,16 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             padding: isMobile ? '15px' : '20px',
             border: '1px solid rgba(255, 255, 255, 0.2)'
           }}>
-            <Button
-              variant="text"
-              fullWidth
+            <Box
               onClick={() => {
                 console.log('👤 [OriginalGameBoard] Кнопка профиля игрока нажата');
                 openPlayerModal(getCurrentPlayer());
               }}
               sx={{
-                p: 0,
-                background: 'transparent',
-                color: 'transparent',
-                textTransform: 'none',
+                cursor: 'pointer',
                 '&:hover': {
-                  background: 'rgba(255,255,255,0.05)'
+                  background: 'rgba(255,255,255,0.05)',
+                  borderRadius: '8px'
                 }
               }}
             >
@@ -3994,7 +4147,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                   </Button>
                 </Box>
               </Box>
-            </Button>
+            </Box>
           </Box>
         </motion.div>
 
@@ -4026,20 +4179,16 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             padding: isMobile ? '15px' : '20px',
             border: '1px solid rgba(255, 255, 255, 0.2)'
           }}>
-            <Button
-              variant="text"
-              fullWidth
+            <Box
               onClick={() => {
                 console.log('💼 [OriginalGameBoard] Кнопка активов нажата');
                 openAssetsModal();
               }}
               sx={{
-                p: 0,
-                background: 'transparent',
-                color: 'transparent',
-                textTransform: 'none',
+                cursor: 'pointer',
                 '&:hover': {
-                  background: 'rgba(255,255,255,0.05)'
+                  background: 'rgba(255,255,255,0.05)',
+                  borderRadius: '8px'
                 }
               }}
             >
@@ -4096,7 +4245,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                   )}
                 </Box>
               </Box>
-            </Button>
+            </Box>
           </Box>
         </motion.div>
 
@@ -4361,6 +4510,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         onClose={closeModals}
         maxWidth="sm"
         fullWidth
+        hideBackdrop={true}
         PaperProps={{
           sx: {
             background: 'linear-gradient(135deg, #1F2937 0%, #374151 100%)',
@@ -4544,6 +4694,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         onClose={closeModals}
         maxWidth="md"
         fullWidth
+        hideBackdrop={true}
         PaperProps={{
           sx: {
             background: 'linear-gradient(135deg, #1F2937 0%, #374151 100%)',
@@ -5485,6 +5636,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         onClose={closeCreditModal}
         maxWidth="md"
         fullWidth
+        hideBackdrop={true}
         PaperProps={{
           sx: {
             background: 'linear-gradient(135deg, #1F2937 0%, #374151 100%)',

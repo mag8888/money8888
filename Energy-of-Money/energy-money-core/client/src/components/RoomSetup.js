@@ -353,7 +353,16 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
 
     // Обработка ошибок
     socket.on('roomNotFound', () => {
-      setError('Комната не найдена');
+      console.log('❌ [RoomSetup] Room not found, redirecting to room selection...');
+      setError('Комната не найдена. Перенаправляем к выбору комнат...');
+      
+      // Очищаем localStorage от несуществующей комнаты
+      localStorage.removeItem('energy_of_money_current_room');
+      
+      // Перенаправляем к выбору комнат через 2 секунды
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
     });
 
     socket.on('error', (error) => {
@@ -507,22 +516,17 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   
   // Функции для работы с карточкой игрока
   const handlePlayerClick = (player) => {
-    console.log('👤 [RoomSetup] handlePlayerClick вызван с игроком:', player);
     setSelectedPlayer(player);
     setShowPlayerCard(true);
-    console.log('👤 [RoomSetup] Состояние обновлено: selectedPlayer =', player, 'showPlayerCard = true');
   };
   
   const closePlayerCard = () => {
-    console.log('👤 [RoomSetup] closePlayerCard вызван');
     setShowPlayerCard(false);
     setSelectedPlayer(null);
-    console.log('👤 [RoomSetup] Состояние обновлено: showPlayerCard = false, selectedPlayer = null');
   };
   
   // Функция для получения профессии игрока
   const getPlayerProfession = (player) => {
-    console.log('💼 [RoomSetup] getPlayerProfession вызван с игроком:', player);
     if (player.profession && player.profession !== 'none') {
       // Если профессия уже объект, возвращаем её
       if (typeof player.profession === 'object') {
@@ -530,28 +534,20 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
       }
       // Если профессия строка, ищем в массиве
       const profession = PROFESSIONS.find(p => p.name === player.profession);
-      console.log('💼 [RoomSetup] Найдена профессия:', profession);
       return profession;
     }
-    console.log('💼 [RoomSetup] Профессия не найдена, возвращаем null');
     return null;
   };
   
   // Функции для работы с активами игрока
   const handlePlayerAssetsClick = (player) => {
-    console.log('💼 [RoomSetup] handlePlayerAssetsClick вызван с игроком:', player);
-    console.log('💼 [RoomSetup] Текущее состояние showPlayerAssets:', showPlayerAssets);
-    console.log('💼 [RoomSetup] Текущее состояние selectedPlayer:', selectedPlayer);
     setSelectedPlayer(player);
     setShowPlayerAssets(true);
-    console.log('💼 [RoomSetup] Состояние обновлено: selectedPlayer =', player, 'showPlayerAssets = true');
   };
   
   const closePlayerAssets = () => {
-    console.log('💼 [RoomSetup] closePlayerAssets вызван');
     setShowPlayerAssets(false);
     setSelectedPlayer(null);
-    console.log('💼 [RoomSetup] Состояние обновлено: showPlayerAssets = false, selectedPlayer = null');
   };
 
   const handleDreamSelect = (dream) => {
@@ -598,20 +594,21 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
     { id: 5, name: 'Благотворительность', cost: 75000, description: 'Помогать другим людям' }
   ];
 
-  console.log('🎨 [RoomSetup] Рендерим компонент');
-  console.log('🎨 [RoomSetup] Текущее состояние:', { 
-    playerName, 
-    selectedPlayer, 
-    showPlayerCard, 
-    showPlayerAssets, 
-    showBankModal,
-    players: players.length 
-  });
+  // Отладочные логи удалены для предотвращения спама
   
   // После присоединения к комнате или выбора профессии — синхронизировать профессию на сервере
+  const lastSentProfessionRef = useRef(null);
   useEffect(() => {
     if (!roomId) return;
     if (!selectedProfession) return;
+    
+    // Проверяем, не отправляли ли мы уже эту профессию
+    const professionKey = selectedProfession.id || selectedProfession.name;
+    if (lastSentProfessionRef.current === professionKey) {
+      return; // Не отправляем повторно
+    }
+    
+    lastSentProfessionRef.current = professionKey;
     socket.emit('updateProfession', roomId, selectedProfession);
   }, [roomId, selectedProfession]);
 

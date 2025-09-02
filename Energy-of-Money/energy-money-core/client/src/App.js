@@ -69,19 +69,28 @@ function AppRouter() {
     setUser(null);
     localStorage.removeItem('energy_of_money_user');
     localStorage.removeItem('energy_of_money_player_name');
-    localStorage.removeItem('energy_of_money_current_room');
+    // НЕ удаляем current_room, чтобы можно было вернуться в игру
+    // localStorage.removeItem('energy_of_money_current_room');
     navigate('/register'); // Переходим на страницу регистрации
   };
 
   const handleReturnToGame = () => {
     if (currentRoom) {
+      console.log('🔄 [App] Возвращаемся в игру, комната:', currentRoom);
       navigate(`/room/${currentRoom}/original`);
+    } else {
+      console.log('⚠️ [App] Нет сохраненной комнаты для возврата');
     }
   };
 
   const handleClearCurrentRoom = () => {
     localStorage.removeItem('energy_of_money_current_room');
     setCurrentRoom(null);
+    // Также очищаем другие данные игры
+    localStorage.removeItem('potok-deneg_turnOrder');
+    localStorage.removeItem('potok-deneg_currentTurn');
+    localStorage.removeItem('potok-deneg_gamePlayers');
+    console.log('🗑️ [App] Данные игры полностью очищены');
   };
 
   const handleSetupComplete = ({ roomId }) => {

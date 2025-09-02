@@ -9,11 +9,17 @@ const baseUrl = process.env.NODE_ENV === 'production'
   ? `${window.location.protocol}//${SERVER_HOST}:${SERVER_PORT}`
   : `${window.location.protocol}//${SERVER_HOST}:${SERVER_PORT}`;
 
-console.log('🔌 [Socket] Configuration:', { baseUrl, env: process.env.NODE_ENV });
+console.log('🔌 [Socket] Configuration:', { 
+  baseUrl, 
+  env: process.env.NODE_ENV,
+  hostname: SERVER_HOST,
+  port: SERVER_PORT,
+  protocol: window.location.protocol
+});
 
 // Создаем Socket.IO экземпляр с оптимизированными настройками
 const socket = io(baseUrl, {
-  transports: ['websocket'],
+  transports: ['polling', 'websocket'], // Сначала polling, потом websocket
   reconnection: true,
   reconnectionAttempts: 5,
   reconnectionDelay: 2000,
@@ -105,7 +111,10 @@ socket.on('connect_error', (error) => {
   console.error('❌ [Socket] Connection error:', {
     message: error.message,
     description: error.description,
-    context: error.context
+    context: error.context,
+    type: error.type,
+    baseUrl: baseUrl,
+    transport: socket.io.engine?.transport?.name || 'unknown'
   });
   isConnecting = false;
   connectionPromise = null;
