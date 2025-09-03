@@ -3342,6 +3342,15 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     return assets.reduce((total, asset) => total + (asset.income * (asset.quantity || 1)), 0);
   };
 
+  // Обновляем пассивный доход на большом круге при изменении активов
+  useEffect(() => {
+    if (isOnBigCircle) {
+      const passiveIncome = getTotalAssetsIncome();
+      setBigCirclePassiveIncome(passiveIncome);
+      console.log(`💰 [OriginalGameBoard] Обновлен пассивный доход на большом круге: $${passiveIncome}`);
+    }
+  }, [isOnBigCircle, gamePlayers, currentPlayer]);
+
   // Таймер хода - 2 минуты на весь ход
   useEffect(() => {
     let interval;
@@ -3719,7 +3728,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                   position: 'relative'
                 }}
               >
-                {/* Центральный символ доллара */}
+                {/* Центральный результат броска кубика */}
                 <Typography
                   sx={{
                     fontSize: '48px',
@@ -3727,10 +3736,18 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     color: '#FFD700',
                     textShadow: '0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 165, 0, 0.6)',
                     zIndex: 3,
-                    position: 'relative'
+                    position: 'relative',
+                    animation: isRolling ? 'diceRoll 0.1s infinite' : 'none',
+                    '@keyframes diceRoll': {
+                      '0%': { transform: 'rotate(0deg) scale(1)' },
+                      '25%': { transform: 'rotate(90deg) scale(1.1)' },
+                      '50%': { transform: 'rotate(180deg) scale(0.9)' },
+                      '75%': { transform: 'rotate(270deg) scale(1.1)' },
+                      '100%': { transform: 'rotate(360deg) scale(1)' }
+                    }
                   }}
                 >
-                  $
+                  {diceValue}
                 </Typography>
                 
                 {/* Энергетические линии */}
