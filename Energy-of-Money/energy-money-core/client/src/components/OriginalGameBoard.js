@@ -40,6 +40,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [turnOrder, setTurnOrder] = useState([]);
   const [currentTurn, setCurrentTurn] = useState(null);
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
+  const [isHost, setIsHost] = useState(false);
   
   // Получаем данные игроков для игры
   const [gamePlayers, setGamePlayers] = useState([]);
@@ -240,6 +241,29 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         });
         setGamePlayers(initializedPlayers);
         localStorage.setItem('potok-deneg_gamePlayers', JSON.stringify(initializedPlayers));
+      }
+      
+      // Определяем, является ли текущий игрок хостом
+      if (roomData.hostId && playerData?.id) {
+        const isCurrentPlayerHost = roomData.hostId === playerData.id || 
+                                   roomData.hostId === socket.id ||
+                                   (roomData.currentPlayers && roomData.currentPlayers.some(p => 
+                                     (p.id === playerData.id || p.userId === playerData.id) && p.isHost
+                                   ));
+        setIsHost(isCurrentPlayerHost);
+        console.log('👑 [OriginalGameBoard] Определен статус хоста:', { 
+          isHost: isCurrentPlayerHost, 
+          hostId: roomData.hostId, 
+          playerId: playerData.id,
+          socketId: socket.id,
+          currentPlayerUsername: playerData.username,
+          roomPlayers: roomData.currentPlayers?.map(p => ({ 
+            username: p.username, 
+            id: p.id, 
+            socketId: p.socketId,
+            isHost: p.isHost 
+          }))
+        });
       }
     };
 
@@ -4589,6 +4613,18 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     </Typography>
                   )}
                   
+                  {/* Индикатор хоста */}
+                  {isHost && (
+                    <Typography variant="body2" sx={{ 
+                      color: '#FFD700', 
+                      fontSize: isMobile ? '0.8rem' : 'inherit',
+                      fontWeight: 'bold',
+                      mt: 0.5
+                    }}>
+                      👑 Вы - хост комнаты
+                    </Typography>
+                  )}
+                  
                   {/* Информация о детях */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
                     <Typography variant="body2" sx={{ color: '#94A3B8', fontSize: '0.8rem' }}>
@@ -4769,31 +4805,31 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         >
           <Button
             variant="contained"
-            onClick={canRollDice ? rollDice : passTurn}
+            onClick={(isHost || canRollDice) ? rollDice : passTurn}
             disabled={isRolling}
             sx={{
               width: '100%',
               height: '80px',
-              background: canRollDice 
+              background: (isHost || canRollDice) 
                 ? 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)'
                 : 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
               color: 'white',
               borderRadius: '15px',
               fontSize: '18px',
               fontWeight: 'bold',
-              boxShadow: canRollDice 
+              boxShadow: (isHost || canRollDice) 
                 ? '0 8px 25px rgba(139, 92, 246, 0.3)'
                 : '0 8px 25px rgba(16, 185, 129, 0.3)',
               '&:hover': {
-                background: canRollDice 
+                background: (isHost || canRollDice) 
                   ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)'
                   : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                boxShadow: canRollDice 
+                boxShadow: (isHost || canRollDice) 
                   ? '0 12px 35px rgba(139, 92, 246, 0.4)'
                   : '0 12px 35px rgba(16, 185, 129, 0.4)'
               },
               '&:disabled': {
-                background: canRollDice 
+                background: (isHost || canRollDice) 
                   ? 'rgba(139, 92, 246, 0.5)'
                   : 'rgba(16, 185, 129, 0.5)'
               }
@@ -4806,9 +4842,9 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               >
                 🎲
               </motion.div>
-            ) : canRollDice ? (
+            ) : (isHost || canRollDice) ? (
               <>
-                🎲 БРОСИТЬ КУБИК
+                {isHost ? '👑 БРОСИТЬ КУБИК (ХОСТ)' : '🎲 БРОСИТЬ КУБИК'}
                 <br />
                 <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
                   <DiceDisplay value={diceValue} isRolling={isRolling} />
@@ -4819,7 +4855,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 ⏭️ ПЕРЕХОД ХОДА
                 <br />
                 <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                  Кубик уже брошен
+                  {isHost ? 'Кубик уже брошен' : 'Не ваш ход'}
                 </Typography>
               </>
             )}
@@ -4895,6 +4931,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                   const isCurrentPlayer = player.socketId === socket?.id;
                   const isCurrentTurn = currentTurn === player.username;
                   const isConnected = player.isConnected !== false; // По умолчанию считаем подключенным
+                  const isPlayerHost = player.isHost || (player.id === playerData?.id && isHost);
                   
                   return (
                     <Box
@@ -4933,6 +4970,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         }}>
                           {player.username || 'Неизвестный игрок'}
                           {isCurrentPlayer && ' (Вы)'}
+                          {isPlayerHost && ' 👑'}
                           {isCurrentTurn && ' (🎲 Ход)'}
                           {!isConnected && ' 🔴'}
                         </Typography>

@@ -36,7 +36,7 @@ import ProfessionDetails from './ProfessionDetails';
 import ProfessionCard from './ProfessionCard';
 
 const RoomSelection = ({ playerData, onRoomSelect, 
-  onLogout }) => {
+  onLogout, currentRoom, onReturnToGame }) => {
   const [roomName, setRoomName] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
   const [maxPlayers, setMaxPlayers] = useState(2); // Количество игроков (диапазон 1-10)
@@ -532,35 +532,98 @@ const RoomSelection = ({ playerData, onRoomSelect,
                 </Box>
               </Box>
             
-                          <Button
-                variant="outlined"
-                onClick={onLogout}
-                startIcon="🚪"
-                sx={{
-                  borderColor: 'rgba(255,255,255,0.25)',
-                  color: 'rgba(255,255,255,0.9)',
-                  borderRadius: 3,
-                  px: 4,
-                  py: 2,
-                  fontWeight: 600,
-                  fontSize: '1rem',
-                  textTransform: 'none',
-                  background: 'rgba(255,255,255,0.05)',
-                  backdropFilter: 'blur(10px)',
-                  '&:hover': {
-                    borderColor: 'rgba(255,255,255,0.5)',
-                    backgroundColor: 'rgba(255,255,255,0.15)',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 8px 25px rgba(255,255,255,0.3)'
-                  },
-                  '&:active': {
-                    transform: 'translateY(0px)'
-                  },
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-              >
-                Выйти
-              </Button>
+                          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+                            {/* Кнопка быстрого возврата в комнату */}
+                            {currentRoom && (
+                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <Button
+                                  variant="contained"
+                                  onClick={() => onReturnToGame(currentRoom)}
+                                  startIcon="🔄"
+                                  sx={{
+                                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                    color: 'white',
+                                    borderRadius: 3,
+                                    px: 4,
+                                    py: 2,
+                                    fontWeight: 600,
+                                    fontSize: '1rem',
+                                    textTransform: 'none',
+                                    boxShadow: '0 8px 25px rgba(16, 185, 129, 0.3)',
+                                    '&:hover': {
+                                      background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                                      transform: 'translateY(-2px)',
+                                      boxShadow: '0 12px 35px rgba(16, 185, 129, 0.4)'
+                                    },
+                                    '&:active': {
+                                      transform: 'translateY(0px)'
+                                    },
+                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                                  }}
+                                >
+                                  Вернуться в {currentRoom}
+                                </Button>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                                  <Typography variant="caption" sx={{ 
+                                    color: 'rgba(255,255,255,0.6)', 
+                                    fontSize: '0.8rem'
+                                  }}>
+                                    Активная игра
+                                  </Typography>
+                                  <Button
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      localStorage.removeItem('energy_of_money_current_room');
+                                      window.location.reload();
+                                    }}
+                                    sx={{
+                                      minWidth: 'auto',
+                                      p: 0.5,
+                                      color: 'rgba(255,255,255,0.4)',
+                                      fontSize: '0.7rem',
+                                      '&:hover': {
+                                        color: 'rgba(255,255,255,0.8)',
+                                        backgroundColor: 'rgba(255,255,255,0.1)'
+                                      }
+                                    }}
+                                  >
+                                    ✕
+                                  </Button>
+                                </Box>
+                              </Box>
+                            )}
+                            
+                            <Button
+                              variant="outlined"
+                              onClick={onLogout}
+                              startIcon="🚪"
+                              sx={{
+                                borderColor: 'rgba(255,255,255,0.25)',
+                                color: 'rgba(255,255,255,0.9)',
+                                borderRadius: 3,
+                                px: 4,
+                                py: 2,
+                                fontWeight: 600,
+                                fontSize: '1rem',
+                                textTransform: 'none',
+                                background: 'rgba(255,255,255,0.05)',
+                                backdropFilter: 'blur(10px)',
+                                '&:hover': {
+                                  borderColor: 'rgba(255,255,255,0.5)',
+                                  backgroundColor: 'rgba(255,255,255,0.15)',
+                                  transform: 'translateY(-2px)',
+                                  boxShadow: '0 8px 25px rgba(255,255,255,0.3)'
+                                },
+                                '&:active': {
+                                  transform: 'translateY(0px)'
+                                },
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                              }}
+                            >
+                              Выйти
+                            </Button>
+                          </Box>
           </Box>
         </motion.div>
 
@@ -1071,15 +1134,57 @@ const RoomSelection = ({ playerData, onRoomSelect,
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
         >
-          <Typography variant="h4" sx={{ 
-            mb: 4, 
-            textAlign: 'center', 
-            color: 'rgba(255,255,255,0.95)',
-            fontWeight: 700,
-            textShadow: '0 2px 10px rgba(0,0,0,0.3)'
-          }}>
-            🎮 Доступные комнаты ({filteredRooms.length})
-          </Typography>
+          <Box sx={{ mb: 4, textAlign: 'center' }}>
+            <Typography variant="h4" sx={{ 
+              mb: 2, 
+              color: 'rgba(255,255,255,0.95)',
+              fontWeight: 700,
+              textShadow: '0 2px 10px rgba(0,0,0,0.3)'
+            }}>
+              🎮 Доступные комнаты ({filteredRooms.length})
+            </Typography>
+            
+            {/* Кнопка быстрого возврата в комнату */}
+            {currentRoom && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <Button
+                  variant="contained"
+                  size="large"
+                  startIcon={<PlayArrow />}
+                  onClick={() => onReturnToGame(currentRoom)}
+                  sx={{
+                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                    color: 'white',
+                    borderRadius: '12px',
+                    px: 4,
+                    py: 1.5,
+                    fontSize: '1.1rem',
+                    fontWeight: 'bold',
+                    boxShadow: '0 8px 25px rgba(16, 185, 129, 0.3)',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 12px 35px rgba(16, 185, 129, 0.4)'
+                    },
+                    mb: 2
+                  }}
+                >
+                  🔄 Вернуться в комнату {currentRoom}
+                </Button>
+                <Typography variant="body2" sx={{ 
+                  color: 'rgba(255,255,255,0.7)', 
+                  mt: 1,
+                  fontSize: '0.9rem'
+                }}>
+                  У вас есть активная игра в этой комнате
+                </Typography>
+              </motion.div>
+            )}
+          </Box>
 
           {roomsLoading ? (
             <Box sx={{ textAlign: 'center', py: 8 }}>

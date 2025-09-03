@@ -284,7 +284,13 @@ function AppRouter() {
               )}
 
               {/* Существующий компонент RoomSelection */}
-              <RoomSelection playerData={playerData} onRoomSelect={handleRoomSelect} onLogout={handleLogout} />
+              <RoomSelection 
+                playerData={playerData} 
+                onRoomSelect={handleRoomSelect} 
+                onLogout={handleLogout}
+                currentRoom={currentRoom}
+                onReturnToGame={handleReturnToGame}
+              />
             </div>
           ) : (
             <Registration onRegister={handleRegister} />
