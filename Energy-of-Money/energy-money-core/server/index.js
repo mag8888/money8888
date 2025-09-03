@@ -1033,6 +1033,14 @@ io.on('connection', (socket) => {
         currentTurn: room.currentTurn 
       });
       
+      // Отправляем событие начала игры всем игрокам в комнате
+      io.to(roomId).emit('gameStarted', {
+        roomId: roomId,
+        message: 'Игра началась! Карточки сделок перемешаны.'
+      });
+      
+      console.log('🎮 [SERVER] Game started event sent to all players in room:', roomId);
+      
     } catch (error) {
       console.error('❌ [SERVER] Error getting game players:', error);
       socket.emit('error', { message: 'Ошибка получения данных игроков' });

@@ -268,7 +268,9 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       console.log('🎯 [OriginalGameBoard] Получено обновление хода игрока:', data);
       
       setCurrentPlayer(data.currentPlayerIndex);
-      setCurrentTurn(data.currentPlayer || '');
+      // Преобразуем ID в имя пользователя
+      const currentPlayerName = gamePlayers.find(p => p.id === data.currentPlayer || p.socketId === data.currentPlayer)?.username || data.currentPlayer || '';
+      setCurrentTurn(currentPlayerName);
       
       // Сбрасываем таймер для нового игрока
       setTurnTimeLeft(120);
@@ -361,16 +363,26 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         
         setGamePlayers(initializedPlayers);
         setCurrentPlayer(data.currentTurnIndex || 0);
-        setCurrentTurn(data.currentTurn || '');
+        // Преобразуем ID в имя пользователя
+        const currentPlayerName = initializedPlayers.find(p => p.id === data.currentTurn || p.socketId === data.currentTurn)?.username || data.currentTurn || '';
+        setCurrentTurn(currentPlayerName);
         
         // Сохраняем в localStorage
         localStorage.setItem('potok-deneg_gamePlayers', JSON.stringify(initializedPlayers));
-        localStorage.setItem('potok-deneg_currentTurn', data.currentTurn || '');
+        localStorage.setItem('potok-deneg_currentTurn', currentPlayerName);
         localStorage.setItem('potok-deneg_turnOrder', JSON.stringify(data.turnOrder || []));
       }
     };
 
     socket.on('gamePlayersData', handleGamePlayersData);
+
+    // Обработчик начала игры - перемешиваем карточки сделок
+    const handleGameStarted = () => {
+      console.log('🎮 [OriginalGameBoard] Игра началась, перемешиваем карточки сделок...');
+      initializeDealDeck();
+    };
+
+    socket.on('gameStarted', handleGameStarted);
 
     // Обработчики обновления баланса
     const handleBalanceUpdateSuccess = (data) => {
@@ -492,6 +504,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       socket.off('cardPassSuccess');
       socket.off('cardPassError');
       socket.off('globalDealCardError');
+      socket.off('gameStarted', handleGameStarted);
     };
   }, []); // Убираем roomId из зависимостей, чтобы избежать ререндеров
 
@@ -644,6 +657,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       setBankBalance(newBalance);
     }
   }, [playerData?.profession?.balance, playerData?.username, bankBalance]);
+
+  // Синхронизация playerMoney с данными игрока из gamePlayers
+  useEffect(() => {
+    if (gamePlayers.length > 0 && socket?.id) {
+      const currentPlayer = gamePlayers.find(p => p.socketId === socket.id);
+      if (currentPlayer && currentPlayer.balance !== undefined) {
+        console.log('💰 [OriginalGameBoard] Синхронизация playerMoney:', currentPlayer.balance);
+        setPlayerMoney(currentPlayer.balance);
+      }
+    }
+  }, [gamePlayers, socket?.id]);
 
   // Состояние для карточек рынка
   const [showMarketCardModal, setShowMarketCardModal] = useState(false);
@@ -860,6 +884,58 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     setDealDeck(shuffledDeck);
     
 
+  };
+
+  // Компонент для отображения кубика
+  const DiceDisplay = ({ value, isRolling }) => {
+    const getDiceDots = (num) => {
+      const dots = {
+        1: ['●'],
+        2: ['●', '●'],
+        3: ['●', '●', '●'],
+        4: ['●', '●', '●', '●'],
+        5: ['●', '●', '●', '●', '●'],
+        6: ['●', '●', '●', '●', '●', '●']
+      };
+      return dots[num] || [];
+    };
+
+    return (
+      <Box
+        sx={{
+          width: isMobile ? '40px' : '60px',
+          height: isMobile ? '40px' : '60px',
+          background: 'linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%)',
+          border: '3px solid #333',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+          animation: isRolling ? 'diceRoll 0.1s infinite' : 'none',
+          '@keyframes diceRoll': {
+            '0%': { transform: 'rotate(0deg)' },
+            '25%': { transform: 'rotate(90deg)' },
+            '50%': { transform: 'rotate(180deg)' },
+            '75%': { transform: 'rotate(270deg)' },
+            '100%': { transform: 'rotate(360deg)' }
+          }
+        }}
+      >
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 'bold',
+            color: '#333',
+            fontSize: isMobile ? '20px' : '30px',
+            textShadow: '1px 1px 2px rgba(0, 0, 0, 0.3)'
+          }}
+        >
+          {value}
+        </Typography>
+      </Box>
+    );
   };
 
   // Функция броска кубика
@@ -1723,6 +1799,9 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         ? { ...p, balance: newBalance }
         : p
     ));
+    
+    // Обновляем локальный баланс игрока
+    setPlayerMoney(newBalance);
     
     // Синхронизируем с сервером
     syncPlayerData(player.socketId, { balance: newBalance });
@@ -3455,9 +3534,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             alignItems: 'center',
             gap: isMobile ? 1 : 2
           }}>
-            <Typography variant={isMobile ? "body1" : "h6"} sx={{ color: 'white' }}>
-              Кубик: {diceValue}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant={isMobile ? "body1" : "h6"} sx={{ color: 'white' }}>
+                Кубик:
+              </Typography>
+              <DiceDisplay value={diceValue} isRolling={isRolling} />
+            </Box>
             <Button
               variant="contained"
               onClick={rollDice}
@@ -3583,6 +3665,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
           {/* PNG логотип в центре */}
           <Box
+            onClick={rollDice}
             sx={{
               position: 'absolute',
               top: '50%',
@@ -3596,7 +3679,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               justifyContent: 'center',
               background: 'radial-gradient(circle, rgba(255,215,0,0.1) 0%, rgba(255,165,0,0.05) 50%, transparent 100%)',
               borderRadius: '50%',
-              padding: '20px'
+              padding: '20px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translate(-50%, -50%) scale(1.05)',
+                background: 'radial-gradient(circle, rgba(255,215,0,0.2) 0%, rgba(255,165,0,0.1) 50%, transparent 100%)',
+                boxShadow: '0 0 30px rgba(255, 215, 0, 0.6)'
+              },
+              '&:active': {
+                transform: 'translate(-50%, -50%) scale(0.95)'
+              }
             }}
           >
             <Box
@@ -4475,7 +4568,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       fontWeight: 'bold',
                       mt: 0.5
                     }}>
-                      {currentTurn === playerData?.username ? '🎲 Ваш ход!' : `🎲 Ход: ${currentTurn}`}
+                      {currentTurn === playerData?.username ? '🎲 Ваш ход!' : `🎲 Ход игрока`}
                     </Typography>
                   )}
                   
@@ -4509,31 +4602,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       ))}
                     </Box>
                   )}
-                  
-                  {/* Информация об активах */}
-                  {gamePlayers.length > 0 && (() => {
-                    const currentPlayer = gamePlayers.find(p => p.socketId === socket?.id);
-                    if (currentPlayer && (currentPlayer.assets?.length > 0 || currentPlayer.liabilities?.length > 0)) {
-                      return (
-                        <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                          <Typography variant="body2" sx={{ color: '#94A3B8', fontSize: '0.8rem', mb: 0.5 }}>
-                            🏠 Активы и обязательства:
-                          </Typography>
-                          {currentPlayer.assets?.map((asset, index) => (
-                            <Typography key={asset.id} variant="body2" sx={{ color: '#10B981', fontSize: '0.7rem' }}>
-                              🏠 {asset.name}: ${(asset.value ?? 0).toLocaleString()}
-                            </Typography>
-                          ))}
-                          {currentPlayer.liabilities?.map((liability, index) => (
-                            <Typography key={liability.id} variant="body2" sx={{ color: '#EF4444', fontSize: '0.7rem' }}>
-                              💳 {liability.name}: ${(liability.amount ?? 0).toLocaleString()}
-                            </Typography>
-                          ))}
-                        </Box>
-                      );
-                    }
-                    return null;
-                  })()}
+
                   
                   {/* Кнопка для быстрого открытия карточки профессии */}
                   <Button
@@ -4724,9 +4793,9 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               <>
                 🎲 БРОСИТЬ КУБИК
                 <br />
-                <Typography variant="h4" sx={{ mt: 1 }}>
-                  {diceValue}
-                </Typography>
+                <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
+                  <DiceDisplay value={diceValue} isRolling={isRolling} />
+                </Box>
               </>
             ) : (
               <>
@@ -5947,7 +6016,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           color: 'white', 
           textAlign: 'center',
           borderBottom: '1px solid #6B7280',
-          pb: 2
+          pb: 2,
+          position: 'relative'
         }}>
           💼 Карточка сделки
           {globalDealCard && globalDealCardOwner && (
@@ -5955,6 +6025,20 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               {isCardOwner() ? '🎯 Ваша карточка' : '👀 Карточка другого игрока'}
             </Typography>
           )}
+          <IconButton
+            onClick={() => handleCancelDeal()}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              color: 'white',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)'
+              }
+            }}
+          >
+            <Close />
+          </IconButton>
         </DialogTitle>
         
         <DialogContent sx={{ pt: 3, textAlign: 'center' }}>

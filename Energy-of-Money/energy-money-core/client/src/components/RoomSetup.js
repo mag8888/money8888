@@ -638,12 +638,16 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
       <Box
         sx={{
           minHeight: '100vh',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)',
           py: 4,
           '@keyframes pulse': {
             '0%': { opacity: 1 },
             '50%': { opacity: 0.5 },
             '100%': { opacity: 1 }
+          },
+          '@keyframes shimmer': {
+            '0%': { transform: 'translateX(-100%)' },
+            '100%': { transform: 'translateX(100%)' }
           }
         }}
       >
@@ -656,9 +660,28 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
             elevation={8}
             sx={{
               p: 4,
-              borderRadius: 3,
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(10px)'
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              position: 'relative',
+              overflow: 'hidden',
+              backdropFilter: 'blur(10px)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: '0 12px 24px rgba(0, 0, 0, 0.3)',
+                border: '1px solid rgba(16, 185, 129, 0.3)'
+              },
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '2px',
+                background: 'linear-gradient(90deg, #10B981, #059669, #10B981)',
+                animation: 'shimmer 2s infinite'
+              }
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
@@ -673,7 +696,11 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                 🐛 DEBUG: RoomSetup.js (кнопки заменены)
               </Typography>
               
-              <Typography variant="h4" sx={{ color: '#333', fontWeight: 'bold' }}>
+              <Typography variant="h4" sx={{ 
+                color: '#FFFFFF', 
+                fontWeight: 'bold',
+                textShadow: '0 0 10px rgba(16, 185, 129, 0.3)'
+              }}>
                 🏠 Настройки комнаты
               </Typography>
               
@@ -684,11 +711,15 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                     width: 12,
                     height: 12,
                     borderRadius: '50%',
-                    bgcolor: isConnected ? '#4caf50' : '#ff9800',
-                    animation: isConnected ? 'none' : 'pulse 2s infinite'
+                    bgcolor: isConnected ? '#10B981' : '#F59E0B',
+                    animation: isConnected ? 'none' : 'pulse 2s infinite',
+                    boxShadow: isConnected ? '0 0 8px rgba(16, 185, 129, 0.5)' : '0 0 8px rgba(245, 158, 11, 0.5)'
                   }}
                 />
-                <Typography variant="body2" sx={{ color: isConnected ? '#4caf50' : '#ff9800' }}>
+                <Typography variant="body2" sx={{ 
+                  color: isConnected ? '#10B981' : '#F59E0B',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+                }}>
                   {isConnected ? 'Подключено' : 'Переподключение...'}
                 </Typography>
               </Box>
@@ -698,7 +729,11 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
 
             {/* Карточка текущего игрока */}
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+              <Typography variant="h6" sx={{ 
+                mb: 2, 
+                color: '#FFFFFF',
+                textShadow: '0 0 10px rgba(16, 185, 129, 0.3)'
+              }}>
                 👤 Текущий игрок
               </Typography>
               <Button
@@ -716,17 +751,30 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                 }}
                 sx={{
                   p: 3,
-                  background: 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)',
+                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)',
                   color: 'white',
-                  borderRadius: 2,
+                  borderRadius: '16px',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
                   textTransform: 'none',
                   fontSize: '1.1rem',
                   fontWeight: 'bold',
                   transition: 'all 0.3s ease',
+                  position: 'relative',
+                  overflow: 'hidden',
                   '&:hover': {
-                    background: 'linear-gradient(135deg, #388e3c 0%, #2e7d32 100%)',
-                    transform: 'translateY(-2px)',
-                    boxShadow: 6
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 12px 24px rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)'
+                  },
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '2px',
+                    background: 'linear-gradient(90deg, #10B981, #059669, #10B981)',
+                    animation: 'shimmer 2s infinite'
                   }
                 }}
               >
@@ -735,24 +783,34 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                     sx={{
                       width: 80,
                       height: 80,
-                      bgcolor: '#4caf50',
+                      bgcolor: '#10B981',
                       fontSize: '32px',
                       fontWeight: 'bold',
-                      border: '3px solid #2e7d32'
+                      border: '3px solid rgba(16, 185, 129, 0.3)',
+                      boxShadow: '0 0 20px rgba(16, 185, 129, 0.5)'
                     }}
                   >
                     {playerName.charAt(0).toUpperCase()}
                   </Avatar>
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#2e7d32', mb: 1 }}>
+                    <Typography variant="h4" sx={{ 
+                      fontWeight: 'bold', 
+                      color: '#10B981', 
+                      mb: 1,
+                      textShadow: '0 0 10px rgba(16, 185, 129, 0.3)'
+                    }}>
                       {playerName}
                     </Typography>
                     {selectedProfession ? (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Typography variant="h6" sx={{ color: '#ff9800' }}>
+                        <Typography variant="h6" sx={{ color: '#EAB308' }}>
                           💼
                         </Typography>
-                        <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
+                        <Typography variant="h6" sx={{ 
+                          color: '#EAB308', 
+                          fontWeight: 'bold',
+                          textShadow: '0 0 10px rgba(234, 179, 8, 0.3)'
+                        }}>
                           {selectedProfession.name}
                         </Typography>
                       </Box>
@@ -762,21 +820,30 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                         label={isReady ? '✅ Готов к игре' : '⏳ Не готов'} 
                         size="medium" 
                         sx={{ 
-                          bgcolor: isReady ? '#4caf50' : '#ff9800', 
+                          bgcolor: isReady ? '#10B981' : '#F59E0B', 
                           color: 'white',
-                          fontWeight: 'bold'
+                          fontWeight: 'bold',
+                          boxShadow: isReady ? '0 0 10px rgba(16, 185, 129, 0.3)' : '0 0 10px rgba(245, 158, 11, 0.3)'
                         }}
                       />
-                      <Typography variant="body2" sx={{ color: '#666', fontStyle: 'italic' }}>
+                      <Typography variant="body2" sx={{ 
+                        color: 'rgba(255, 255, 255, 0.7)', 
+                        fontStyle: 'italic',
+                        textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+                      }}>
                         Нажмите для просмотра карточки
                       </Typography>
                     </Box>
                   </Box>
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="h3" sx={{ color: '#4caf50' }}>
+                    <Typography variant="h3" sx={{ color: '#10B981' }}>
                       👆
                     </Typography>
-                    <Typography variant="caption" sx={{ color: '#666', textAlign: 'center' }}>
+                    <Typography variant="caption" sx={{ 
+                      color: 'rgba(255, 255, 255, 0.7)', 
+                      textAlign: 'center',
+                      textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+                    }}>
                       Кликните
                     </Typography>
                   </Box>
@@ -786,7 +853,11 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
 
             {/* Имя комнаты */}
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+              <Typography variant="h6" sx={{ 
+                mb: 2, 
+                color: '#FFFFFF',
+                textShadow: '0 0 10px rgba(16, 185, 129, 0.3)'
+              }}>
                 🏠 Имя комнаты (только для просмотра)
               </Typography>
               <TextField
@@ -798,12 +869,25 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                 sx={{ 
                   mb: 1,
                   '& .MuiInputBase-input.Mui-disabled': {
-                    WebkitTextFillColor: '#666',
-                    color: '#666'
+                    WebkitTextFillColor: 'rgba(255, 255, 255, 0.7)',
+                    color: 'rgba(255, 255, 255, 0.7)'
+                  },
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    '&:hover': {
+                      border: '1px solid rgba(16, 185, 129, 0.3)'
+                    }
                   }
                 }}
               />
-              <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+              <Typography variant="body2" sx={{ 
+                color: 'rgba(255, 255, 255, 0.7)', 
+                mt: 1, 
+                fontSize: '0.9rem', 
+                fontStyle: 'italic',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+              }}>
                 ⚠️ Имя комнаты нельзя изменить после создания
               </Typography>
             </Box>
@@ -819,25 +903,42 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                   />
                 }
                 label={
-                  <Typography variant="h6" sx={{ color: '#333' }}>
+                  <Typography variant="h6" sx={{ 
+                    color: '#FFFFFF',
+                    textShadow: '0 0 10px rgba(16, 185, 129, 0.3)'
+                  }}>
                     {isPublic ? '🌍 Открытая комната' : '🔒 Закрытая комната'}
                   </Typography>
                 }
               />
-              <Typography variant="body2" sx={{ color: '#666', mt: 1 }}>
+              <Typography variant="body2" sx={{ 
+                color: 'rgba(255, 255, 255, 0.7)', 
+                mt: 1,
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+              }}>
                 {isPublic 
                   ? 'Любой может присоединиться к комнате' 
                   : 'Только по приглашению или паролю'
                 }
               </Typography>
-              <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+              <Typography variant="body2" sx={{ 
+                color: 'rgba(255, 255, 255, 0.7)', 
+                mt: 1, 
+                fontSize: '0.9rem', 
+                fontStyle: 'italic',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+              }}>
                 ✅ Этот параметр можно изменять в любое время
               </Typography>
               
               {/* Поле для пароля (показывается только для закрытых комнат) */}
               {!isPublic && (
                 <Box sx={{ mt: 2 }}>
-                  <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                  <Typography variant="h6" sx={{ 
+                    mb: 2, 
+                    color: '#FFFFFF',
+                    textShadow: '0 0 10px rgba(16, 185, 129, 0.3)'
+                  }}>
                     🔐 Пароль комнаты
                   </Typography>
                   <TextField
@@ -848,21 +949,62 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                     placeholder="Введите пароль для комнаты"
                     variant="outlined"
                     type="password"
-                    sx={{ mb: 1 }}
+                    sx={{ 
+                      mb: 1,
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        '&:hover': {
+                          border: '1px solid rgba(16, 185, 129, 0.3)'
+                        },
+                        '&.Mui-focused': {
+                          border: '1px solid rgba(16, 185, 129, 0.5)'
+                        }
+                      },
+                      '& .MuiInputBase-input': {
+                        color: 'white'
+                      }
+                    }}
                   />
                   <Button
                     variant="outlined"
                     onClick={handlePasswordChange}
                     fullWidth
-                    sx={{ borderRadius: 2 }}
+                    sx={{ 
+                      borderRadius: '12px',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      color: '#10B981',
+                      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                      '&:hover': {
+                        border: '1px solid rgba(16, 185, 129, 0.5)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        transform: 'scale(1.02)'
+                      },
+                      '&:disabled': {
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        color: 'rgba(255, 255, 255, 0.3)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)'
+                      }
+                    }}
                     disabled={!roomPassword.trim()}
                   >
                     💾 Сохранить пароль
                   </Button>
-                  <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.8rem' }}>
+                  <Typography variant="body2" sx={{ 
+                    color: 'rgba(255, 255, 255, 0.7)', 
+                    mt: 1, 
+                    fontSize: '0.8rem',
+                    textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+                  }}>
                     💡 Поделитесь этим паролем с друзьями, чтобы они могли присоединиться
                   </Typography>
-                  <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                  <Typography variant="body2" sx={{ 
+                    color: 'rgba(255, 255, 255, 0.7)', 
+                    mt: 1, 
+                    fontSize: '0.9rem', 
+                    fontStyle: 'italic',
+                    textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+                  }}>
                     ✅ Пароль можно изменять в любое время
                   </Typography>
                 </Box>
@@ -871,7 +1013,11 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
 
             {/* Тип профессий */}
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+              <Typography variant="h6" sx={{ 
+                mb: 2, 
+                color: '#FFFFFF',
+                textShadow: '0 0 10px rgba(16, 185, 129, 0.3)'
+              }}>
                 👥 Тип профессий (только для просмотра)
               </Typography>
               <FormControl fullWidth>
@@ -881,8 +1027,15 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                   variant="outlined"
                   sx={{
                     '& .MuiInputBase-input.Mui-disabled': {
-                      WebkitTextFillColor: '#666',
-                      color: '#666'
+                      WebkitTextFillColor: 'rgba(255, 255, 255, 0.7)',
+                      color: 'rgba(255, 255, 255, 0.7)'
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      '&:hover': {
+                        border: '1px solid rgba(16, 185, 129, 0.3)'
+                      }
                     }
                   }}
                 >
@@ -890,14 +1043,24 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                   <MenuItem value="shared">Общие профессии</MenuItem>
                 </Select>
               </FormControl>
-              <Typography variant="body2" sx={{ color: '#666', mt: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+              <Typography variant="body2" sx={{ 
+                color: 'rgba(255, 255, 255, 0.7)', 
+                mt: 1, 
+                fontSize: '0.9rem', 
+                fontStyle: 'italic',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+              }}>
                 ⚠️ Тип профессий нельзя изменить после создания комнаты
               </Typography>
             </Box>
 
             {/* Выбор профессии */}
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+              <Typography variant="h6" sx={{ 
+                mb: 2, 
+                color: '#FFFFFF',
+                textShadow: '0 0 10px rgba(16, 185, 129, 0.3)'
+              }}>
                 💼 Профессия {professionType === 'shared' ? '(общая для всех)' : '(можно изменять)'}
               </Typography>
               
@@ -905,12 +1068,29 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                 // Показываем только общую профессию
                 <Box sx={{ 
                   p: 3, 
-                  bgcolor: '#e8f5e8', 
-                  borderRadius: 2, 
-                  border: '2px solid #4caf50',
-                  textAlign: 'center'
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%)',
+                  borderRadius: '16px', 
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  textAlign: 'center',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '2px',
+                    background: 'linear-gradient(90deg, #10B981, #059669, #10B981)',
+                    animation: 'shimmer 2s infinite'
+                  }
                 }}>
-                  <Typography variant="h6" sx={{ color: '#2e7d32', fontWeight: 'bold', mb: 2 }}>
+                  <Typography variant="h6" sx={{ 
+                    color: '#10B981', 
+                    fontWeight: 'bold', 
+                    mb: 2,
+                    textShadow: '0 0 10px rgba(16, 185, 129, 0.3)'
+                  }}>
                     🎯 Общая профессия для всех игроков
                   </Typography>
                   <Grid container justifyContent="center">
@@ -990,7 +1170,11 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
 
             {/* Выбор мечты */}
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+              <Typography variant="h6" sx={{ 
+                mb: 2, 
+                color: '#FFFFFF',
+                textShadow: '0 0 10px rgba(16, 185, 129, 0.3)'
+              }}>
                 ⭐ Мечта (можно изменять)
               </Typography>
               <Grid container spacing={2}>
@@ -1052,7 +1236,11 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
 
             {/* Готовность игрока */}
             <Box sx={{ mb: 3, textAlign: 'center' }}>
-              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+              <Typography variant="h6" sx={{ 
+                mb: 2, 
+                color: '#FFFFFF',
+                textShadow: '0 0 10px rgba(16, 185, 129, 0.3)'
+              }}>
                 🎯 Готовность к игре
               </Typography>
               <Button
@@ -1068,10 +1256,19 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
 
             {/* Очередность игроков */}
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+              <Typography variant="h6" sx={{ 
+                mb: 2, 
+                color: '#FFFFFF',
+                textShadow: '0 0 10px rgba(16, 185, 129, 0.3)'
+              }}>
                 🎯 Очередность игроков ({players.length})
                 {players.length === 0 && (
-                  <Typography variant="body2" sx={{ color: '#ff9800', ml: 2, fontSize: '0.9rem' }}>
+                  <Typography variant="body2" sx={{ 
+                    color: '#F59E0B', 
+                    ml: 2, 
+                    fontSize: '0.9rem',
+                    textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+                  }}>
                     ⚠️ Загрузка списка игроков...
                   </Typography>
                 )}
@@ -1213,28 +1410,61 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                   onClick={handleStartGame}
                   disabled={!canStart}
                   sx={{
-                    borderRadius: 2,
+                    borderRadius: '12px',
                     px: 6,
                     py: 2,
                     fontSize: '1.2rem',
-                    background: !canStart ? '#ccc' : 'linear-gradient(45deg, #4caf50 30%, #45a049 90%)',
-                    '&:hover': {
-                      background: !canStart ? '#ccc' : 'linear-gradient(45deg, #45a049 30%, #4caf50 90%)'
+                    background: canStart 
+                      ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 0.9) 100%)'
+                      : 'linear-gradient(135deg, rgba(107, 114, 128, 0.8) 0%, rgba(75, 85, 99, 0.8) 100%)',
+                    color: canStart ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)',
+                    border: canStart 
+                      ? '1px solid rgba(16, 185, 129, 0.3)'
+                      : '1px solid rgba(255, 255, 255, 0.1)',
+                    cursor: canStart ? 'pointer' : 'not-allowed',
+                    transition: 'all 0.3s ease',
+                    '&:hover': canStart ? {
+                      background: 'linear-gradient(135deg, rgba(5, 150, 105, 0.9) 0%, rgba(4, 120, 87, 0.9) 100%)',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 8px 16px rgba(16, 185, 129, 0.3)'
+                    } : {
+                      background: 'linear-gradient(135deg, rgba(107, 114, 128, 0.8) 0%, rgba(75, 85, 99, 0.8) 100%)',
+                      color: 'rgba(255, 255, 255, 0.6)',
+                      transform: 'none'
+                    },
+                    '&:disabled': {
+                      background: 'linear-gradient(135deg, rgba(107, 114, 128, 0.8) 0%, rgba(75, 85, 99, 0.8) 100%)',
+                      color: 'rgba(255, 255, 255, 0.6)',
+                      cursor: 'not-allowed'
                     }
                   }}
                 >
                   🚀 СТАРТ ИГРЫ
                 </Button>
               ) : (
-                <Box sx={{ p: 3, bgcolor: '#f5f5f5', borderRadius: 2 }}>
-                  <Typography variant="h6" sx={{ color: '#666', textAlign: 'center' }}>
-                    👑 Только хост комнаты может запустить игру
+                <Box sx={{ 
+                  p: 3, 
+                  background: 'linear-gradient(135deg, rgba(107, 114, 128, 0.1) 0%, rgba(75, 85, 99, 0.1) 100%)',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                }}>
+                  <Typography variant="h6" sx={{ 
+                    color: 'rgba(255, 255, 255, 0.7)', 
+                    textAlign: 'center',
+                    textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+                  }}>
+                    ⏳ Ожидайте запуска игры от хоста
                   </Typography>
                 </Box>
               )}
               
               {!canStart && (
-                <Typography variant="body2" sx={{ color: '#666', mt: 2, textAlign: 'center' }}>
+                <Typography variant="body2" sx={{ 
+                  color: 'rgba(255, 255, 255, 0.7)', 
+                  mt: 2, 
+                  textAlign: 'center',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+                }}>
                   ⚠️ Для запуска игры нужно минимум 2 готовых игрока
                 </Typography>
               )}

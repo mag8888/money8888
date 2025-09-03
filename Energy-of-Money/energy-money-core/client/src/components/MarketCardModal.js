@@ -9,14 +9,16 @@ import {
   Box,
   Chip,
   Alert,
-  Divider
+  Divider,
+  IconButton
 } from '@mui/material';
 import {
   TrendingUp as ProfitIcon,
   TrendingDown as LossIcon,
   Warning as WarningIcon,
   CheckCircle as AcceptIcon,
-  Cancel as DeclineIcon
+  Cancel as DeclineIcon,
+  Close
 } from '@mui/icons-material';
 
 const MarketCardModal = ({ 
@@ -40,6 +42,11 @@ const MarketCardModal = ({
   const isMarketCrash = marketCard.type === 'market_crash';
 
   const getProfitLossText = () => {
+    // Показываем результат только если у игрока есть подходящий актив
+    if (!hasMatchingAsset) {
+      return '';
+    }
+    
     if (isProfit) {
       return `Прибыль: +$${marketCard.profit.toLocaleString()}`;
     } else if (isLoss) {
@@ -72,7 +79,8 @@ const MarketCardModal = ({
         textAlign: 'center', 
         color: 'white',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        position: 'relative'
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
           {marketCard.icon}
@@ -80,6 +88,20 @@ const MarketCardModal = ({
             🏪 Карточка Рынка
           </Typography>
         </Box>
+        <IconButton
+          onClick={onClose}
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            color: 'white',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.1)'
+            }
+          }}
+        >
+          <Close />
+        </IconButton>
       </DialogTitle>
 
       <DialogContent sx={{ p: 3 }}>

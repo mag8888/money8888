@@ -1,9 +1,9 @@
 import React from 'react';
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, Chip, Alert, Divider
+  Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, Chip, Alert, Divider, IconButton
 } from '@mui/material';
 import {
-  Warning as WarningIcon, CreditCard as CreditIcon, Payment as PaymentIcon
+  Warning as WarningIcon, CreditCard as CreditIcon, Payment as PaymentIcon, Close
 } from '@mui/icons-material';
 
 const ExpenseCardModal = ({ open, onClose, expenseCard, currentPlayer, onPay, onTakeCredit }) => {
@@ -29,7 +29,8 @@ const ExpenseCardModal = ({ open, onClose, expenseCard, currentPlayer, onPay, on
       <DialogTitle sx={{ 
         textAlign: 'center', 
         color: 'white',
-        borderBottom: '1px solid rgba(255,255,255,0.2)'
+        borderBottom: '1px solid rgba(255,255,255,0.2)',
+        position: 'relative'
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
           <WarningIcon sx={{ fontSize: 28 }} />
@@ -37,6 +38,20 @@ const ExpenseCardModal = ({ open, onClose, expenseCard, currentPlayer, onPay, on
             Обязательный расход
           </Typography>
         </Box>
+        <IconButton
+          onClick={onClose}
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            color: 'white',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.1)'
+            }
+          }}
+        >
+          <Close />
+        </IconButton>
       </DialogTitle>
 
       <DialogContent sx={{ pt: 3 }}>
