@@ -1442,6 +1442,118 @@ io.on('connection', (socket) => {
     }
   });
 
+  // 🎁 Передача карточки другому игроку
+  socket.on('passCardToPlayer', (data) => {
+    try {
+      const { roomId, fromPlayerId, toPlayerId, card } = data;
+      console.log('🎁 [SERVER] Pass card to player request:', { roomId, fromPlayerId, toPlayerId, card: card.name });
+      
+      const room = rooms.get(roomId);
+      if (!room) {
+        console.log('❌ [SERVER] Room not found:', roomId);
+        socket.emit('cardPassError', { message: 'Комната не найдена' });
+        return;
+      }
+      
+      // Находим отправителя и получателя
+      const fromPlayer = room.currentPlayers.find(p => p.id === fromPlayerId);
+      const toPlayer = room.currentPlayers.find(p => p.id === toPlayerId);
+      
+      if (!fromPlayer) {
+        console.log('❌ [SERVER] From player not found:', fromPlayerId);
+        socket.emit('cardPassError', { message: 'Отправитель не найден' });
+        return;
+      }
+      
+      if (!toPlayer) {
+        console.log('❌ [SERVER] To player not found:', toPlayerId);
+        socket.emit('cardPassError', { message: 'Получатель не найден' });
+        return;
+      }
+      
+      // Отправляем карточку получателю
+      const cardData = {
+        card: {
+          ...card,
+          fromPlayer: fromPlayer.username
+        },
+        fromPlayer: fromPlayer.username
+      };
+      
+      // Находим socket получателя и отправляем ему карточку
+      const toPlayerSocket = Array.from(io.sockets.sockets.values())
+        .find(s => s.id === toPlayer.socketId);
+      
+      if (toPlayerSocket) {
+        toPlayerSocket.emit('cardReceived', cardData);
+        console.log('✅ [SERVER] Card sent to player:', {
+          fromPlayer: fromPlayer.username,
+          toPlayer: toPlayer.username,
+          card: card.name
+        });
+      } else {
+        console.log('❌ [SERVER] To player socket not found:', toPlayer.socketId);
+        socket.emit('cardPassError', { message: 'Получатель не подключен' });
+        return;
+      }
+      
+      // Обновляем глобальную карточку для всех игроков с новым владельцем
+      const globalCardData = {
+        card: card,
+        ownerId: toPlayer.id
+      };
+      
+      io.to(roomId).emit('globalDealCard', globalCardData);
+      console.log('🌍 [SERVER] Global deal card updated with new owner:', {
+        newOwner: toPlayer.username,
+        card: card.name
+      });
+      
+      // Отправляем подтверждение отправителю
+      socket.emit('cardPassSuccess', { 
+        message: `Карточка "${card.name}" передана игроку ${toPlayer.username}`,
+        toPlayer: toPlayer.username
+      });
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error in pass card to player:', error);
+      socket.emit('cardPassError', { message: 'Ошибка при передаче карточки' });
+    }
+  });
+
+  // 🌍 Показ глобальной карточки всем игрокам
+  socket.on('showGlobalDealCard', (data) => {
+    try {
+      const { roomId, card, ownerId } = data;
+      console.log('🌍 [SERVER] Show global deal card request:', { roomId, card: card.name, ownerId });
+      
+      const room = rooms.get(roomId);
+      if (!room) {
+        console.log('❌ [SERVER] Room not found:', roomId);
+        socket.emit('globalDealCardError', { message: 'Комната не найдена' });
+        return;
+      }
+      
+      // Отправляем глобальную карточку всем игрокам в комнате
+      const cardData = {
+        card: card,
+        ownerId: ownerId
+      };
+      
+      io.to(roomId).emit('globalDealCard', cardData);
+      console.log('✅ [SERVER] Global deal card sent to all players:', {
+        roomId,
+        card: card.name,
+        ownerId,
+        totalPlayers: room.currentPlayers.length
+      });
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error in show global deal card:', error);
+      socket.emit('globalDealCardError', { message: 'Ошибка при показе карточки' });
+    }
+  });
+
   socket.on('creditPayment', (data) => {
     try {
       const { roomId, playerId, creditType, amount } = data;

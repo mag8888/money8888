@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Fragment, useRef } from 'react';
+import React, { useState, useEffect, Fragment, useRef, useMemo, useCallback } from 'react';
 import socket from '../socket';
 import { Box, Typography, Button, LinearProgress, Avatar, Chip, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, List, ListItem, ListItemText, Divider, Grid, useMediaQuery, useTheme, IconButton } from '@mui/material';
 import { motion } from 'framer-motion';
@@ -268,6 +268,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       console.log('🎯 [OriginalGameBoard] Получено обновление хода игрока:', data);
       
       setCurrentPlayer(data.currentPlayerIndex);
+      setCurrentTurn(data.currentPlayer || '');
       
       // Сбрасываем таймер для нового игрока
       setTurnTimeLeft(120);
@@ -360,6 +361,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         
         setGamePlayers(initializedPlayers);
         setCurrentPlayer(data.currentTurnIndex || 0);
+        setCurrentTurn(data.currentTurn || '');
         
         // Сохраняем в localStorage
         localStorage.setItem('potok-deneg_gamePlayers', JSON.stringify(initializedPlayers));
@@ -391,6 +393,67 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
     socket.on('balanceUpdateSuccess', handleBalanceUpdateSuccess);
     socket.on('balanceUpdateError', handleBalanceUpdateError);
+
+    // Функция обработки получения карточки от другого игрока
+    const handleCardReceived = (data) => {
+      console.log('🎁 [OriginalGameBoard] Получена карточка от игрока:', data);
+      setReceivedCard(data.card);
+      setShowReceivedCardModal(true);
+      
+      setToast({
+        open: true,
+        message: `🎁 Вы получили карточку "${data.card.name}" от ${data.fromPlayer}`,
+        severity: 'info'
+      });
+    };
+
+    // Функция обработки глобальной карточки
+    const handleGlobalDealCard = (data) => {
+      console.log('🌍 [OriginalGameBoard] Получена глобальная карточка:', data);
+      setGlobalDealCard(data.card);
+      setGlobalDealCardOwner(data.ownerId);
+      setShowDealModal(true);
+      
+      setToast({
+        open: true,
+        message: `🎯 Карточка "${data.card.name}" показана всем игрокам`,
+        severity: 'info'
+      });
+    };
+
+    // Обработчик получения карточки от другого игрока
+    socket.on('cardReceived', handleCardReceived);
+    
+    // Обработчик глобальной карточки для всех игроков
+    socket.on('globalDealCard', handleGlobalDealCard);
+    
+    // Обработчики передачи карточки
+    socket.on('cardPassSuccess', (data) => {
+      console.log('✅ [OriginalGameBoard] Card passed successfully:', data);
+      setToast({
+        open: true,
+        message: data.message,
+        severity: 'success'
+      });
+    });
+    
+    socket.on('cardPassError', (data) => {
+      console.log('❌ [OriginalGameBoard] Card pass error:', data);
+      setToast({
+        open: true,
+        message: data.message,
+        severity: 'error'
+      });
+    });
+    
+    socket.on('globalDealCardError', (data) => {
+      console.log('❌ [OriginalGameBoard] Global deal card error:', data);
+      setToast({
+        open: true,
+        message: data.message,
+        severity: 'error'
+      });
+    });
 
     // Запрашиваем актуальный список игроков при подключении
     if (socket.connected && roomIdRef.current) {
@@ -424,6 +487,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       socket.off('gamePlayersData', handleGamePlayersData);
       socket.off('balanceUpdateSuccess', handleBalanceUpdateSuccess);
       socket.off('balanceUpdateError', handleBalanceUpdateError);
+      socket.off('cardReceived', handleCardReceived);
+      socket.off('globalDealCard', handleGlobalDealCard);
+      socket.off('cardPassSuccess');
+      socket.off('cardPassError');
+      socket.off('globalDealCardError');
     };
   }, []); // Убираем roomId из зависимостей, чтобы избежать ререндеров
 
@@ -437,7 +505,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       { id: 1, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '🎯', description: 'Малая / большая сделка (на выбор)' },
       { id: 2, type: 'expenses', name: 'Всякая всячина', color: '#EC4899', icon: '🛍️', description: 'Обязательные траты от 100 до 4000$ на разные нужды (чайник, кофе, машина, ТВ, прочее)' },
       { id: 3, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '🎯', description: 'Малая / большая сделка (на выбор)' },
-      { id: 4, type: 'charity', name: 'Благотворительность', color: '#F97316', icon: '❤️', description: 'Пожертвовать деньги для получения возможности бросать 2 кубика (10% от дохода игрока, можно отказаться)' },
+      { id: 4, type: 'charity', name: 'Благотворительность', color: '#F97316', icon: '❤️', description: 'Пожертвовать деньги для получения возможности бросать 2 кубика на 3 хода (50% от дохода игрока, можно взять кредит)' },
       { id: 5, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '🎯', description: 'Малая / большая сделка (на выбор)' },
       { id: 6, type: 'payday', name: 'PayDay', color: '#EAB308', icon: '💰', description: 'Получить зарплату' },
       { id: 7, type: 'opportunity', name: 'Возможность', color: '#10B981', icon: '🎯', description: 'Малая / большая сделка (на выбор)' },
@@ -635,7 +703,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [currentDealCard, setCurrentDealCard] = useState(null); // Текущая карточка сделки
   const [showDealModal, setShowDealModal] = useState(false); // Модал сделки
   const [showDealTypeModal, setShowDealTypeModal] = useState(false); // Модал выбора типа сделки
+  const [globalDealCard, setGlobalDealCard] = useState(null); // Глобальная карточка для всех игроков
+  const [globalDealCardOwner, setGlobalDealCardOwner] = useState(null); // Владелец глобальной карточки
+  const [stockQuantity, setStockQuantity] = useState(1); // Количество акций для покупки
   const [showPlayerSelectionModal, setShowPlayerSelectionModal] = useState(false); // Модал выбора игрока для передачи карточки
+  const [receivedCard, setReceivedCard] = useState(null); // Полученная карточка от другого игрока
+  const [showReceivedCardModal, setShowReceivedCardModal] = useState(false); // Модал полученной карточки
   const [showCreditModal, setShowCreditModal] = useState(false); // Модал кредитов
   const [playerCredit, setPlayerCredit] = useState(0); // Текущий кредит игрока
   const [customCreditAmount, setCustomCreditAmount] = useState(''); // Произвольная сумма кредита
@@ -653,8 +726,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   
   // Состояние для благотворительности
   const [showCharityModal, setShowCharityModal] = useState(false);
+  const [showCharityCreditModal, setShowCharityCreditModal] = useState(false);
   const [charityCost, setCharityCost] = useState(0);
   const [hasCharityBonus, setHasCharityBonus] = useState(false);
+  const [charityTurnsLeft, setCharityTurnsLeft] = useState(0); // Количество ходов, оставшихся для бонуса благотворительности
   const [showCharityDiceModal, setShowCharityDiceModal] = useState(false);
   const [charityDiceValues, setCharityDiceValues] = useState({ dice1: 0, dice2: 0, dice3: 0, sum: 0 });
   const [charityDiceCount, setCharityDiceCount] = useState(2); // Количество кубиков для благотворительности (2 для малого круга, 1-3 для большого)
@@ -795,7 +870,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     setDiceRolled(true);
     setCanRollDice(false);
     
-    if (hasCharityBonus) {
+    if (hasCharityBonus && charityTurnsLeft > 0) {
       // Бросаем кубики при наличии бонуса благотворительности
       const dice1 = Math.floor(Math.random() * 6) + 1;
       const dice2 = Math.floor(Math.random() * 6) + 1;
@@ -1652,7 +1727,14 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     // Синхронизируем с сервером
     syncPlayerData(player.socketId, { balance: newBalance });
     
-
+    // Добавляем транзакцию в банк
+    addBankTransaction(
+      'payday',
+      cashFlow,
+      `Получение зарплаты (Cash Flow)`,
+      'Работодатель',
+      player?.username || 'Игрок'
+    );
     
     setToast({
       open: true,
@@ -1890,6 +1972,40 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     console.log(`📉 [OriginalGameBoard] Крах рынка! Все игроки потеряли Bitcoin активы`);
   };
 
+  // Функция для добавления транзакции в банк
+  const addBankTransaction = (type, amount, description, from = null, to = null) => {
+    try {
+      if (playerData?.id && roomId) {
+        const transaction = {
+          id: `${type}_${Date.now()}`,
+          type: type,
+          amount: amount,
+          description: description,
+          timestamp: new Date().toLocaleString('ru-RU'),
+          from: from || playerData?.username || 'Игрок',
+          to: to || 'Банк',
+          status: 'completed',
+          balanceAfter: (gamePlayers.find(p => p.socketId === socket?.id)?.balance || 0)
+        };
+
+        // Получаем существующую историю
+        const existingHistory = JSON.parse(
+          localStorage.getItem(`bank_history_${playerData.id}_${roomId}`) || '[]'
+        );
+
+        // Добавляем новую транзакцию
+        const updatedHistory = [transaction, ...existingHistory];
+        
+        // Сохраняем в localStorage
+        localStorage.setItem(`bank_history_${playerData.id}_${roomId}`, JSON.stringify(updatedHistory));
+        
+        console.log('💾 [OriginalGameBoard] Транзакция добавлена в банк:', transaction);
+      }
+    } catch (error) {
+      console.error('❌ [OriginalGameBoard] Ошибка добавления транзакции в банк:', error);
+    }
+  };
+
   // Функция оплаты карточки расхода
   const handleExpensePay = () => {
     const player = getCurrentPlayer();
@@ -1913,6 +2029,15 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           ? { ...p, balance: newBalance }
           : p
       ));
+      
+      // Добавляем транзакцию в банк
+      addBankTransaction(
+        'expense',
+        expenseCost,
+        `Обязательные расходы: ${currentExpenseCard.name}`,
+        player?.username || 'Игрок',
+        'Магазин'
+      );
       
       setToast({
         open: true,
@@ -1966,6 +2091,25 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         : p
     ));
     
+    // Добавляем транзакции в банк
+    // 1. Транзакция получения кредита
+    addBankTransaction(
+      'credit',
+      shortfall,
+      `Получение кредита для оплаты: ${currentExpenseCard.name}`,
+      'Банк',
+      player?.username || 'Игрок'
+    );
+    
+    // 2. Транзакция оплаты расхода
+    addBankTransaction(
+      'expense',
+      currentExpenseCard.cost,
+      `Обязательные расходы: ${currentExpenseCard.name}`,
+      player?.username || 'Игрок',
+      'Магазин'
+    );
+    
     // Откладываем карточку в отбой
     expenseDeckManager.discardCard(currentExpenseCard);
     
@@ -2002,11 +2146,22 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       
       // Активируем бонус благотворительности
       setHasCharityBonus(true);
+      setCharityDiceCount(isOnBigCircle ? 3 : 2); // На большом круге 3 кубика, на малом 2
+      setCharityTurnsLeft(isOnBigCircle ? 999 : 3); // На большом круге до конца игры, на малом 3 хода
+      
+      // Добавляем транзакцию благотворительности в банк
+      addBankTransaction(
+        'charity',
+        charityCost,
+        `Благотворительность`,
+        player?.username || 'Игрок',
+        'Благотворительная организация'
+      );
       
       // Формируем сообщение в зависимости от круга
       const diceMessage = isOnBigCircle 
-        ? `Теперь можно бросать 1, 2 или 3 кубика на выбор!`
-        : `Теперь можно бросать 2 кубика!`;
+        ? `Теперь можно бросать 1, 2 или 3 кубика на выбор до конца игры!`
+        : `Теперь можно бросать 2 кубика на 3 хода!`;
       
       setToast({
         open: true,
@@ -2016,19 +2171,16 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       
       console.log(`❤️ [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} принял благотворительность за $${charityCost} (${isOnBigCircle ? 'большой круг' : 'малый круг'})`);
     } else {
-      setToast({
-        open: true,
-        message: `❌ Недостаточно денег для благотворительности. Нужно: $${charityCost.toLocaleString()}`,
-        severity: 'error'
-      });
-    }
-    
+      // Показываем модал с выбором: взять кредит или отказаться
     setShowCharityModal(false);
+      setShowCharityCreditModal(true);
+    }
   };
   
   // Функция отказа от благотворительности
   const handleCharityDecline = () => {
     setShowCharityModal(false);
+    setShowCharityCreditModal(false);
     
     setToast({
       open: true,
@@ -2037,6 +2189,70 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     });
     
     console.log(`😔 [OriginalGameBoard] Игрок отказался от благотворительности`);
+  };
+
+  // Функция взятия кредита для благотворительности
+  const handleCharityTakeCredit = () => {
+    const player = getCurrentPlayer();
+    const currentBalance = isOnBigCircle ? bigCircleBalance : playerMoney;
+    const shortfall = charityCost - currentBalance;
+    
+    // Добавляем кредит игроку
+    const newBalance = currentBalance + shortfall - charityCost;
+    const newCredits = (player?.credits || 0) + shortfall;
+    
+    // Обновляем баланс
+    if (isOnBigCircle) {
+      setBigCircleBalance(newBalance);
+    } else {
+      setPlayerMoney(newBalance);
+    }
+    
+    // Обновляем кредиты
+    setGamePlayers(prev => prev.map(p => 
+      p.socketId === player?.socketId 
+        ? { ...p, credits: newCredits }
+        : p
+    ));
+    
+    // Активируем бонус благотворительности
+    setHasCharityBonus(true);
+    setCharityDiceCount(isOnBigCircle ? 3 : 2);
+    setCharityTurnsLeft(isOnBigCircle ? 999 : 3);
+    
+    // Добавляем транзакции в банк
+    // 1. Транзакция получения кредита
+    addBankTransaction(
+      'credit',
+      shortfall,
+      `Получение кредита для благотворительности`,
+      'Банк',
+      player?.username || 'Игрок'
+    );
+    
+    // 2. Транзакция благотворительности
+    addBankTransaction(
+      'charity',
+      charityCost,
+      `Благотворительность`,
+      player?.username || 'Игрок',
+      'Благотворительная организация'
+    );
+    
+    setShowCharityCreditModal(false);
+    
+    // Формируем сообщение в зависимости от круга
+    const diceMessage = isOnBigCircle 
+      ? `Теперь можно бросать 1, 2 или 3 кубика на выбор до конца игры!`
+      : `Теперь можно бросать 2 кубика на 3 хода!`;
+    
+    setToast({
+      open: true,
+      message: `💳 ${player?.username || 'Игрок'} взял кредит $${shortfall.toLocaleString()} для благотворительности! ${diceMessage}`,
+      severity: 'warning'
+    });
+    
+    console.log(`💳 [OriginalGameBoard] Игрок ${player?.username || 'Игрок'} взял кредит $${shortfall} для благотворительности`);
   };
   
   // Функция выбора хода по кубикам благотворительности
@@ -2104,7 +2320,15 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     // Берем первую карточку из колоды
     const card = availableCards[0];
     setCurrentDealCard(card);
-    setShowDealModal(true);
+    setStockQuantity(1); // Сбрасываем количество акций при открытии модала
+    
+    // Отправляем глобальную карточку всем игрокам
+    const currentPlayerData = getCurrentPlayer();
+    socket.emit('showGlobalDealCard', {
+      roomId: roomIdRef.current,
+      card: card,
+      ownerId: currentPlayerData.id
+    });
     
     // Убираем карточку из колоды
     setDealDeck(prev => prev.filter(c => c.id !== card.id));
@@ -2185,15 +2409,45 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     setShowFreeCardsModal(false);
   };
 
+  // Функция проверки, является ли карточка акцией
+  const isStockCard = (card) => {
+    return card && card.maxQuantity && card.maxQuantity > 1 && 
+           (card.name.includes('акции') || card.name.includes('акций') || 
+            card.name.includes('BTC') || card.name.includes('Tesla') || 
+            card.name.includes('Microsoft') || card.name.includes('Nvidia') || 
+            card.name.includes('Apple'));
+  };
+
+  // Функция проверки, является ли текущий игрок владельцем карточки
+  const isCardOwner = () => {
+    const currentPlayerData = getCurrentPlayer();
+    if (!currentPlayerData) return false;
+    
+    // Если есть текущая карточка (локальная), то это владелец
+    if (currentDealCard) return true;
+    
+    // Если есть глобальная карточка, проверяем владельца
+    if (globalDealCard && globalDealCardOwner) {
+      return currentPlayerData.id === globalDealCardOwner;
+    }
+    
+    return false;
+  };
+
   // Функция покупки карточки сделки
   const handleBuyDeal = () => {
-    if (!currentDealCard) return;
+    const card = currentDealCard || globalDealCard;
+    if (!card) return;
     
     const player = getCurrentPlayer();
     
-    if (playerMoney >= currentDealCard.cost) {
+    // Определяем количество и общую стоимость
+    const quantity = isStockCard(card) ? stockQuantity : 1;
+    const totalCost = card.cost * quantity;
+    
+    if (playerMoney >= totalCost) {
       // Покупаем карточку
-      const newBalance = playerMoney - currentDealCard.cost;
+      const newBalance = playerMoney - totalCost;
       
       // Синхронизируем с сервером
       syncPlayerData(player?.socketId, { balance: newBalance });
@@ -2207,18 +2461,18 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       ));
       
       // Обработка карточек "другу нужны деньги"
-      if (currentDealCard.isFriendMoneyCard) {
+      if (card.isFriendMoneyCard) {
         setFriendMoneyCardsUsed(prev => prev + 1);
         
         // Применяем эффекты в зависимости от номера карточки
-        if (currentDealCard.friendCardNumber === 1) {
+        if (card.friendCardNumber === 1) {
           // Первая карточка - ничего не получает
           setToast({
             open: true,
             message: `💝 ${player.username} помог другу! Друг благодарен.`,
             severity: 'info'
           });
-        } else if (currentDealCard.friendCardNumber === 2) {
+        } else if (card.friendCardNumber === 2) {
           // Вторая карточка - дополнительный ход
           setHasExtraTurn(true);
           setToast({
@@ -2226,7 +2480,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             message: `🎯 ${player.username} помог другу! Друг передает свой ход - у вас дополнительный ход!`,
             severity: 'success'
           });
-        } else if (currentDealCard.friendCardNumber === 3) {
+        } else if (card.friendCardNumber === 3) {
           // Третья карточка - бесплатные карточки
           setHasFreeCards(true);
           setToast({
@@ -2236,19 +2490,22 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           });
         }
         
-        console.log(`💝 [OriginalGameBoard] Игрок ${player.username} купил карточку "другу нужны деньги" #${currentDealCard.friendCardNumber}`);
+        console.log(`💝 [OriginalGameBoard] Игрок ${player.username} купил карточку "другу нужны деньги" #${card.friendCardNumber}`);
         setShowDealModal(false);
         setCurrentDealCard(null);
+        setGlobalDealCard(null);
+        setGlobalDealCardOwner(null);
+        setStockQuantity(1); // Сбрасываем количество акций
         return;
       }
       
       // Карточки с расходами не добавляются в активы
-      if (currentDealCard.isExpense) {
+      if (card.isExpense) {
         // Просто тратим деньги, актив не создается
       } else {
         // Проверяем, есть ли уже такой актив у игрока
         const existingAssetIndex = getCurrentPlayerAssets().findIndex(asset => 
-          asset.name === currentDealCard.name && asset.type === 'deal'
+          asset.name === card.name && asset.type === 'deal'
         );
         
         if (existingAssetIndex !== -1) {
@@ -2256,7 +2513,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           const currentAssets = getCurrentPlayerAssets();
           const updatedAssets = currentAssets.map((asset, index) => 
             index === existingAssetIndex 
-              ? { ...asset, quantity: asset.quantity + 1 }
+              ? { ...asset, quantity: asset.quantity + quantity }
               : asset
           );
           updateCurrentPlayerAssets(updatedAssets);
@@ -2265,17 +2522,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           const newAsset = {
             id: Date.now(),
             type: 'deal',
-            name: currentDealCard.name,
-            icon: currentDealCard.income === 0 ? '💝' : currentDealCard.type === 'small' ? '🏪' : '🏢',
-            value: currentDealCard.cost,
-            cost: currentDealCard.cost,
-            income: currentDealCard.income,
-            color: currentDealCard.income === 0 ? '#F59E0B' : currentDealCard.type === 'small' ? '#10B981' : '#8B5CF6',
-            description: currentDealCard.description,
-            quantity: 1,
-            isDividendStock: currentDealCard.isDividendStock || false,
-            dividendYield: currentDealCard.dividendYield || 0,
-            maxQuantity: currentDealCard.maxQuantity || 1
+            name: card.name,
+            icon: card.income === 0 ? '💝' : card.type === 'small' ? '🏪' : '🏢',
+            value: card.cost,
+            cost: card.cost,
+            income: card.income,
+            color: card.income === 0 ? '#F59E0B' : card.type === 'small' ? '#10B981' : '#8B5CF6',
+            description: card.description,
+            quantity: quantity,
+            isDividendStock: card.isDividendStock || false,
+            dividendYield: card.dividendYield || 0,
+            maxQuantity: card.maxQuantity || 1
           };
           
           const currentAssets = getCurrentPlayerAssets();
@@ -2284,16 +2541,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       }
       
       // Определяем тип сообщения в зависимости от типа карточки
-      const isCharity = currentDealCard.income === 0 && !currentDealCard.isExpense && !currentDealCard.isFriendMoneyCard;
-      const isExpense = currentDealCard.isExpense;
+      const isCharity = card.income === 0 && !card.isExpense && !card.isFriendMoneyCard;
+      const isExpense = card.isExpense;
       
       let message;
       if (isExpense) {
-        message = `🔧 ${player.username} потратил $${currentDealCard.cost.toLocaleString()} на ${currentDealCard.name}`;
+        message = `🔧 ${player.username} потратил $${totalCost.toLocaleString()} на ${card.name}`;
       } else if (isCharity) {
-        message = `💝 ${player.username} пожертвовал $${currentDealCard.cost.toLocaleString()} на ${currentDealCard.name}`;
+        message = `💝 ${player.username} пожертвовал $${totalCost.toLocaleString()} на ${card.name}`;
       } else {
-        message = `✅ ${player.username} купил ${currentDealCard.name} за $${currentDealCard.cost.toLocaleString()}`;
+        const quantityText = quantity > 1 ? ` (${quantity} шт.)` : '';
+        message = `✅ ${player.username} купил ${card.name}${quantityText} за $${totalCost.toLocaleString()}`;
       }
       
       setToast({
@@ -2302,43 +2560,51 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         severity: isExpense ? 'warning' : isCharity ? 'info' : 'success'
       });
       
-      console.log(`✅ [OriginalGameBoard] Игрок ${player.username} ${isExpense ? 'потратил на' : isCharity ? 'пожертвовал на' : 'купил'} ${currentDealCard.name}`);
+      console.log(`✅ [OriginalGameBoard] Игрок ${player.username} ${isExpense ? 'потратил на' : isCharity ? 'пожертвовал на' : 'купил'} ${card.name}`);
     } else {
       setToast({
         open: true,
-        message: `❌ Недостаточно денег для покупки ${currentDealCard.name}`,
+        message: `❌ Недостаточно денег для покупки ${card.name}${quantity > 1 ? ` (${quantity} шт.)` : ''}. Нужно: $${totalCost.toLocaleString()}`,
         severity: 'error'
       });
     }
     
     setShowDealModal(false);
     setCurrentDealCard(null);
+    setGlobalDealCard(null);
+    setGlobalDealCardOwner(null);
+    setStockQuantity(1); // Сбрасываем количество акций
   };
 
   // Функция отмены карточки сделки
   const handleCancelDeal = () => {
-    if (!currentDealCard) return;
+    const card = currentDealCard || globalDealCard;
+    if (!card) return;
     
     // Карточка уходит в отбой
-    setDiscardPile(prev => [...prev, currentDealCard]);
+    setDiscardPile(prev => [...prev, card]);
     
 
     
     setToast({
       open: true,
-      message: `🔄 Карточка ${currentDealCard.name} ушла в отбой (всего в отбое: ${discardPile.length + 1})`,
+      message: `🔄 Карточка ${card.name} ушла в отбой (всего в отбое: ${discardPile.length + 1})`,
       severity: 'info'
     });
     
     setShowDealModal(false);
     setCurrentDealCard(null);
+    setGlobalDealCard(null);
+    setGlobalDealCardOwner(null);
+    setStockQuantity(1); // Сбрасываем количество акций
   };
 
 
 
   // Функция передачи карточки другому игроку
   const handlePassCardToPlayer = () => {
-    if (!currentDealCard) return;
+    const card = currentDealCard || globalDealCard;
+    if (!card) return;
     
     // Показываем модал выбора игрока
     setShowPlayerSelectionModal(true);
@@ -2346,15 +2612,68 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция передачи карточки конкретному игроку
   const handlePassCardToSpecificPlayer = (playerIndex) => {
-    if (!currentDealCard) return;
+    const card = currentDealCard || globalDealCard;
+    if (!card) return;
     
     const currentPlayerData = getCurrentPlayer();
     const targetPlayer = getPlayerByIndex(playerIndex);
-    const assets = getCurrentPlayerAssets();
     
-    // Проверяем, есть ли уже такой актив у целевого игрока
-    const existingAssetIndex = assets.findIndex(asset => 
-      asset.name === currentDealCard.name && asset.type === 'deal'
+    // Отправляем карточку на сервер для передачи другому игроку
+    socket.emit('passCardToPlayer', {
+      roomId: roomIdRef.current,
+      fromPlayerId: currentPlayerData.id,
+      toPlayerId: targetPlayer.id,
+      card: card
+    });
+    
+    setToast({
+      open: true,
+      message: `🎁 ${currentPlayerData.name} передал ${card.name} игроку ${targetPlayer.name}`,
+      severity: 'success'
+    });
+    
+    console.log(`🎁 [OriginalGameBoard] ${currentPlayerData.name} передал ${card.name} игроку ${targetPlayer.name}`);
+    
+    setShowPlayerSelectionModal(false);
+    setShowDealModal(false);
+    setCurrentDealCard(null);
+    setGlobalDealCard(null);
+    setGlobalDealCardOwner(null);
+    setStockQuantity(1); // Сбрасываем количество акций
+  };
+
+  // Функция покупки полученной карточки
+  const handleBuyReceivedCard = () => {
+    if (!receivedCard) return;
+    
+    const player = getCurrentPlayer();
+    
+    // Определяем количество и общую стоимость
+    const quantity = isStockCard(receivedCard) ? stockQuantity : 1;
+    const totalCost = receivedCard.cost * quantity;
+    
+    if (playerMoney >= totalCost) {
+      // Покупаем карточку
+      const newBalance = playerMoney - totalCost;
+      
+      // Синхронизируем с сервером
+      syncPlayerData(player?.socketId, { balance: newBalance });
+      
+      // Обновляем локально для отзывчивости
+      setPlayerMoney(newBalance);
+      
+      // Добавляем транзакцию в банк
+      addBankTransaction(
+        'expense',
+        totalCost,
+        `Покупка переданной карточки: ${receivedCard.name}${quantity > 1 ? ` (${quantity} шт.)` : ''}`,
+        player?.username || 'Игрок',
+        'Игрок'
+      );
+      
+      // Проверяем, есть ли уже такой актив у игрока
+      const existingAssetIndex = getCurrentPlayerAssets().findIndex(asset => 
+        asset.name === receivedCard.name && asset.type === 'deal'
     );
     
     if (existingAssetIndex !== -1) {
@@ -2362,7 +2681,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       const currentAssets = getCurrentPlayerAssets();
       const updatedAssets = currentAssets.map((asset, index) => 
         index === existingAssetIndex 
-          ? { ...asset, quantity: asset.quantity + 1 }
+            ? { ...asset, quantity: asset.quantity + quantity }
           : asset
       );
       updateCurrentPlayerAssets(updatedAssets);
@@ -2371,35 +2690,71 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       const newAsset = {
         id: Date.now(),
         type: 'deal',
-        name: currentDealCard.name,
-        icon: currentDealCard.income === 0 ? '💝' : currentDealCard.type === 'small' ? '🏪' : '🏢',
-        value: currentDealCard.cost,
-        cost: currentDealCard.cost,
-        income: currentDealCard.income,
-        color: currentDealCard.income === 0 ? '#F59E0B' : currentDealCard.type === 'small' ? '#10B981' : '#8B5CF6',
-        description: currentDealCard.description,
-        receivedFrom: currentPlayerData.name, // От кого получена
-        quantity: 1,
-        isDividendStock: currentDealCard.isDividendStock || false,
-        dividendYield: currentDealCard.dividendYield || 0,
-        maxQuantity: currentDealCard.maxQuantity || 1
+          name: receivedCard.name,
+          icon: receivedCard.income === 0 ? '💝' : receivedCard.type === 'small' ? '🏪' : '🏢',
+          value: receivedCard.cost,
+          cost: receivedCard.cost,
+          income: receivedCard.income,
+          color: receivedCard.income === 0 ? '#F59E0B' : receivedCard.type === 'small' ? '#10B981' : '#8B5CF6',
+          description: receivedCard.description,
+          receivedFrom: receivedCard.fromPlayer || 'Игрок', // От кого получена
+          quantity: quantity,
+          isDividendStock: receivedCard.isDividendStock || false,
+          dividendYield: receivedCard.dividendYield || 0,
+          maxQuantity: receivedCard.maxQuantity || 1
       };
       
       const currentAssets = getCurrentPlayerAssets();
       updateCurrentPlayerAssets([...currentAssets, newAsset]);
     }
+      
+      // Определяем тип сообщения
+      const isCharity = receivedCard.income === 0 && !receivedCard.isExpense;
+      const isExpense = receivedCard.isExpense;
+      
+      let message;
+      if (isExpense) {
+        message = `🔧 ${player.username} потратил $${totalCost.toLocaleString()} на ${receivedCard.name}`;
+      } else if (isCharity) {
+        message = `💝 ${player.username} пожертвовал $${totalCost.toLocaleString()} на ${receivedCard.name}`;
+      } else {
+        const quantityText = quantity > 1 ? ` (${quantity} шт.)` : '';
+        message = `✅ ${player.username} купил переданную карточку ${receivedCard.name}${quantityText} за $${totalCost.toLocaleString()}`;
+    }
     
     setToast({
       open: true,
-      message: `🎁 ${currentPlayerData.name} передал ${currentDealCard.name} игроку ${targetPlayer.name}`,
-      severity: 'success'
+        message: message,
+        severity: isExpense ? 'warning' : isCharity ? 'info' : 'success'
+      });
+      
+      console.log(`✅ [OriginalGameBoard] Игрок ${player.username} купил переданную карточку ${receivedCard.name}`);
+    } else {
+      setToast({
+        open: true,
+        message: `❌ Недостаточно денег для покупки ${receivedCard.name}${quantity > 1 ? ` (${quantity} шт.)` : ''}. Нужно: $${totalCost.toLocaleString()}`,
+        severity: 'error'
+      });
+    }
+    
+    setShowReceivedCardModal(false);
+    setReceivedCard(null);
+    setStockQuantity(1); // Сбрасываем количество акций
+  };
+
+  // Функция отказа от полученной карточки
+  const handleRejectReceivedCard = () => {
+    if (!receivedCard) return;
+    
+    setToast({
+      open: true,
+      message: `❌ Вы отказались от карточки ${receivedCard.name}`,
+      severity: 'info'
     });
     
-    console.log(`🎁 [OriginalGameBoard] ${currentPlayerData.name} передал ${currentDealCard.name} игроку ${targetPlayer.name}`);
-    
-    setShowPlayerSelectionModal(false);
-    setShowDealModal(false);
-    setCurrentDealCard(null);
+    setShowReceivedCardModal(false);
+    setReceivedCard(null);
+    setStockQuantity(1); // Сбрасываем количество акций
   };
 
   // Функция для расчета денежного потока (PAYDAY)
@@ -2855,6 +3210,20 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       return;
     }
     
+    // Уменьшаем количество ходов благотворительности для текущего игрока
+    if (hasCharityBonus && charityTurnsLeft > 0) {
+      const newTurnsLeft = charityTurnsLeft - 1;
+      setCharityTurnsLeft(newTurnsLeft);
+      
+      if (newTurnsLeft <= 0) {
+        setHasCharityBonus(false);
+        setCharityTurnsLeft(0);
+        console.log('⏰ [OriginalGameBoard] Бонус благотворительности закончился');
+      } else {
+        console.log(`⏰ [OriginalGameBoard] Осталось ходов благотворительности: ${newTurnsLeft}`);
+      }
+    }
+    
     const nextPlayer = (currentPlayer + 1) % gamePlayers.length;
     
     // Синхронизируем с сервером
@@ -2929,6 +3298,20 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             console.log('⏰ Время хода истекло!');
             // Автоматически переходим к следующему игроку
             setTimeout(() => {
+              // Уменьшаем количество ходов благотворительности для текущего игрока
+              if (hasCharityBonus && charityTurnsLeft > 0) {
+                const newTurnsLeft = charityTurnsLeft - 1;
+                setCharityTurnsLeft(newTurnsLeft);
+                
+                if (newTurnsLeft <= 0) {
+                  setHasCharityBonus(false);
+                  setCharityTurnsLeft(0);
+                  console.log('⏰ [OriginalGameBoard] Бонус благотворительности закончился (время истекло)');
+                } else {
+                  console.log(`⏰ [OriginalGameBoard] Осталось ходов благотворительности: ${newTurnsLeft} (время истекло)`);
+                }
+              }
+              
               const nextPlayer = (currentPlayer + 1) % gamePlayers.length;
               
               // Синхронизируем с сервером
@@ -3816,30 +4199,59 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               const playerIndexInCell = playersOnSameCell.indexOf(player);
               const totalPlayersOnCell = playersOnSameCell.length;
               
+              // Отладочная информация (только при изменении позиции)
+              if ((player.username === 'MAG' || player.username === 'Romeo234') && 
+                  (!player._lastLoggedPosition || player._lastLoggedPosition !== player.position)) {
+                console.log(`🎯 [OriginalGameBoard] Позиционирование фишки ${player.username}:`, {
+                  position: player.position,
+                  totalPlayersOnCell,
+                  playerIndexInCell,
+                  playersOnSameCell: playersOnSameCell.map(p => p.username)
+                });
+                player._lastLoggedPosition = player.position;
+              }
+              
               // Вычисляем смещение от центра клетки
               let offsetX = 0;
               let offsetY = 0;
               
+              // ВСЕГДА размещаем фишки по центру, смещение только при нескольких игроках
               if (totalPlayersOnCell > 1) {
-                // Если на клетке несколько игроков, размещаем их по кругу ближе к центру
+                // Если на клетке несколько игроков, размещаем их по кругу вокруг центра
                 let offsetRadius;
                 
                 // Адаптивный радиус в зависимости от количества игроков
                 if (totalPlayersOnCell === 2) {
-                  offsetRadius = 8; // Для 2 игроков - ближе к центру
+                  offsetRadius = 6; // Для 2 игроков - минимальное смещение
                 } else if (totalPlayersOnCell === 3) {
-                  offsetRadius = 10; // Для 3 игроков
+                  offsetRadius = 8; // Для 3 игроков
                 } else {
-                  offsetRadius = 12; // Для 4+ игроков
+                  offsetRadius = 10; // Для 4+ игроков
                 }
                 
                 const offsetAngle = (playerIndexInCell * 360) / totalPlayersOnCell;
                 offsetX = Math.cos((offsetAngle - 90) * Math.PI / 180) * offsetRadius;
                 offsetY = Math.sin((offsetAngle - 90) * Math.PI / 180) * offsetRadius;
-              } else {
-                // Если игрок один на клетке, размещаем его точно в центре
-                offsetX = 0;
-                offsetY = 0;
+              }
+              // Если игрок один на клетке, offsetX и offsetY остаются 0 (центр)
+              
+              // Отладочная информация для финальных координат (только при изменении)
+              if ((player.username === 'MAG' || player.username === 'Romeo234') && 
+                  (!player._lastLoggedCoords || 
+                   player._lastLoggedCoords.baseX !== x || 
+                   player._lastLoggedCoords.baseY !== y ||
+                   player._lastLoggedCoords.offsetX !== offsetX ||
+                   player._lastLoggedCoords.offsetY !== offsetY)) {
+                console.log(`🎯 [OriginalGameBoard] Финальные координаты ${player.username}:`, {
+                  baseX: x,
+                  baseY: y,
+                  offsetX,
+                  offsetY,
+                  finalX: x + offsetX,
+                  finalY: y + offsetY,
+                  isCentered: offsetX === 0 && offsetY === 0
+                });
+                player._lastLoggedCoords = { baseX: x, baseY: y, offsetX, offsetY };
               }
               
               return (
@@ -3874,40 +4286,41 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                       width: '100%',
                       height: '100%',
                       background: isConnected 
-                        ? `linear-gradient(135deg, ${player.color} 0%, ${player.color}CC 50%, ${player.color}AA 100%)`
+                        ? `linear-gradient(135deg, ${player.color} 0%, ${player.color}DD 50%, ${player.color}BB 100%)`
                         : `linear-gradient(135deg, #666 0%, #444 100%)`,
                       borderRadius: '50%',
                       border: movingPlayerId === player.id ? '4px solid #FFD700' : 
-                              isConnected ? '3px solid rgba(255,255,255,0.9)' : '3px solid #999',
+                              isConnected ? '3px solid rgba(255,255,255,0.95)' : '3px solid #999',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '14px',
                       fontWeight: 'bold',
                       color: 'white',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.8)',
                       boxShadow: movingPlayerId === player.id 
-                        ? '0 0 20px rgba(255, 215, 0, 0.8), 0 4px 15px rgba(0,0,0,0.4)' 
+                        ? '0 0 25px rgba(255, 215, 0, 0.9), 0 6px 20px rgba(0,0,0,0.5)' 
                         : isConnected 
-                          ? `0 4px 15px rgba(0,0,0,0.4), 0 0 12px ${player.color}40, 0 0 6px ${player.color}60`
-                          : '0 4px 15px rgba(0,0,0,0.4), 0 0 5px rgba(255,255,255,0.1)',
+                          ? `0 6px 20px rgba(0,0,0,0.5), 0 0 15px ${player.color}50, 0 0 8px ${player.color}70`
+                          : '0 6px 20px rgba(0,0,0,0.5), 0 0 5px rgba(255,255,255,0.1)',
                       cursor: 'pointer',
                       transition: 'all 0.3s ease',
                       animation: movingPlayerId === player.id ? 'pulse 1s infinite' : 'none',
                       opacity: isConnected ? 1 : 0.6,
                       '@keyframes pulse': {
                         '0%': { 
-                          boxShadow: `0 0 20px rgba(255, 215, 0, 0.8), 0 4px 15px rgba(0,0,0,0.4), 0 0 12px ${player.color}40` 
+                          boxShadow: `0 0 25px rgba(255, 215, 0, 0.9), 0 6px 20px rgba(0,0,0,0.5), 0 0 15px ${player.color}50` 
                         },
                         '50%': { 
-                          boxShadow: `0 0 30px rgba(255, 215, 0, 1), 0 4px 15px rgba(0,0,0,0.4), 0 0 18px ${player.color}60` 
+                          boxShadow: `0 0 35px rgba(255, 215, 0, 1), 0 6px 20px rgba(0,0,0,0.5), 0 0 20px ${player.color}70` 
                         },
                         '100%': { 
-                          boxShadow: `0 0 20px rgba(255, 215, 0, 0.8), 0 4px 15px rgba(0,0,0,0.4), 0 0 12px ${player.color}40` 
+                          boxShadow: `0 0 25px rgba(255, 215, 0, 0.9), 0 6px 20px rgba(0,0,0,0.5), 0 0 15px ${player.color}50` 
                         }
                       },
                       '&:hover': {
-                        transform: 'scale(1.2)',
-                        boxShadow: `0 8px 25px rgba(0,0,0,0.5), 0 0 20px ${player.color}80, 0 0 10px ${player.color}60`
+                        transform: 'scale(1.3)',
+                        boxShadow: `0 10px 30px rgba(0,0,0,0.6), 0 0 25px ${player.color}90, 0 0 15px ${player.color}80`
                       }
                     }}
                     title={`${player.username} - ${player.profession?.name || player.profession || 'Без профессии'} (позиция: ${player.position})`}
@@ -4054,6 +4467,18 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     })()}
                   </Typography>
                   
+                  {/* Индикатор текущего хода */}
+                  {currentTurn && (
+                    <Typography variant="body2" sx={{ 
+                      color: currentTurn === playerData?.username ? '#10B981' : '#F59E0B', 
+                      fontSize: isMobile ? '0.8rem' : 'inherit',
+                      fontWeight: 'bold',
+                      mt: 0.5
+                    }}>
+                      {currentTurn === playerData?.username ? '🎲 Ваш ход!' : `🎲 Ход: ${currentTurn}`}
+                    </Typography>
+                  )}
+                  
                   {/* Информация о детях */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
                     <Typography variant="body2" sx={{ color: '#94A3B8', fontSize: '0.8rem' }}>
@@ -4078,6 +4503,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                           }}
                         >
                           {index + 1}. {player.username}
+                          {player.username === currentTurn && ' 🎲'}
                           {player.username === playerData?.username && ' (Вы)'}
                         </Typography>
                       ))}
@@ -4421,7 +4847,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                         }}>
                           {player.username || 'Неизвестный игрок'}
                           {isCurrentPlayer && ' (Вы)'}
-                          {isCurrentTurn && ' (Ход)'}
+                          {isCurrentTurn && ' (🎲 Ход)'}
                           {!isConnected && ' 🔴'}
                         </Typography>
                         {player.profession && (
@@ -5145,6 +5571,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 💝 Пожертвовав деньги, вы получите возможность бросать 2 кубика и выбирать ход!
                 <br />
                 🎲 Вы сможете ходить по одному кубику или по сумме двух кубиков
+                <br />
+                <strong>Бонус действует 3 хода!</strong>
               </>
             )}
           </Typography>
@@ -5177,6 +5605,101 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             }}
           >
             ❤️ Принять (${charityCost.toLocaleString()})
+          </Button>
+          <Button
+            onClick={handleCharityDecline}
+            sx={{
+              background: 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #4B5563 0%, #374151 100%)'
+              }
+            }}
+          >
+            😔 Отказаться
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Модальное окно кредита для благотворительности */}
+      <Dialog
+        open={showCharityCreditModal}
+        onClose={() => setShowCharityCreditModal(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)',
+            borderRadius: '20px',
+            border: '2px solid #F59E0B',
+            boxShadow: '0 25px 50px rgba(245, 158, 11, 0.3)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          color: '#92400E', 
+          textAlign: 'center',
+          borderBottom: '1px solid #F59E0B',
+          pb: 2
+        }}>
+          💳 Недостаточно средств для благотворительности
+        </DialogTitle>
+        
+        <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
+          <Typography variant="h6" sx={{ color: '#92400E', mb: 2 }}>
+            У вас недостаточно денег для благотворительности
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#92400E', mb: 2 }}>
+            Стоимость: <strong>${charityCost.toLocaleString()}</strong>
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#92400E', mb: 2 }}>
+            У вас есть: <strong>${(isOnBigCircle ? bigCircleBalance : playerMoney).toLocaleString()}</strong>
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#92400E', mb: 3 }}>
+            Недостает: <strong>${(charityCost - (isOnBigCircle ? bigCircleBalance : playerMoney)).toLocaleString()}</strong>
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#92400E', mb: 3 }}>
+            💳 Вы можете взять кредит для оплаты благотворительности
+            <br />
+            {isOnBigCircle ? (
+              <>
+                💝 После оплаты вы получите возможность бросать 1, 2 или 3 кубика на выбор до конца игры!
+              </>
+            ) : (
+              <>
+                💝 После оплаты вы получите возможность бросать 2 кубика на 3 хода!
+              </>
+            )}
+          </Typography>
+        </DialogContent>
+
+        <DialogActions sx={{ 
+          p: 3, 
+          borderTop: '1px solid #F59E0B',
+          justifyContent: 'center',
+          gap: 2
+        }}>
+          <Button
+            onClick={handleCharityTakeCredit}
+            sx={{
+              background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)'
+              }
+            }}
+          >
+            💳 Взять кредит
           </Button>
           <Button
             onClick={handleCharityDecline}
@@ -5360,7 +5883,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         
         <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
           <Typography variant="h6" sx={{ color: 'white', mb: 3 }}>
-            {gamePlayers[currentPlayer]?.name}, выберите тип сделки:
+            {gamePlayers[currentPlayer]?.name}, Выберите тип сделки:
           </Typography>
           
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
@@ -5427,16 +5950,21 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           pb: 2
         }}>
           💼 Карточка сделки
+          {globalDealCard && globalDealCardOwner && (
+            <Typography variant="body2" sx={{ color: '#94A3B8', mt: 1 }}>
+              {isCardOwner() ? '🎯 Ваша карточка' : '👀 Карточка другого игрока'}
+            </Typography>
+          )}
         </DialogTitle>
         
         <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
-          {currentDealCard && (
+          {(currentDealCard || globalDealCard) && (
             <Box>
               <Typography variant="h5" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
-                {currentDealCard.name}
+                {(currentDealCard || globalDealCard).name}
               </Typography>
               <Typography variant="body1" sx={{ color: '#94A3B8', mb: 3 }}>
-                {currentDealCard.description}
+                {(currentDealCard || globalDealCard).description}
               </Typography>
               
               <Box sx={{ 
@@ -5446,12 +5974,59 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 mb: 3 
               }}>
                 <Typography variant="h6" sx={{ color: '#10B981', mb: 1 }}>
-                  Стоимость: ${currentDealCard.cost.toLocaleString()}
+                  Стоимость: ${(currentDealCard || globalDealCard).cost.toLocaleString()}
                 </Typography>
                 <Typography variant="h6" sx={{ color: '#3B82F6' }}>
-                  Доход: ${currentDealCard.income.toLocaleString()}/мес
+                  Доход: ${(currentDealCard || globalDealCard).income.toLocaleString()}/мес
                 </Typography>
               </Box>
+              
+              {/* Поле ввода количества для акций */}
+              {isStockCard(currentDealCard || globalDealCard) && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="body2" sx={{ color: '#94A3B8', mb: 1 }}>
+                    Количество акций (1-{(currentDealCard || globalDealCard).maxQuantity.toLocaleString()}):
+                  </Typography>
+                  <TextField
+                    type="number"
+                    value={stockQuantity}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      const clampedValue = Math.max(1, Math.min(value, (currentDealCard || globalDealCard).maxQuantity));
+                      setStockQuantity(clampedValue);
+                    }}
+                    inputProps={{
+                      min: 1,
+                      max: (currentDealCard || globalDealCard).maxQuantity,
+                      style: { 
+                        color: 'white', 
+                        textAlign: 'center',
+                        fontSize: '18px',
+                        fontWeight: 'bold'
+                      }
+                    }}
+                    sx={{
+                      width: '120px',
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '10px',
+                        '& fieldset': {
+                          borderColor: '#6B7280',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#10B981',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#10B981',
+                        },
+                      },
+                    }}
+                  />
+                  <Typography variant="body2" sx={{ color: '#10B981', mt: 1, fontWeight: 'bold' }}>
+                    Общая стоимость: ${((currentDealCard || globalDealCard).cost * stockQuantity).toLocaleString()}
+                  </Typography>
+                </Box>
+              )}
               
               <Typography variant="body2" sx={{ color: '#94A3B8', mb: 3 }}>
                 У вас: ${playerMoney.toLocaleString()}
@@ -5469,16 +6044,21 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         }}>
           <Button
             onClick={handleCancelDeal}
+            disabled={!isCardOwner()}
             sx={{
-              background: 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
-              color: 'white',
+              background: isCardOwner() 
+                ? 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)'
+                : 'linear-gradient(135deg, #374151 0%, #1F2937 100%)',
+              color: isCardOwner() ? 'white' : '#6B7280',
               px: 3,
               py: 1.5,
               borderRadius: '10px',
               fontSize: '14px',
               fontWeight: 'bold',
               '&:hover': {
-                background: 'linear-gradient(135deg, #4B5563 0%, #374151 100%)'
+                background: isCardOwner()
+                  ? 'linear-gradient(135deg, #4B5563 0%, #374151 100%)'
+                  : 'linear-gradient(135deg, #374151 0%, #1F2937 100%)'
               }
             }}
           >
@@ -5487,21 +6067,21 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           
           <Button
             onClick={handleBuyDeal}
-            disabled={!currentDealCard || playerMoney < currentDealCard.cost}
+            disabled={!isCardOwner() || !(currentDealCard || globalDealCard) || playerMoney < ((currentDealCard || globalDealCard)?.cost * (isStockCard(currentDealCard || globalDealCard) ? stockQuantity : 1) || 0)}
             sx={{
-              background: playerMoney >= (currentDealCard?.cost || 0)
+              background: isCardOwner() && playerMoney >= ((currentDealCard || globalDealCard)?.cost * (isStockCard(currentDealCard || globalDealCard) ? stockQuantity : 1) || 0)
                 ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
-                : 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
-              color: 'white',
+                : 'linear-gradient(135deg, #374151 0%, #1F2937 100%)',
+              color: isCardOwner() ? 'white' : '#6B7280',
               px: 3,
               py: 1.5,
               borderRadius: '10px',
               fontSize: '14px',
               fontWeight: 'bold',
               '&:hover': {
-                background: playerMoney >= (currentDealCard?.cost || 0)
+                background: isCardOwner() && playerMoney >= ((currentDealCard || globalDealCard)?.cost * (isStockCard(currentDealCard || globalDealCard) ? stockQuantity : 1) || 0)
                   ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
-                  : 'linear-gradient(135deg, #4B5563 0%, #374151 100%)'
+                  : 'linear-gradient(135deg, #374151 0%, #1F2937 100%)'
               }
             }}
           >
@@ -5513,16 +6093,21 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               setCreditModalFromDeal(true);
               setShowCreditModal(true);
             }}
+            disabled={!isCardOwner()}
             sx={{
-              background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-              color: 'white',
+              background: isCardOwner()
+                ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
+                : 'linear-gradient(135deg, #374151 0%, #1F2937 100%)',
+              color: isCardOwner() ? 'white' : '#6B7280',
               px: 3,
               py: 1.5,
               borderRadius: '10px',
               fontSize: '14px',
               fontWeight: 'bold',
               '&:hover': {
-                background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)'
+                background: isCardOwner()
+                  ? 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)'
+                  : 'linear-gradient(135deg, #374151 0%, #1F2937 100%)'
               }
             }}
           >
@@ -5531,16 +6116,21 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
           <Button
             onClick={handlePassCardToPlayer}
+            disabled={!isCardOwner()}
             sx={{
-              background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
-              color: 'white',
+              background: isCardOwner()
+                ? 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)'
+                : 'linear-gradient(135deg, #374151 0%, #1F2937 100%)',
+              color: isCardOwner() ? 'white' : '#6B7280',
               px: 3,
               py: 1.5,
               borderRadius: '10px',
               fontSize: '14px',
               fontWeight: 'bold',
               '&:hover': {
-                background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)'
+                background: isCardOwner()
+                  ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)'
+                  : 'linear-gradient(135deg, #374151 0%, #1F2937 100%)'
               }
             }}
           >
@@ -5575,7 +6165,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         
         <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
           <Typography variant="h6" sx={{ color: 'white', mb: 3 }}>
-            Выберите игрока, которому хотите передать карточку "{currentDealCard?.name}":
+            Выберите игрока, которому хотите передать карточку "{(currentDealCard || globalDealCard)?.name}":
           </Typography>
           
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -5626,6 +6216,158 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             }}
           >
             ❌ Отмена
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Модальное окно полученной карточки */}
+      <Dialog
+        open={showReceivedCardModal}
+        onClose={() => handleRejectReceivedCard()}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(135deg, #1F2937 0%, #374151 100%)',
+            borderRadius: '20px',
+            border: '2px solid #6B7280',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          color: 'white', 
+          textAlign: 'center',
+          borderBottom: '1px solid #6B7280',
+          pb: 2
+        }}>
+          🎁 Получена карточка от игрока
+        </DialogTitle>
+        
+        <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
+          {receivedCard && (
+            <Box>
+              <Typography variant="h5" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
+                {receivedCard.name}
+              </Typography>
+              <Typography variant="body1" sx={{ color: '#94A3B8', mb: 3 }}>
+                {receivedCard.description}
+              </Typography>
+              
+              <Box sx={{ 
+                background: 'rgba(255, 255, 255, 0.1)', 
+                borderRadius: '15px', 
+                p: 3, 
+                mb: 3 
+              }}>
+                <Typography variant="h6" sx={{ color: '#10B981', mb: 1 }}>
+                  Стоимость: ${receivedCard.cost.toLocaleString()}
+                </Typography>
+                <Typography variant="h6" sx={{ color: '#3B82F6' }}>
+                  Доход: ${receivedCard.income.toLocaleString()}/мес
+                </Typography>
+              </Box>
+              
+              {/* Поле ввода количества для акций */}
+              {isStockCard(receivedCard) && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="body2" sx={{ color: '#94A3B8', mb: 1 }}>
+                    Количество акций (1-{receivedCard.maxQuantity.toLocaleString()}):
+                  </Typography>
+                  <TextField
+                    type="number"
+                    value={stockQuantity}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      const clampedValue = Math.max(1, Math.min(value, receivedCard.maxQuantity));
+                      setStockQuantity(clampedValue);
+                    }}
+                    inputProps={{
+                      min: 1,
+                      max: receivedCard.maxQuantity,
+                      style: { 
+                        color: 'white', 
+                        textAlign: 'center',
+                        fontSize: '18px',
+                        fontWeight: 'bold'
+                      }
+                    }}
+                    sx={{
+                      width: '120px',
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '10px',
+                        '& fieldset': {
+                          borderColor: '#6B7280',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#10B981',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#10B981',
+                        },
+                      },
+                    }}
+                  />
+                  <Typography variant="body2" sx={{ color: '#10B981', mt: 1, fontWeight: 'bold' }}>
+                    Общая стоимость: ${(receivedCard.cost * stockQuantity).toLocaleString()}
+                  </Typography>
+                </Box>
+              )}
+              
+              <Typography variant="body2" sx={{ color: '#94A3B8', mb: 3 }}>
+                У вас: ${playerMoney.toLocaleString()}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ 
+          p: 3, 
+          borderTop: '1px solid #6B7280',
+          justifyContent: 'center',
+          gap: 2,
+          flexWrap: 'wrap'
+        }}>
+          <Button
+            onClick={handleRejectReceivedCard}
+            sx={{
+              background: 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
+              color: 'white',
+              px: 3,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #4B5563 0%, #374151 100%)'
+              }
+            }}
+          >
+            ❌ Отказаться
+          </Button>
+          
+          <Button
+            onClick={handleBuyReceivedCard}
+            disabled={!receivedCard || playerMoney < (receivedCard?.cost * (isStockCard(receivedCard) ? stockQuantity : 1) || 0)}
+            sx={{
+              background: playerMoney >= (receivedCard?.cost * (isStockCard(receivedCard) ? stockQuantity : 1) || 0)
+                ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                : 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
+              color: 'white',
+              px: 3,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: playerMoney >= (receivedCard?.cost * (isStockCard(receivedCard) ? stockQuantity : 1) || 0)
+                  ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+                  : 'linear-gradient(135deg, #4B5563 0%, #374151 100%)'
+              }
+            }}
+          >
+            💰 Купить
           </Button>
         </DialogActions>
       </Dialog>

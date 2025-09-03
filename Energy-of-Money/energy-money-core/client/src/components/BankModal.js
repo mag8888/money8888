@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -41,7 +41,9 @@ import {
   AccountBalanceWallet,
   CreditCard,
   AttachMoney,
-  Schedule
+  Schedule,
+  ShoppingCart,
+  VolunteerActivism
 } from '@mui/icons-material';
 
 const BankModal = ({ 
@@ -66,6 +68,7 @@ const BankModal = ({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isConnected, setIsConnected] = useState(socket?.connected || false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Добавление CSS анимации shimmer
   useEffect(() => {
@@ -87,6 +90,13 @@ const BankModal = ({
     };
   }, []);
 
+  // Эффект инициализации компонента
+  useEffect(() => {
+    if (playerData && gamePlayers) {
+      setIsInitialized(true);
+    }
+  }, [playerData, gamePlayers]);
+
   // Получение текущего игрока по user ID (мемоизированное)
   const getCurrentPlayer = useCallback(() => {
     if (!gamePlayers || !Array.isArray(gamePlayers) || !playerData?.id) {
@@ -106,7 +116,7 @@ const BankModal = ({
 
   // Получение начального баланса из профессии
   const getInitialBalance = useCallback(() => {
-    const currentPlayer = getCurrentPlayer();
+    const currentPlayer = getCurrentPlayer ? getCurrentPlayer() : null;
     const profession = currentPlayer?.profession || playerData?.profession;
     
     if (profession?.balance !== undefined) {
@@ -123,7 +133,7 @@ const BankModal = ({
     };
     
     return professionBalances[profession?.name] || 3000;
-  }, [getCurrentPlayer, playerData?.profession]);
+  }, [getCurrentPlayer, playerData?.profession, playerData?.id]);
 
   // Получение списка получателей (все игроки кроме текущего)
   const getRecipients = useCallback(() => {
@@ -173,7 +183,7 @@ const BankModal = ({
     }
     
     // Проверяем баланс - используем реальный баланс игрока, если доступен
-    const currentPlayer = getCurrentPlayer();
+    const currentPlayer = getCurrentPlayer ? getCurrentPlayer() : null;
     const actualBalance = currentPlayer?.balance !== undefined ? currentPlayer.balance : (bankBalance || 0);
     
     // Временная отладка для исправления ошибки перевода
@@ -196,7 +206,7 @@ const BankModal = ({
       return;
     }
 
-    const recipients = getRecipients();
+    const recipients = getRecipients ? getRecipients() : [];
     const recipient = recipients.find(p => p.username === selectedRecipient);
     if (!recipient) {
       setError('Получатель не найден');
@@ -216,7 +226,7 @@ const BankModal = ({
         amount: amount,
         description: `Перевод игроку ${selectedRecipient}`,
         timestamp: new Date().toLocaleString('ru-RU'),
-        from: getCurrentPlayer()?.username || playerData?.username || 'Игрок',
+        from: (getCurrentPlayer ? getCurrentPlayer() : null)?.username || playerData?.username || 'Игрок',
         to: selectedRecipient,
         status: 'pending',
         balanceAfter: (bankBalance || 0) - amount
@@ -225,11 +235,13 @@ const BankModal = ({
       // Добавляем транзакцию в историю
       const updatedHistory = [transaction, ...transferHistory];
       setTransferHistory(updatedHistory);
-      saveTransactionHistory(updatedHistory);
+      if (saveTransactionHistory) {
+        saveTransactionHistory(updatedHistory);
+      }
 
       // Отправляем на сервер (если есть WebSocket)
       if (socket && roomId) {
-        const currentPlayer = getCurrentPlayer();
+        const currentPlayer = getCurrentPlayer ? getCurrentPlayer() : null;
         
         console.log('📤 [BankModal] Отправляем на сервер:', {
           amount: amount,
@@ -273,17 +285,17 @@ const BankModal = ({
     } finally {
       setIsTransferring(false);
     }
-  }, [transferAmount, selectedRecipient, isTransferring, bankBalance, getRecipients, getCurrentPlayer, playerData?.username, transferHistory, saveTransactionHistory, socket, roomId]);
+  }, [transferAmount, selectedRecipient, isTransferring, bankBalance, getRecipients, getCurrentPlayer, playerData?.username, transferHistory, saveTransactionHistory, socket, roomId, playerData?.id]);
 
   // Инициализация банковского баланса и истории транзакций
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isInitialized) return;
 
     // Приоритет источников данных:
     // 1. Реальный баланс игрока (если доступен)
     // 2. Внешний баланс (bankBalance prop)
     // 3. Начальный баланс из профессии
-    const currentPlayer = getCurrentPlayer();
+    const currentPlayer = getCurrentPlayer ? getCurrentPlayer() : null;
     let balanceToSet = 0;
     
     if (currentPlayer?.balance !== undefined && currentPlayer.balance !== null) {
@@ -291,7 +303,7 @@ const BankModal = ({
     } else if (externalBankBalance !== undefined && externalBankBalance !== null && externalBankBalance > 0) {
       balanceToSet = Number(externalBankBalance);
     } else {
-      balanceToSet = getInitialBalance();
+      balanceToSet = getInitialBalance ? getInitialBalance() : 3000;
     }
     
     // Устанавливаем баланс
@@ -327,7 +339,7 @@ const BankModal = ({
         description: 'Начальный баланс профессии',
         timestamp: new Date().toLocaleString('ru-RU'),
         from: 'Банк',
-        to: getCurrentPlayer()?.username || playerData?.username || 'Игрок',
+        to: (getCurrentPlayer ? getCurrentPlayer() : null)?.username || playerData?.username || 'Игрок',
         status: 'completed',
         balanceAfter: balanceToSet
       };
@@ -343,11 +355,12 @@ const BankModal = ({
       localStorage.setItem(`bank_history_${playerData.id}_${roomId}`, JSON.stringify(history));
     }
     
-  }, [isOpen, getInitialBalance, onBankBalanceChange, playerData?.id, roomId]);
+  }, [isOpen, isInitialized, getInitialBalance, onBankBalanceChange, playerData?.id, roomId, getCurrentPlayer, externalBankBalance, bankBalance]);
 
   // Синхронизация с внешним балансом и реальным балансом игрока
   useEffect(() => {
-    const currentPlayer = getCurrentPlayer();
+    if (!isInitialized) return;
+    const currentPlayer = getCurrentPlayer ? getCurrentPlayer() : null;
     
     // Синхронизируем с реальным балансом игрока (приоритет)
     if (currentPlayer?.balance !== undefined && currentPlayer.balance !== bankBalance) {
@@ -362,11 +375,11 @@ const BankModal = ({
       // Синхронизация с внешним балансом
       setBankBalance(externalBankBalance);
     }
-  }, [externalBankBalance, bankBalance, getCurrentPlayer]);
+  }, [isInitialized, externalBankBalance, bankBalance, getCurrentPlayer, playerData?.id]);
 
   // Обработчики socket событий для банковских операций
   useEffect(() => {
-    if (!socket || !isOpen) return;
+    if (!socket || !isOpen || !isInitialized) return;
     
     // Обработка разрыва соединения
     const handleDisconnect = () => {
@@ -421,7 +434,7 @@ const BankModal = ({
         description: `Перевод от ${data.fromPlayer}`,
         timestamp: new Date().toLocaleString('ru-RU'),
         from: data.fromPlayer,
-        to: getCurrentPlayer()?.username || playerData?.username || 'Игрок',
+        to: (getCurrentPlayer ? getCurrentPlayer() : null)?.username || playerData?.username || 'Игрок',
         status: 'completed',
         balanceAfter: (bankBalance || 0) + data.amount
       };
@@ -437,7 +450,9 @@ const BankModal = ({
       // Добавляем в историю
       const updatedHistory = [receivedTransaction, ...transferHistory];
       setTransferHistory(updatedHistory);
-      saveTransactionHistory(updatedHistory);
+      if (saveTransactionHistory) {
+        saveTransactionHistory(updatedHistory);
+      }
 
       setSuccess(`Получен перевод $${data.amount.toLocaleString()} от ${data.fromPlayer}!`);
     };
@@ -457,7 +472,7 @@ const BankModal = ({
       socket.off('disconnect', handleDisconnect);
       socket.off('connect', handleConnect);
     };
-  }, [socket, isOpen, bankBalance, onBankBalanceChange, transferHistory, saveTransactionHistory, getCurrentPlayer, playerData?.username]);
+  }, [socket, isOpen, isInitialized, bankBalance, onBankBalanceChange, transferHistory, saveTransactionHistory, getCurrentPlayer, playerData?.username, playerData?.id]);
 
   // Получение иконки для типа транзакции
   const getTransactionIcon = (type) => {
@@ -465,31 +480,51 @@ const BankModal = ({
       case 'initial': return <AccountBalanceWallet />;
       case 'transfer': return <Send />;
       case 'received': return <AttachMoney />;
+      case 'expense': return <ShoppingCart />;
+      case 'credit': return <AccountBalance />;
+      case 'payday': return <AttachMoney />;
+      case 'charity': return <VolunteerActivism />;
       default: return <CreditCard />;
     }
   };
 
   // Получение цвета для типа транзакции
   const getTransactionColor = (type, amount) => {
-    if (type === 'initial' || type === 'received') {
+    if (type === 'initial' || type === 'received' || type === 'credit' || type === 'payday') {
       return '#10B981'; // Зеленый для поступлений
     }
-    return '#EF4444'; // Красный для расходов
+    if (type === 'expense') {
+      return '#F59E0B'; // Оранжевый для расходов
+    }
+    if (type === 'charity') {
+      return '#EC4899'; // Розовый для благотворительности
+    }
+    return '#EF4444'; // Красный для переводов
   };
 
   // Получение знака для суммы
   const getAmountSign = (type) => {
-    return type === 'initial' || type === 'received' ? '+' : '-';
+    return type === 'initial' || type === 'received' || type === 'credit' || type === 'payday' ? '+' : '-';
   };
 
-  // Статистика
-  const totalTransfers = transferHistory.filter(t => t.type === 'transfer').length;
-  const totalTransferAmount = transferHistory
-    .filter(t => t.type === 'transfer')
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalTransactions = transferHistory.length;
+  // Статистика (мемоизированная)
+  const { totalTransfers, totalTransferAmount, totalTransactions } = useMemo(() => {
+    const transfers = transferHistory.filter(t => t.type === 'transfer');
+    return {
+      totalTransfers: transfers.length,
+      totalTransferAmount: transfers.reduce((sum, t) => sum + t.amount, 0),
+      totalTransactions: transferHistory.length
+    };
+  }, [transferHistory]);
 
-  if (!isOpen) return null;
+  // Мемоизированный баланс
+  const displayBalance = useMemo(() => {
+    const currentPlayer = getCurrentPlayer ? getCurrentPlayer() : null;
+    const actualBalance = currentPlayer?.balance !== undefined ? currentPlayer.balance : (bankBalance || 0);
+    return actualBalance.toLocaleString();
+  }, [getCurrentPlayer, bankBalance]);
+
+  if (!isOpen || !isInitialized) return null;
 
   return (
     <Dialog
@@ -498,13 +533,15 @@ const BankModal = ({
       maxWidth="lg"
       fullWidth
       fullScreen={isMobile}
-      hideBackdrop={true}
       PaperProps={{
         sx: {
-          background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
-          color: 'white',
-          borderRadius: isMobile ? 0 : 3,
-          minHeight: isMobile ? '100vh' : '80vh'
+          background: 'linear-gradient(135deg, #1A202C 0%, #2D3748 100%)',
+          borderRadius: '20px',
+          overflow: 'hidden',
+          minHeight: isMobile ? '100vh' : 'auto',
+          maxHeight: isMobile ? '100vh' : '90vh',
+          border: '2px solid #4A5568',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)'
         }
       }}
     >
@@ -512,11 +549,15 @@ const BankModal = ({
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        pb: 1
+        pb: 2,
+        background: 'rgba(45, 55, 72, 0.8)',
+        borderRadius: '20px 20px 0 0',
+        backdropFilter: 'blur(10px)',
+        borderBottom: '1px solid #4A5568'
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AccountBalance sx={{ fontSize: 28, color: '#8B5CF6' }} />
-          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+          <AccountBalance sx={{ fontSize: 28, color: 'white' }} />
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'white' }}>
             Банковские операции
           </Typography>
         </Box>
@@ -525,14 +566,20 @@ const BankModal = ({
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 3 }}>
+      <DialogContent sx={{ 
+        p: 3,
+        background: 'transparent',
+        borderRadius: '0 0 20px 20px'
+      }}>
         <Grid container spacing={3}>
           {/* Левая панель - Баланс и статистика */}
           <Grid item xs={12} md={4}>
             <Card sx={{ 
               background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
               color: 'white',
-              mb: 2
+              mb: 2,
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+              borderRadius: '15px'
             }}>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -550,11 +597,7 @@ const BankModal = ({
                   />
                 </Box>
                 <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  ${(() => {
-                    const currentPlayer = getCurrentPlayer();
-                    const actualBalance = currentPlayer?.balance !== undefined ? currentPlayer.balance : (bankBalance || 0);
-                    return actualBalance.toLocaleString();
-                  })()}
+                  ${displayBalance}
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.9 }}>
                   Доступно для операций
@@ -564,28 +607,30 @@ const BankModal = ({
 
             {/* Статистика */}
             <Card sx={{ 
-              background: 'rgba(255, 255, 255, 0.05)',
+              background: 'rgba(255, 255, 255, 0.1)',
               backdropFilter: 'blur(10px)',
-              mb: 2
+              mb: 2,
+              borderRadius: '15px',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
               <CardContent>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: 'white' }}>
                   Статистика
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">Всего переводов:</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{totalTransfers}</Typography>
+                    <Typography variant="body2" sx={{ color: '#94A3B8' }}>Всего переводов:</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'white' }}>{totalTransfers}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">Сумма переводов:</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                    <Typography variant="body2" sx={{ color: '#94A3B8' }}>Сумма переводов:</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'white' }}>
                       ${totalTransferAmount.toLocaleString()}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">Транзакций:</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{totalTransactions}</Typography>
+                    <Typography variant="body2" sx={{ color: '#94A3B8' }}>Транзакций:</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'white' }}>{totalTransactions}</Typography>
                   </Box>
                 </Box>
               </CardContent>
@@ -593,11 +638,13 @@ const BankModal = ({
 
             {/* Быстрые действия */}
             <Card sx={{ 
-              background: 'rgba(255, 255, 255, 0.05)',
-              backdropFilter: 'blur(10px)'
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '15px',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
               <CardContent>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: 'white' }}>
                   Быстрые действия
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -608,8 +655,11 @@ const BankModal = ({
                       background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
                       color: 'white',
                       py: 1.5,
+                      borderRadius: '10px',
+                      boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
                       '&:hover': {
-                        background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)'
+                        background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                        boxShadow: '0 6px 16px rgba(139, 92, 246, 0.4)'
                       }
                     }}
                   >
@@ -622,9 +672,10 @@ const BankModal = ({
                       borderColor: 'rgba(255, 255, 255, 0.3)',
                       color: 'white',
                       py: 1.5,
+                      borderRadius: '10px',
                       '&:hover': {
-                        borderColor: 'rgba(255, 255, 255, 0.5)',
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                        borderColor: '#8B5CF6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)'
                       }
                     }}
                   >
@@ -641,11 +692,13 @@ const BankModal = ({
               {/* Форма перевода */}
               <Grid item xs={12}>
                 <Card sx={{ 
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  backdropFilter: 'blur(10px)'
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '15px',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
                 }}>
                   <CardContent>
-                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: 'white' }}>
                       Перевод средств
                     </Typography>
                     <Grid container spacing={2}>
@@ -670,7 +723,7 @@ const BankModal = ({
                               }
                             }}
                           >
-                            {getRecipients().map((player) => (
+                            {(getRecipients ? getRecipients() : []).map((player) => (
                               <MenuItem key={player.id || player.userId || player.socketId} value={player.username}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <Avatar sx={{ width: 24, height: 24, fontSize: 12 }}>
@@ -721,8 +774,11 @@ const BankModal = ({
                               background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
                               color: 'white',
                               py: 1.5,
+                              borderRadius: '10px',
+                              boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
                               '&:hover': {
-                                background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)'
+                                background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                                boxShadow: '0 6px 16px rgba(139, 92, 246, 0.4)'
                               },
                               '&:disabled': {
                                 background: 'rgba(255, 255, 255, 0.1)',
@@ -734,14 +790,19 @@ const BankModal = ({
                           </Button>
                           <Button
                             variant="outlined"
-                            onClick={resetTransferForm}
+                            onClick={resetTransferForm || (() => {
+                              setTransferAmount('');
+                              setSelectedRecipient('');
+                              setError('');
+                            })}
                             sx={{
                               borderColor: 'rgba(255, 255, 255, 0.3)',
                               color: 'white',
                               py: 1.5,
+                              borderRadius: '10px',
                               '&:hover': {
-                                borderColor: 'rgba(255, 255, 255, 0.5)',
-                                backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                                borderColor: '#8B5CF6',
+                                backgroundColor: 'rgba(139, 92, 246, 0.1)'
                               }
                             }}
                           >
@@ -757,13 +818,15 @@ const BankModal = ({
               {/* История операций */}
               <Grid item xs={12}>
                 <Card sx={{ 
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  backdropFilter: 'blur(10px)'
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '15px',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
                 }}>
                   <CardContent>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                       <History sx={{ color: '#8B5CF6' }} />
-                      <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'white' }}>
                         История операций
                       </Typography>
                       <Chip 
@@ -772,14 +835,19 @@ const BankModal = ({
                         sx={{ 
                           backgroundColor: '#8B5CF6',
                           color: 'white',
-                          fontWeight: 'bold'
+                          fontWeight: 'bold',
+                          boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+                          '&:hover': {
+                            backgroundColor: '#7C3AED',
+                            boxShadow: '0 6px 16px rgba(139, 92, 246, 0.4)'
+                          }
                         }} 
                       />
                     </Box>
                     
                     {transferHistory.length === 0 ? (
                       <Box sx={{ textAlign: 'center', py: 4 }}>
-                        <Typography variant="body1" sx={{ opacity: 0.7 }}>
+                        <Typography variant="body1" sx={{ opacity: 0.7, color: '#94A3B8' }}>
                           История операций пуста
                         </Typography>
                       </Box>
@@ -797,10 +865,10 @@ const BankModal = ({
                                 <Box sx={{ 
                                   p: 1, 
                                   borderRadius: '50%', 
-                                  backgroundColor: getTransactionColor(transaction.type, transaction.amount) + '20',
-                                  color: getTransactionColor(transaction.type, transaction.amount)
+                                  backgroundColor: (getTransactionColor ? getTransactionColor(transaction.type, transaction.amount) : '#10B981') + '20',
+                                  color: getTransactionColor ? getTransactionColor(transaction.type, transaction.amount) : '#10B981'
                                 }}>
-                                  {getTransactionIcon(transaction.type)}
+                                  {getTransactionIcon ? getTransactionIcon(transaction.type) : <CreditCard />}
                                 </Box>
                               </ListItemIcon>
                               <ListItemText
@@ -814,10 +882,10 @@ const BankModal = ({
                                       sx={{ 
                                         fontWeight: 'bold',
                                         fontSize: '1.25rem',
-                                        color: getTransactionColor(transaction.type, transaction.amount)
+                                        color: getTransactionColor ? getTransactionColor(transaction.type, transaction.amount) : '#10B981'
                                       }}
                                     >
-                                      {getAmountSign(transaction.type)}${transaction.amount.toLocaleString()}
+                                      {(getAmountSign ? getAmountSign(transaction.type) : '+')}${transaction.amount.toLocaleString()}
                                     </Box>
                                   </Box>
                                 }

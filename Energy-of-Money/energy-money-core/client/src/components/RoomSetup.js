@@ -23,6 +23,7 @@ import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import socket from '../socket';
 import { PROFESSIONS } from '../data/professions';
+import { FAST_TRACK_CELLS } from '../data/fastTrack';
 import ProfessionDetails from './ProfessionDetails';
 import ProfessionCard from './ProfessionCard';
 import PlayerAssetsModal from './PlayerAssetsModal';
@@ -586,13 +587,19 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   // Данные для профессий и мечт
   const professions = PROFESSIONS;
 
-  const dreams = [
-    { id: 1, name: 'Путешествие по миру', cost: 50000, description: 'Посетить все континенты' },
-    { id: 2, name: 'Собственный дом', cost: 200000, description: 'Купить дом своей мечты' },
-    { id: 3, name: 'Бизнес', cost: 100000, description: 'Открыть собственное дело' },
-    { id: 4, name: 'Образование', cost: 30000, description: 'Получить высшее образование' },
-    { id: 5, name: 'Благотворительность', cost: 75000, description: 'Помогать другим людям' }
-  ];
+  // Извлекаем мечты из FAST_TRACK_CELLS с номерами клеток
+  const dreams = FAST_TRACK_CELLS
+    .filter(cell => cell.type === 'dream')
+    .map(cell => ({
+      id: cell.id,
+      name: cell.name,
+      cost: cell.cost,
+      description: cell.description,
+      cellNumber: cell.id, // Добавляем номер клетки
+      icon: cell.icon,
+      color: cell.color
+    }))
+    .sort((a, b) => a.cost - b.cost); // Сортируем по стоимости
 
   // Отладочные логи удалены для предотвращения спама
   
@@ -1002,11 +1009,28 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                       onClick={() => handleDreamSelect(dream)}
                     >
                       <CardContent>
-                        <Typography variant="h6" sx={{ mb: 1, color: '#333' }}>
-                          {dream.name}
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            width: 24, 
+                            height: 24, 
+                            borderRadius: '50%', 
+                            backgroundColor: dream.color || '#E91E63',
+                            color: 'white',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold',
+                            mr: 1
+                          }}>
+                            {dream.cellNumber}
+                          </Box>
+                          <Typography variant="h6" sx={{ color: '#333', flex: 1 }}>
+                            {dream.name}
+                          </Typography>
+                        </Box>
                         <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
-                          💰 Стоимость: {dream.cost}₽
+                          💰 Стоимость: {dream.cost.toLocaleString()}₽
                         </Typography>
                         <Typography variant="body2" sx={{ color: '#666', fontSize: '0.9rem' }}>
                           {dream.description}
