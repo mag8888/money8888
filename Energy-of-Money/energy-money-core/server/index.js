@@ -3,6 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const path = require('path');
+const Database = require('./database');
 
 // Определяем порт
 const PORT = process.env.PORT || 5000;
@@ -27,6 +28,9 @@ const io = socketIo(server, {
     credentials: true
   }
 });
+
+// Инициализируем базу данных
+const db = new Database();
 
 // Глобальное хранилище пользователей (в памяти)
 const users = new Map(); // userId -> userData
@@ -278,9 +282,21 @@ const getRoomsList = () => {
     if (room.hostId) {
       console.log(`🔍 [SERVER] Looking for host username for room ${room.roomId}, hostId: ${room.hostId}`);
       console.log(`🔍 [SERVER] Available users:`, Array.from(users.values()).map(u => ({ username: u.username, socketId: u.socketId })));
-      console.log(`🔍 [SERVER] Room currentPlayers:`, room.currentPlayers.map(p => ({ username: p.username, socketId: p.socketId })));
+      console.log(`🔍 [SERVER] Room currentPlayers:`, room.currentPlayers.map(p => ({ username: p.username, socketId: p.socketId, id: p.id })));
       
-      // Ищем пользователя по socketId в глобальном хранилище
+      // Сначала ищем в currentPlayers по User ID (новый способ)
+      const hostPlayer = room.currentPlayers.find(p => p.id === room.hostId);
+      if (hostPlayer) {
+        hostUsername = hostPlayer.username;
+        console.log(`✅ [SERVER] Found host username in currentPlayers by User ID: ${hostUsername}`);
+      } else {
+        // Если не найден по User ID, ищем по Socket ID (старый способ для совместимости)
+        const hostPlayerBySocket = room.currentPlayers.find(p => p.socketId === room.hostId);
+        if (hostPlayerBySocket) {
+          hostUsername = hostPlayerBySocket.username;
+          console.log(`✅ [SERVER] Found host username in currentPlayers by Socket ID: ${hostUsername}`);
+        } else {
+          // Если не нашли в currentPlayers, ищем в users
       for (const [userId, userData] of users.entries()) {
         if (userData.socketId === room.hostId) {
           hostUsername = userData.username;
@@ -288,21 +304,13 @@ const getRoomsList = () => {
           break;
         }
       }
-      
-      // Если не нашли в users, ищем в currentPlayers комнаты
       if (hostUsername === 'Неизвестно') {
-        const hostPlayer = room.currentPlayers.find(p => p.socketId === room.hostId);
-        if (hostPlayer) {
-          hostUsername = hostPlayer.username;
-          console.log(`✅ [SERVER] Found host username in currentPlayers: ${hostUsername}`);
+            // Для старых комнат: если hostId выглядит как Socket ID, попробуем найти первого игрока как хоста
+            if (room.hostId && room.hostId.length > 10 && room.currentPlayers.length > 0) {
+              hostUsername = room.currentPlayers[0].username;
+              console.log(`🔄 [SERVER] Using first player as host for old room: ${hostUsername}`);
         } else {
-          console.log(`❌ [SERVER] Host player not found in currentPlayers for room ${room.roomId}`);
-          // Попробуем найти по id (если hostId это userId, а не socketId)
-          for (const [userId, userData] of users.entries()) {
-            if (userId === room.hostId) {
-              hostUsername = userData.username;
-              console.log(`✅ [SERVER] Found host username by userId: ${hostUsername}`);
-              break;
+              console.log(`❌ [SERVER] Host player not found for room ${room.roomId}, hostId: ${room.hostId}`);
             }
           }
         }
@@ -326,6 +334,7 @@ const getRoomsList = () => {
   .sort((a, b) => b.createdAt - a.createdAt); // Сортируем по времени создания (новые в начало)
   
   console.log(`📊 [SERVER] getRoomsList: ${roomsList.length} rooms`);
+  console.log(`📊 [SERVER] Rooms sorted by createdAt:`, roomsList.map(r => ({ name: r.name, createdAt: r.createdAt, date: new Date(r.createdAt).toLocaleString() })));
   return roomsList;
 };
 
@@ -450,8 +459,15 @@ io.on('connection', (socket) => {
   });
   
   // Создание комнаты
-  socket.on('createRoom', (roomData) => {
+  socket.on('createRoom', async (roomData) => {
     console.log('🏠 [SERVER] createRoom requested:', roomData);
+    console.log('🔍 [SERVER] Room data details:', {
+      name: roomData.name,
+      profession: roomData.profession,
+      professionType: roomData.professionType,
+      maxPlayers: roomData.maxPlayers,
+      gameDuration: roomData.gameDuration
+    });
     
     try {
       const { name, password, professionType, profession, maxPlayers, gameDuration, sharedProfession } = roomData;
@@ -477,12 +493,21 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Проверяем время игры (60-360 минут)
-      const validGameDuration = gameDuration && gameDuration >= 60 && gameDuration <= 360 ? gameDuration : 180;
-      if (gameDuration && (gameDuration < 60 || gameDuration > 360)) {
+      // Проверяем время игры (60-240 минут)
+      const validGameDuration = gameDuration && gameDuration >= 60 && gameDuration <= 240 ? gameDuration : 180;
+      if (gameDuration && (gameDuration < 60 || gameDuration > 240)) {
         socket.emit('roomCreationError', { 
           success: false, 
-          error: 'Время игры должно быть от 1 до 6 часов!' 
+          error: 'Время игры должно быть от 1 до 4 часов!' 
+        });
+        return;
+      }
+
+      // Проверяем, что профессия выбрана
+      if (!profession) {
+        socket.emit('roomCreationError', { 
+          success: false, 
+          error: 'Необходимо выбрать профессию!' 
         });
         return;
       }
@@ -490,18 +515,39 @@ io.on('connection', (socket) => {
       // Создаем новую комнату
       const newRoom = {
         roomId: uniqueRoomId,
+        name: name.trim(), // Добавляем поле name для базы данных
         displayName: name.trim(),
         maxPlayers: maxPlayers || 2, // Используем переданное значение или по умолчанию 2 (диапазон 1-10)
         gameDuration: validGameDuration, // Время игры в минутах
         currentPlayers: [],
         status: 'waiting',
         password: password || '',
-        hostId: socket.id,
+        hostId: `temp_host_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Временный ID для хоста (будет обновлен при присоединении)
         createdAt: Date.now(),
         professionType: professionType || 'individual',
         hostProfession: profession || null,
-        sharedProfession: sharedProfession || null // Общая профессия для всех игроков
+        sharedProfession: sharedProfession || null, // Общая профессия для всех игроков
+        gamePlayersData: [],
+        turnOrder: [],
+        currentTurnIndex: 0,
+        currentTurn: null,
+        turnTimeLeft: 120,
+        isTurnEnding: false,
+        processedTransactions: new Set()
       };
+      
+      // Сохраняем комнату в базу данных
+      try {
+        await db.saveRoom(newRoom);
+        console.log('💾 [SERVER] Комната сохранена в базу данных:', uniqueRoomId);
+      } catch (error) {
+        console.error('❌ [SERVER] Ошибка сохранения комнаты в базу данных:', error);
+        socket.emit('roomCreationError', { 
+          success: false, 
+          error: 'Ошибка создания комнаты' 
+        });
+        return;
+      }
       
       // Добавляем комнату в список
       rooms.set(uniqueRoomId, newRoom);
@@ -509,7 +555,7 @@ io.on('connection', (socket) => {
       console.log('🏠 [SERVER] Room created:', {
         roomId: uniqueRoomId,
         name: name,
-        hostId: socket.id
+        hostId: newRoom.hostId
       });
       
       // Проверяем, есть ли пользователь с таким socketId
@@ -552,8 +598,68 @@ io.on('connection', (socket) => {
     }
   });
   
+  // Выход из комнаты
+  socket.on('leaveRoom', (roomId) => {
+    console.log('🚪 [SERVER] leaveRoom requested:', { roomId, socketId: socket.id });
+    
+    try {
+      const room = rooms.get(roomId);
+      if (!room) {
+        console.log('❌ [SERVER] Room not found for leave:', roomId);
+        return;
+      }
+      
+      // Находим игрока в комнате по socketId
+      const playerIndex = room.currentPlayers.findIndex(p => p.socketId === socket.id);
+      if (playerIndex !== -1) {
+        const leavingPlayer = room.currentPlayers[playerIndex];
+        console.log('🚪 [SERVER] Player leaving room:', { 
+          roomId, 
+          username: leavingPlayer.username,
+          userId: leavingPlayer.id,
+          socketId: socket.id 
+        });
+        
+        // Удаляем игрока из комнаты
+        room.currentPlayers.splice(playerIndex, 1);
+        
+        // Если ушедший игрок был хостом, назначаем нового хоста
+        if (room.hostId === leavingPlayer.id && room.currentPlayers.length > 0) {
+          const newHost = room.currentPlayers[0];
+          room.hostId = newHost.id; // Используем User ID для хоста
+          console.log('👑 [SERVER] New host assigned:', { 
+            roomId, 
+            newHost: newHost.username,
+            newHostId: newHost.id 
+          });
+        }
+        
+        // Отключаем сокет от комнаты
+        socket.leave(roomId);
+        
+        // Отправляем обновленный список игроков всем в комнате
+        io.to(roomId).emit('playersUpdate', room.currentPlayers);
+        
+        // Отправляем обновленный список комнат
+        const roomsList = getRoomsList();
+        io.emit('roomsList', roomsList);
+        
+        console.log('✅ [SERVER] Player successfully left room:', { 
+          roomId, 
+          username: leavingPlayer.username,
+          remainingPlayers: room.currentPlayers.length 
+        });
+      } else {
+        console.log('⚠️ [SERVER] Player not found in room for leave:', { roomId, socketId: socket.id });
+      }
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error leaving room:', error);
+    }
+  });
+  
   // Присоединение к комнате
-  socket.on('joinRoom', (roomId, playerData) => {
+  socket.on('joinRoom', async (roomId, playerData) => {
     console.log('🔗 [SERVER] joinRoom requested:', { roomId, playerData });
     
     try {
@@ -563,11 +669,25 @@ io.on('connection', (socket) => {
         return;
       }
       
-      // Проверяем, не находится ли игрок уже в комнате
-      const playerInRoom = room.currentPlayers.find(p => p.socketId === socket.id);
+      // Проверяем, не находится ли игрок уже в комнате (по User ID)
+      const playerInRoom = room.currentPlayers.find(p => p.id === playerData?.id);
       if (playerInRoom) {
-        console.log('🔗 [SERVER] Player already in room:', { roomId, username: playerInRoom.username });
+        console.log('🔗 [SERVER] Player already in room:', { roomId, username: playerInRoom.username, userId: playerData?.id });
+        
+        // Обновляем socketId для существующего игрока
+        const playerIndex = room.currentPlayers.findIndex(p => p.id === playerData?.id);
+        room.currentPlayers[playerIndex] = {
+          ...playerInRoom,
+          socketId: socket.id, // Обновляем socketId для отправки сообщений
+          isConnected: true,
+          reconnectedAt: Date.now()
+        };
+        
+        socket.join(roomId);
         socket.emit('roomJoined', { success: true, roomId });
+        
+        // Отправляем обновленные данные игроков всем в комнате
+        io.to(roomId).emit('playersUpdate', room.currentPlayers);
         return;
       }
       
@@ -577,70 +697,39 @@ io.on('connection', (socket) => {
       );
       
       if (existingPlayer) {
-        // Если игрок уже подключен с другим socketId, обновляем его socketId
-        if (existingPlayer.isConnected && existingPlayer.socketId !== socket.id) {
           console.log('🔄 [SERVER] Player reconnecting with new socket:', { 
             roomId, 
             username: existingPlayer.username, 
             oldSocketId: existingPlayer.socketId,
-            newSocketId: socket.id 
+          newSocketId: socket.id,
+          userId: playerData?.id
           });
           
-          // Обновляем socketId существующего игрока
-          const playerIndex = room.currentPlayers.findIndex(p => p.socketId === existingPlayer.socketId);
+        // Обновляем socketId существующего игрока, сохраняя User ID
+        const playerIndex = room.currentPlayers.findIndex(p => p.username === existingPlayer.username);
           room.currentPlayers[playerIndex] = {
             ...existingPlayer,
-            socketId: socket.id,
-            id: socket.id, // Обновляем id для совместимости
-            userId: existingPlayer.userId || existingPlayer.id, // Сохраняем user ID
+          id: playerData?.id, // Используем User ID как основной идентификатор
+          socketId: socket.id, // Обновляем socketId для отправки сообщений
             isConnected: true,
             reconnectedAt: Date.now()
           };
           
-          // Отправляем обновленные данные игроков всем в комнате
-          io.to(roomId).emit('playersUpdate', room.currentPlayers);
-          
-          // Отправляем данные игроков в игре конкретному игроку
-          socket.emit('gamePlayersData', {
-            players: room.currentPlayers,
-            currentTurn: room.currentTurn || '',
-            currentTurnIndex: room.currentTurnIndex || 0,
-            turnOrder: room.turnOrder || []
-          });
-        } else if (!existingPlayer.isConnected) {
-          // Переподключаем отключенного игрока
-          const playerIndex = room.currentPlayers.findIndex(p => p.socketId === existingPlayer.socketId);
-          room.currentPlayers[playerIndex] = {
-            ...existingPlayer,
-            socketId: socket.id,
-            id: socket.id, // Обновляем id для совместимости
-            userId: existingPlayer.userId || existingPlayer.id, // Сохраняем user ID
-            isConnected: true,
-            reconnectedAt: Date.now()
-          };
-          
-          // Отправляем обновленные данные игроков всем в комнате
-          io.to(roomId).emit('playersUpdate', room.currentPlayers);
-          
-          // Отправляем данные игроков в игре конкретному игроку
-          socket.emit('gamePlayersData', {
-            players: room.currentPlayers,
-            currentTurn: room.currentTurn || '',
-            currentTurnIndex: room.currentTurnIndex || 0,
-            turnOrder: room.turnOrder || []
-          });
-          
-          console.log('🔗 [SERVER] Player reconnected:', { roomId, username: existingPlayer.username });
-        }
-        
         socket.join(roomId);
         socket.emit('roomJoined', { success: true, roomId });
-        
-        // Очищаем дублированных игроков
-        cleanupDuplicatePlayers(room);
-        
-        // Отправляем обновленный список игроков
-        io.to(roomId).emit('playersUpdate', room.currentPlayers);
+          
+          // Отправляем обновленные данные игроков всем в комнате
+          io.to(roomId).emit('playersUpdate', room.currentPlayers);
+          
+          // Отправляем данные игроков в игре конкретному игроку
+          socket.emit('gamePlayersData', {
+            players: room.currentPlayers,
+            currentTurn: room.currentTurn || '',
+            currentTurnIndex: room.currentTurnIndex || 0,
+            turnOrder: room.turnOrder || []
+          });
+          
+        console.log('🔗 [SERVER] Player reconnected:', { roomId, username: existingPlayer.username, userId: playerData?.id });
         return;
       }
       
@@ -656,10 +745,9 @@ io.on('connection', (socket) => {
       
       // Добавляем игрока в комнату
       const player = {
-        id: socket.id, // Временно оставляем socket.id для совместимости
-        userId: playerData?.id, // Добавляем постоянный user ID
+        id: playerData?.id, // Используем User ID как основной идентификатор
         username: playerData?.username || 'Игрок', // Извлекаем username из объекта
-        socketId: socket.id,
+        socketId: socket.id, // Socket ID только для отправки сообщений
         ready: false,
         isConnected: true,
         joinedAt: Date.now(),
@@ -667,7 +755,32 @@ io.on('connection', (socket) => {
         balance: playerData?.profession?.balance !== undefined ? Number(playerData.profession.balance) : 3000 // Устанавливаем начальный баланс
       };
       
+      // Сохраняем игрока в базу данных
+      try {
+        // Используем User ID для стабильного ID
+        const stablePlayerId = player.id || `${player.username}_${roomId}_${Date.now()}`;
+        await db.savePlayer({
+          id: stablePlayerId,
+          username: player.username,
+          roomId: roomId,
+          joinedAt: Date.now()
+        });
+        console.log('💾 [SERVER] Игрок сохранен в базу данных:', player.username, 'User ID:', player.id);
+      } catch (error) {
+        console.error('❌ [SERVER] Ошибка сохранения игрока в базу данных:', error);
+      }
+      
       room.currentPlayers.push(player);
+      
+      // Если это первый игрок в комнате и hostId временный, обновляем его на реальный User ID
+      if (room.currentPlayers.length === 1 && room.hostId && room.hostId.startsWith('temp_host_')) {
+        room.hostId = player.id;
+        console.log('👑 [SERVER] Updated hostId for first player:', {
+          roomId,
+          newHostId: room.hostId,
+          username: player.username
+        });
+      }
       
       console.log('🔗 [SERVER] Player joined room:', {
         roomId,
@@ -764,7 +877,7 @@ io.on('connection', (socket) => {
   });
 
   // Запуск игры
-  socket.on('startGame', (roomId) => {
+  socket.on('startGame', async (roomId) => {
     console.log('🚀 [SERVER] Start game requested:', { roomId });
     
     try {
@@ -775,7 +888,7 @@ io.on('connection', (socket) => {
       }
       
       // Проверяем, что игрок является хостом комнаты
-      if (room.hostId !== socket.id) {
+      if (!isHost(room, socket.id)) {
         socket.emit('error', { message: 'Только хост может запустить игру' });
         return;
       }
@@ -790,6 +903,9 @@ io.on('connection', (socket) => {
       // Меняем статус комнаты на "playing"
       room.status = 'playing';
       console.log('🚀 [SERVER] Game started in room:', { roomId, status: room.status });
+      
+      // Обновляем комнату в базе данных
+      await updateRoomInDatabase(room);
       
       // Определяем случайную очередность хода
       const shuffledPlayers = [...room.currentPlayers].sort(() => Math.random() - 0.5);
@@ -998,7 +1114,7 @@ io.on('connection', (socket) => {
   });
 
   // Получение данных игроков в игре
-  socket.on('getGamePlayers', (roomId) => {
+  socket.on('getGamePlayersData', (roomId) => {
     console.log('👥 [SERVER] getGamePlayers requested:', { roomId });
     
     try {
@@ -1059,7 +1175,7 @@ io.on('connection', (socket) => {
       }
       
       // Проверяем, что игрок является хостом комнаты
-      if (room.hostId !== socket.id) {
+      if (!isHost(room, socket.id)) {
         socket.emit('error', { message: 'Только хост может завершить игру' });
         return;
       }
@@ -1086,6 +1202,57 @@ io.on('connection', (socket) => {
       console.error('❌ [SERVER] Error ending game:', error);
       socket.emit('error', { message: 'Ошибка завершения игры' });
     }
+  });
+
+  // Получение данных комнаты (альтернативное название)
+  socket.on('getRoom', (roomId) => {
+    console.log('🏠 [SERVER] getRoom requested:', { roomId });
+    // Перенаправляем на getRoomData
+    const room = rooms.get(roomId);
+    if (!room) {
+      console.log('❌ [SERVER] Комната не найдена в Map');
+      socket.emit('error', { message: 'Комната не найдена' });
+      return;
+    }
+    
+    // Отправляем данные комнаты клиенту
+    socket.emit('roomData', {
+      roomId: room.roomId,
+      displayName: room.displayName,
+      hostId: room.hostId,
+      hostUsername: room.hostUsername,
+      currentPlayers: room.currentPlayers,
+      status: room.status,
+      password: room.password,
+      professionType: room.professionType,
+      hostProfession: room.hostProfession,
+      sharedProfession: room.sharedProfession,
+      isPublic: room.isPublic,
+      maxPlayers: room.maxPlayers,
+      gameDuration: room.gameDuration,
+      currentTurn: room.currentTurn,
+      currentTurnIndex: room.currentTurnIndex,
+      turnOrder: room.turnOrder,
+      gameStartTime: room.gameStartTime,
+      gameEndTime: room.gameEndTime,
+      nextBreakTime: room.nextBreakTime
+    });
+    
+    // Также отправляем обновленный список игроков
+    socket.emit('playersUpdate', room.currentPlayers);
+  });
+
+  // Получение списка игроков (альтернативное название)
+  socket.on('getPlayers', (roomId) => {
+    console.log('👥 [SERVER] getPlayers requested:', { roomId });
+    const room = rooms.get(roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Комната не найдена' });
+      return;
+    }
+    
+    // Отправляем список игроков
+    socket.emit('playersList', room.currentPlayers);
   });
 
   // Получение данных комнаты
@@ -1238,6 +1405,12 @@ io.on('connection', (socket) => {
       const room = rooms.get(roomId);
       if (!room) {
         console.log('❌ [SERVER] Room not found for bank transfer:', roomId);
+        return;
+      }
+      
+      // Проверяем права доступа: только хост может выполнять банковские операции
+      if (!isHost(room, socket.id)) {
+        socket.emit('bankTransferError', { message: 'Только хост может выполнять банковские операции' });
         return;
       }
       
@@ -1542,6 +1715,14 @@ io.on('connection', (socket) => {
         return;
       }
       
+      // Любой игрок может показать свою карточку всем остальным
+      // Проверяем, что игрок находится в комнате
+      const player = room.currentPlayers.find(p => p.socketId === socket.id);
+      if (!player) {
+        socket.emit('globalDealCardError', { message: 'Игрок не найден в комнате' });
+        return;
+      }
+      
       // Отправляем глобальную карточку всем игрокам в комнате
       const cardData = {
         card: card,
@@ -1726,6 +1907,15 @@ io.on('connection', (socket) => {
         return;
       }
       
+      // Проверяем права доступа: только хост может управлять всеми игроками
+      const isHostPlayer = isHost(room, socket.id);
+      const isMovingSelf = socket.id === playerId;
+      
+      if (!isHostPlayer && !isMovingSelf) {
+        socket.emit('playerMoveError', { success: false, error: 'Только хост может управлять другими игроками' });
+        return;
+      }
+      
       // Находим игрока в комнате
       const player = room.currentPlayers.find(p => p.socketId === playerId);
       if (!player) {
@@ -1769,6 +1959,15 @@ io.on('connection', (socket) => {
         return;
       }
       
+      // Проверяем права доступа: только хост может управлять данными всех игроков
+      const isHostPlayer = isHost(room, socket.id);
+      const isUpdatingSelf = socket.id === playerId;
+      
+      if (!isHostPlayer && !isUpdatingSelf) {
+        socket.emit('playerDataUpdateError', { success: false, error: 'Только хост может обновлять данные других игроков' });
+        return;
+      }
+      
       // Находим игрока в комнате
       const player = room.currentPlayers.find(p => p.socketId === playerId);
       if (!player) {
@@ -1796,35 +1995,120 @@ io.on('connection', (socket) => {
 
   // Обработчик смены хода игрока
   socket.on('changePlayerTurn', (roomId, newCurrentPlayerIndex) => {
-    console.log('🎯 [SERVER] Change player turn requested:', { roomId, newCurrentPlayerIndex });
+    console.log('🎯 [SERVER] Change player turn requested:', { 
+      roomId, 
+      newCurrentPlayerIndex,
+      socketId: socket.id,
+      timestamp: new Date().toISOString()
+    });
     
     try {
       const room = rooms.get(roomId);
       if (!room) {
+        console.log('❌ [SERVER] Room not found:', roomId);
         socket.emit('changePlayerTurnError', { success: false, error: 'Комната не найдена' });
+        return;
+      }
+      
+      // Проверяем, что игрок находится в комнате
+      const requestingPlayer = room.currentPlayers.find(p => p.socketId === socket.id);
+      if (!requestingPlayer) {
+        console.log('❌ [SERVER] Player not found in room:', { 
+          socketId: socket.id, 
+          roomPlayers: room.currentPlayers.map(p => ({ id: p.id, socketId: p.socketId, username: p.username }))
+        });
+        socket.emit('changePlayerTurnError', { success: false, error: 'Игрок не найден в комнате' });
         return;
       }
       
       // Проверяем, что индекс валидный
       if (newCurrentPlayerIndex < 0 || newCurrentPlayerIndex >= room.currentPlayers.length) {
+        console.log('❌ [SERVER] Invalid player index:', { 
+          newCurrentPlayerIndex, 
+          playersCount: room.currentPlayers.length 
+        });
         socket.emit('changePlayerTurnError', { success: false, error: 'Неверный индекс игрока' });
         return;
       }
       
+      // Проверяем, что это ход текущего игрока или хост может управлять ходами
+      const currentPlayerIndex = room.currentPlayers.findIndex(p => p.socketId === socket.id);
+      const isCurrentPlayerTurn = room.currentPlayerIndex === currentPlayerIndex;
+      const isHostPlayer = isHost(room, socket.id);
+      
+      console.log('🔍 [SERVER] Turn change validation:', {
+        currentPlayerIndex: room.currentPlayerIndex,
+        requestingPlayerIndex: currentPlayerIndex,
+        isCurrentPlayerTurn,
+        isHostPlayer,
+        requestingPlayer: requestingPlayer.username
+      });
+      
+      if (!isCurrentPlayerTurn && !isHostPlayer) {
+        console.log('❌ [SERVER] Unauthorized turn change attempt:', {
+          requestingPlayer: requestingPlayer.username,
+          isCurrentPlayerTurn,
+          isHostPlayer
+        });
+        socket.emit('changePlayerTurnError', { 
+          success: false, 
+          error: 'Только текущий игрок или хост может менять ход' 
+        });
+        return;
+      }
+      
+      // Проверяем, что новый игрок существует и подключен
+      const newPlayer = room.currentPlayers[newCurrentPlayerIndex];
+      if (!newPlayer) {
+        console.log('❌ [SERVER] Target player not found:', { newCurrentPlayerIndex });
+        socket.emit('changePlayerTurnError', { success: false, error: 'Целевой игрок не найден' });
+        return;
+      }
+      
+      // Проверяем, что это не тот же игрок
+      if (room.currentPlayerIndex === newCurrentPlayerIndex) {
+        console.log('⚠️ [SERVER] Same player turn change attempt:', {
+          currentPlayer: room.currentPlayers[room.currentPlayerIndex]?.username,
+          newPlayer: newPlayer.username
+        });
+        socket.emit('changePlayerTurnError', { success: false, error: 'Нельзя передать ход самому себе' });
+        return;
+      }
+      
       // Обновляем текущего игрока
+      const oldPlayerIndex = room.currentPlayerIndex;
       room.currentPlayerIndex = newCurrentPlayerIndex;
       
-      console.log('🎯 [SERVER] Player turn changed:', {
+      // Сбрасываем таймер хода
+      room.turnTimeLeft = 120;
+      room.isTurnEnding = false;
+      
+      console.log('✅ [SERVER] Player turn changed successfully:', {
         roomId,
+        oldPlayerIndex,
         newCurrentPlayerIndex,
-        currentPlayer: room.currentPlayers[newCurrentPlayerIndex]?.username
+        oldPlayer: room.currentPlayers[oldPlayerIndex]?.username,
+        newPlayer: room.currentPlayers[newCurrentPlayerIndex]?.username,
+        requestedBy: requestingPlayer.username,
+        isHost: isHostPlayer,
+        timestamp: new Date().toISOString()
       });
       
       // Отправляем обновление всем игрокам в комнате
       io.to(roomId).emit('playerTurnChanged', {
         currentPlayerIndex: newCurrentPlayerIndex,
-        currentPlayer: room.currentPlayers[newCurrentPlayerIndex]
+        currentPlayer: room.currentPlayers[newCurrentPlayerIndex],
+        oldPlayerIndex: oldPlayerIndex,
+        oldPlayer: room.currentPlayers[oldPlayerIndex],
+        turnTimeLeft: room.turnTimeLeft,
+        isTurnEnding: room.isTurnEnding,
+        timestamp: new Date().toISOString()
       });
+      
+      // Сохраняем состояние комнаты в базу данных
+      if (room.id && room.id !== 'lobby') {
+        updateRoomInDatabase(room);
+      }
       
     } catch (error) {
       console.error('❌ [SERVER] Error changing player turn:', error);
@@ -1843,6 +2127,12 @@ io.on('connection', (socket) => {
         return;
       }
       
+      // Проверяем права доступа: только хост может управлять таймером
+      if (!isHost(room, socket.id)) {
+        socket.emit('syncTurnTimerError', { success: false, error: 'Только хост может управлять таймером' });
+        return;
+      }
+      
       // Обновляем таймер в комнате
       room.turnTimeLeft = timeLeft;
       room.isTurnEnding = isTurnEnding;
@@ -1856,6 +2146,60 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('❌ [SERVER] Error syncing turn timer:', error);
       socket.emit('syncTurnTimerError', { success: false, error: 'Ошибка синхронизации таймера' });
+    }
+  });
+
+  // Обработчик автоматического перехода хода по таймеру
+  socket.on('autoPassTurn', (roomId) => {
+    console.log('⏰ [SERVER] Auto pass turn requested:', { roomId });
+    
+    try {
+      const room = rooms.get(roomId);
+      if (!room) {
+        socket.emit('autoPassTurnError', { success: false, error: 'Комната не найдена' });
+        return;
+      }
+      
+      // Проверяем, что это ход текущего игрока
+      if (!isCurrentPlayer(room, socket.id)) {
+        socket.emit('autoPassTurnError', { success: false, error: 'Не ваш ход' });
+        return;
+      }
+      
+      // Получаем следующего игрока
+      const nextPlayerIndex = getNextPlayerIndex(room);
+      const oldPlayerIndex = room.currentPlayerIndex;
+      
+      // Обновляем текущего игрока
+      room.currentPlayerIndex = nextPlayerIndex;
+      room.turnTimeLeft = 120;
+      room.isTurnEnding = false;
+      
+      console.log('⏰ [SERVER] Auto turn passed:', {
+        roomId,
+        oldPlayer: room.currentPlayers[oldPlayerIndex]?.username,
+        newPlayer: room.currentPlayers[nextPlayerIndex]?.username
+      });
+      
+      // Отправляем обновление всем игрокам в комнате
+      io.to(roomId).emit('playerTurnChanged', {
+        currentPlayerIndex: nextPlayerIndex,
+        currentPlayer: room.currentPlayers[nextPlayerIndex],
+        oldPlayerIndex: oldPlayerIndex,
+        oldPlayer: room.currentPlayers[oldPlayerIndex],
+        turnTimeLeft: room.turnTimeLeft,
+        isTurnEnding: room.isTurnEnding,
+        isAutoPass: true
+      });
+      
+      // Сохраняем состояние комнаты в базу данных
+      if (room.id && room.id !== 'lobby') {
+        updateRoomInDatabase(room);
+      }
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error auto passing turn:', error);
+      socket.emit('autoPassTurnError', { success: false, error: 'Ошибка автоматического перехода хода' });
     }
   });
 
@@ -1891,6 +2235,33 @@ io.on('connection', (socket) => {
     }
   };
 
+  // Вспомогательная функция для проверки прав хоста
+  const isHost = (room, socketId) => {
+    if (!room) return false;
+    
+    // Находим игрока по socketId
+    const player = room.currentPlayers.find(p => p.socketId === socketId);
+    if (!player) return false;
+    
+    // Проверяем, является ли игрок хостом
+    return room.hostId === player.id;
+  };
+
+  // Функция для проверки, является ли игрок текущим
+  const isCurrentPlayer = (room, socketId) => {
+    if (!room || room.currentPlayerIndex === undefined) return false;
+    
+    const currentPlayer = room.currentPlayers[room.currentPlayerIndex];
+    return currentPlayer && currentPlayer.socketId === socketId;
+  };
+
+  // Функция для получения следующего игрока
+  const getNextPlayerIndex = (room) => {
+    if (!room || room.currentPlayers.length === 0) return 0;
+    
+    return (room.currentPlayerIndex + 1) % room.currentPlayers.length;
+  };
+
   // Обработчик отключения клиента
   socket.on('disconnect', () => {
     console.log(`🔌 [SERVER] Client disconnected: ${socket.id}`);
@@ -1913,7 +2284,7 @@ io.on('connection', (socket) => {
         });
         
         // Если отключившийся игрок был хостом, останавливаем систему перерывов
-        if (room.hostId === socket.id) {
+        if (room.hostId === disconnectedPlayer.id) {
           console.log(`🔌 [SERVER] Host disconnected, stopping break system for room: ${roomId}`);
           stopBreakSystem(roomId);
         }
@@ -1942,13 +2313,106 @@ app.get('/api/rooms', (req, res) => {
   res.json(roomsList);
 });
 
+// Функция для обновления комнаты в базе данных
+const updateRoomInDatabase = async (room) => {
+  try {
+    await db.saveRoom(room);
+    console.log('💾 [SERVER] Комната обновлена в базе данных:', room.roomId);
+  } catch (error) {
+    console.error('❌ [SERVER] Ошибка обновления комнаты в базе данных:', error);
+  }
+};
+
+// Функция для загрузки комнат из базы данных
+const loadRoomsFromDatabase = async () => {
+  try {
+    console.log('🔄 [SERVER] Загружаем комнаты из базы данных...');
+    
+    // Сначала удаляем старые комнаты (старше 5 часов)
+    const fiveHoursAgo = Date.now() - (5 * 60 * 60 * 1000);
+    try {
+      const deletedCount = await db.deleteOldRooms(fiveHoursAgo);
+      if (deletedCount > 0) {
+        console.log(`🧹 [SERVER] Удалено ${deletedCount} старых комнат`);
+      }
+    } catch (error) {
+      console.error('❌ [SERVER] Ошибка удаления старых комнат:', error);
+    }
+    
+    const savedRooms = await db.getAllRooms();
+    
+    for (const roomData of savedRooms) {
+      // Создаем объект комнаты в том же формате, что используется в памяти
+      const room = {
+        roomId: roomData.id,
+        displayName: roomData.name,
+        hostId: roomData.host_id,
+        hostUsername: roomData.host_username,
+        maxPlayers: roomData.max_players || 2,
+        gameDuration: roomData.game_duration || 180,
+        currentPlayers: [], // Игроки будут загружены отдельно
+        status: roomData.status || 'waiting',
+        password: roomData.password || '',
+        createdAt: roomData.created_at,
+        professionType: roomData.profession_type || 'individual',
+        hostProfession: roomData.host_profession ? JSON.parse(roomData.host_profession) : null,
+        sharedProfession: roomData.shared_profession ? JSON.parse(roomData.shared_profession) : null,
+        isPublic: true,
+        gamePlayersData: [],
+        turnOrder: [],
+        currentTurnIndex: 0,
+        currentTurn: null,
+        turnTimeLeft: 120,
+        isTurnEnding: false,
+        processedTransactions: new Set(),
+        gameStartTime: roomData.game_start_time || null,
+        gameEndTime: roomData.game_end_time || null,
+        nextBreakTime: roomData.next_break_time || null
+      };
+      
+      // Загружаем игроков для этой комнаты
+      try {
+        const players = await db.getPlayersInRoom(roomData.id);
+        room.currentPlayers = players.map(player => ({
+          id: player.id,
+          username: player.username,
+          socketId: null, // Будет установлен при подключении
+          userId: player.id,
+          ready: false,
+          position: 0,
+          balance: 2000,
+          assets: [],
+          liabilities: [],
+          profession: null,
+          isFinancialFree: false,
+          color: null
+        }));
+      } catch (error) {
+        console.error(`❌ [SERVER] Ошибка загрузки игроков для комнаты ${roomData.id}:`, error);
+        room.currentPlayers = [];
+      }
+      
+      // Добавляем комнату в память
+      rooms.set(roomData.id, room);
+      console.log(`✅ [SERVER] Загружена комната: ${roomData.name} (${roomData.id}) с ${room.currentPlayers.length} игроками`);
+    }
+    
+    console.log(`✅ [SERVER] Загружено ${savedRooms.length} комнат из базы данных`);
+  } catch (error) {
+    console.error('❌ [SERVER] Ошибка загрузки комнат из базы данных:', error);
+  }
+};
+
 // Запускаем сервер
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`🚀 Energy of Money Server запущен!`);
   console.log(`🌐 HTTP: http://localhost:${PORT}`);
   console.log(`📡 WebSocket: ws://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`🏠 API комнат: http://localhost:${PORT}/api/rooms`);
+  
+  // Загружаем комнаты из базы данных
+  await loadRoomsFromDatabase();
 });
 
 // Обработка завершения работы сервера

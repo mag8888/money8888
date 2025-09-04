@@ -535,13 +535,25 @@ const BankModal = ({
       fullScreen={isMobile}
       PaperProps={{
         sx: {
-          background: 'linear-gradient(135deg, #1A202C 0%, #2D3748 100%)',
+          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)',
           borderRadius: '20px',
           overflow: 'hidden',
           minHeight: isMobile ? '100vh' : 'auto',
           maxHeight: isMobile ? '100vh' : '90vh',
-          border: '2px solid #4A5568',
-          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)'
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+          backdropFilter: 'blur(20px)',
+          position: 'relative',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '2px',
+            background: 'linear-gradient(90deg, #10B981, #059669, #10B981)',
+            animation: 'shimmer 2s infinite'
+          }
         }
       }}
     >
@@ -549,19 +561,43 @@ const BankModal = ({
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        pb: 2,
-        background: 'rgba(45, 55, 72, 0.8)',
-        borderRadius: '20px 20px 0 0',
-        backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid #4A5568'
+        pb: 3,
+        pt: 3,
+        px: 3,
+        background: 'transparent',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
       }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AccountBalance sx={{ fontSize: 28, color: 'white' }} />
-          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'white' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{
+            width: 40,
+            height: 40,
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+          }}>
+            <AccountBalance sx={{ fontSize: 24, color: 'white' }} />
+          </Box>
+          <Typography variant="h4" sx={{ 
+            fontWeight: 'bold', 
+            color: 'white',
+            textShadow: '0 0 10px rgba(16, 185, 129, 0.3)'
+          }}>
             Банковские операции
           </Typography>
         </Box>
-        <IconButton onClick={onClose} sx={{ color: 'white' }}>
+        <IconButton 
+          onClick={onClose} 
+          sx={{ 
+            color: 'white',
+            background: 'rgba(255, 255, 255, 0.1)',
+            '&:hover': {
+              background: 'rgba(255, 255, 255, 0.2)'
+            }
+          }}
+        >
           <CloseIcon />
         </IconButton>
       </DialogTitle>
@@ -575,62 +611,181 @@ const BankModal = ({
           {/* Левая панель - Баланс и статистика */}
           <Grid item xs={12} md={4}>
             <Card sx={{ 
-              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)',
               color: 'white',
               mb: 2,
-              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
-              borderRadius: '15px'
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+              borderRadius: '16px',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              position: 'relative',
+              overflow: 'hidden',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '2px',
+                background: 'linear-gradient(90deg, #10B981, #059669, #10B981)',
+                animation: 'shimmer 2s infinite'
+              }
             }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    Текущий баланс
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <AccountBalance sx={{ fontSize: 24, color: '#10B981' }} />
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'white' }}>
+                      Банк
                   </Typography>
+                  </Box>
                   <Chip 
-                    label={isConnected ? "Подключен" : "Отключен"} 
+                    label="Активен" 
                     size="small" 
                     sx={{ 
-                      backgroundColor: isConnected ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                      color: isConnected ? '#10B981' : '#EF4444',
-                      fontWeight: 'bold'
+                      backgroundColor: '#10B981',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      borderRadius: '8px'
                     }} 
                   />
                 </Box>
-                <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
+                
+                <Typography variant="h2" sx={{ 
+                  fontWeight: 'bold', 
+                  mb: 1, 
+                  color: '#10B981',
+                  textShadow: '0 0 10px rgba(16, 185, 129, 0.3)'
+                }}>
                   ${displayBalance}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                <Typography variant="body2" sx={{ 
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  mb: 3
+                }}>
                   Доступно для операций
                 </Typography>
+
+                {/* Финансовая сводка */}
+                <Box sx={{ 
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '12px',
+                  p: 2,
+                  mb: 2
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <TrendingUp sx={{ fontSize: 16, color: '#10B981' }} />
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      Доход:
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#10B981' }}>
+                      $10,000
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <TrendingDown sx={{ fontSize: 16, color: '#EF4444' }} />
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      Расходы:
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#EF4444' }}>
+                      $6,200
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <AttachMoney sx={{ fontSize: 16, color: '#F59E0B' }} />
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      PAYDAY:
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#F59E0B' }}>
+                      $3,800/мес
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Кредитная информация */}
+                <Box sx={{ 
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '12px',
+                  p: 2
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <CreditCard sx={{ fontSize: 16, color: '#10B981' }} />
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      Кредит:
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#10B981' }}>
+                      $0
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
+                    Макс. кредит: <span style={{ color: '#8B5CF6', fontWeight: 'bold' }}>$38,000</span>
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Button
+                      variant="contained"
+                      startIcon={<CheckCircle />}
+                      sx={{
+                        background: '#10B981',
+                        color: 'white',
+                        py: 1,
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        '&:hover': {
+                          background: '#059669'
+                        }
+                      }}
+                    >
+                      Без кредитов
+                    </Button>
+                    <Button
+                      variant="contained"
+                      startIcon={<CreditCard />}
+                      sx={{
+                        background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                        color: 'white',
+                        py: 1,
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        '&:hover': {
+                          background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)'
+                        }
+                      }}
+                    >
+                      Взять
+                    </Button>
+                  </Box>
+                </Box>
               </CardContent>
             </Card>
 
             {/* Статистика */}
             <Card sx={{ 
-              background: 'rgba(255, 255, 255, 0.1)',
+              background: 'rgba(255, 255, 255, 0.05)',
               backdropFilter: 'blur(10px)',
               mb: 2,
-              borderRadius: '15px',
+              borderRadius: '16px',
               border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
-              <CardContent>
+              <CardContent sx={{ p: 3 }}>
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: 'white' }}>
-                  Статистика
+                  Статистика операций
                 </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" sx={{ color: '#94A3B8' }}>Всего переводов:</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'white' }}>{totalTransfers}</Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Всего переводов:</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#10B981' }}>{totalTransfers}</Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" sx={{ color: '#94A3B8' }}>Сумма переводов:</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'white' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Сумма переводов:</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#10B981' }}>
                       ${totalTransferAmount.toLocaleString()}
                     </Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" sx={{ color: '#94A3B8' }}>Транзакций:</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'white' }}>{totalTransactions}</Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Транзакций:</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#10B981' }}>{totalTransactions}</Typography>
                   </Box>
                 </Box>
               </CardContent>
@@ -638,16 +793,16 @@ const BankModal = ({
 
             {/* Быстрые действия */}
             <Card sx={{ 
-              background: 'rgba(255, 255, 255, 0.1)',
+              background: 'rgba(255, 255, 255, 0.05)',
               backdropFilter: 'blur(10px)',
-              borderRadius: '15px',
+              borderRadius: '16px',
               border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
-              <CardContent>
+              <CardContent sx={{ p: 3 }}>
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: 'white' }}>
                   Быстрые действия
                 </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Button
                     variant="contained"
                     startIcon={<Send />}
@@ -655,12 +810,15 @@ const BankModal = ({
                       background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
                       color: 'white',
                       py: 1.5,
-                      borderRadius: '10px',
+                      borderRadius: '12px',
                       boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+                      fontWeight: 'bold',
                       '&:hover': {
                         background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
-                        boxShadow: '0 6px 16px rgba(139, 92, 246, 0.4)'
-                      }
+                        boxShadow: '0 6px 16px rgba(139, 92, 246, 0.4)',
+                        transform: 'translateY(-2px)'
+                      },
+                      transition: 'all 0.3s ease'
                     }}
                   >
                     НОВЫЙ ПЕРЕВОД
@@ -672,11 +830,14 @@ const BankModal = ({
                       borderColor: 'rgba(255, 255, 255, 0.3)',
                       color: 'white',
                       py: 1.5,
-                      borderRadius: '10px',
+                      borderRadius: '12px',
+                      fontWeight: 'bold',
                       '&:hover': {
                         borderColor: '#8B5CF6',
-                        backgroundColor: 'rgba(139, 92, 246, 0.1)'
-                      }
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        transform: 'translateY(-2px)'
+                      },
+                      transition: 'all 0.3s ease'
                     }}
                   >
                     ИСТОРИЯ ОПЕРАЦИЙ
@@ -692,13 +853,13 @@ const BankModal = ({
               {/* Форма перевода */}
               <Grid item xs={12}>
                 <Card sx={{ 
-                  background: 'rgba(255, 255, 255, 0.1)',
+                  background: 'rgba(255, 255, 255, 0.05)',
                   backdropFilter: 'blur(10px)',
-                  borderRadius: '15px',
+                  borderRadius: '16px',
                   border: '1px solid rgba(255, 255, 255, 0.1)'
                 }}>
-                  <CardContent>
-                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: 'white' }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', color: 'white' }}>
                       Перевод средств
                     </Typography>
                     <Grid container spacing={2}>
@@ -712,14 +873,16 @@ const BankModal = ({
                             onChange={(e) => setSelectedRecipient(e.target.value)}
                             sx={{
                               color: 'white',
+                              borderRadius: '12px',
                               '& .MuiOutlinedInput-notchedOutline': {
-                                borderColor: 'rgba(255, 255, 255, 0.3)'
+                                borderColor: 'rgba(255, 255, 255, 0.2)'
                               },
                               '&:hover .MuiOutlinedInput-notchedOutline': {
-                                borderColor: 'rgba(255, 255, 255, 0.5)'
+                                borderColor: 'rgba(255, 255, 255, 0.4)'
                               },
                               '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                borderColor: '#8B5CF6'
+                                borderColor: '#10B981',
+                                borderWidth: '2px'
                               }
                             }}
                           >
@@ -746,14 +909,16 @@ const BankModal = ({
                           sx={{
                             '& .MuiOutlinedInput-root': {
                               color: 'white',
+                              borderRadius: '12px',
                               '& fieldset': {
-                                borderColor: 'rgba(255, 255, 255, 0.3)'
+                                borderColor: 'rgba(255, 255, 255, 0.2)'
                               },
                               '&:hover fieldset': {
-                                borderColor: 'rgba(255, 255, 255, 0.5)'
+                                borderColor: 'rgba(255, 255, 255, 0.4)'
                               },
                               '&.Mui-focused fieldset': {
-                                borderColor: '#8B5CF6'
+                                borderColor: '#10B981',
+                                borderWidth: '2px'
                               }
                             },
                             '& .MuiInputLabel-root': {
@@ -771,19 +936,22 @@ const BankModal = ({
                             startIcon={<Send />}
                             sx={{
                               flex: 1,
-                              background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
                               color: 'white',
                               py: 1.5,
-                              borderRadius: '10px',
-                              boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+                              borderRadius: '12px',
+                              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                              fontWeight: 'bold',
                               '&:hover': {
-                                background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
-                                boxShadow: '0 6px 16px rgba(139, 92, 246, 0.4)'
+                                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                                boxShadow: '0 6px 16px rgba(16, 185, 129, 0.4)',
+                                transform: 'translateY(-2px)'
                               },
                               '&:disabled': {
                                 background: 'rgba(255, 255, 255, 0.1)',
                                 color: 'rgba(255, 255, 255, 0.3)'
-                              }
+                              },
+                              transition: 'all 0.3s ease'
                             }}
                           >
                             {isTransferring ? 'Выполняется...' : 'Выполнить перевод'}
@@ -799,11 +967,14 @@ const BankModal = ({
                               borderColor: 'rgba(255, 255, 255, 0.3)',
                               color: 'white',
                               py: 1.5,
-                              borderRadius: '10px',
+                              borderRadius: '12px',
+                              fontWeight: 'bold',
                               '&:hover': {
-                                borderColor: '#8B5CF6',
-                                backgroundColor: 'rgba(139, 92, 246, 0.1)'
-                              }
+                                borderColor: '#10B981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                transform: 'translateY(-2px)'
+                              },
+                              transition: 'all 0.3s ease'
                             }}
                           >
                             Сбросить

@@ -214,6 +214,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
     hasJoinedRef.current = true;
 
     socket.emit('joinRoom', roomId, {
+      id: playerData.id, // Передаем User ID
       username: playerName,
       roomId: roomId,
       profession: selectedProfession
@@ -286,7 +287,7 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
         console.log('💼 [RoomSetup] Установлена профессия хоста из roomData:', data.hostProfession);
       }
 
-      if (data.hostId === socket.id) {
+      if (data.hostId === playerData?.id) {
         setIsHost(true);
         console.log('👑 [RoomSetup] Текущий игрок является хостом');
       } else {
@@ -590,12 +591,13 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
   // Извлекаем мечты из FAST_TRACK_CELLS с номерами клеток
   const dreams = FAST_TRACK_CELLS
     .filter(cell => cell.type === 'dream')
-    .map(cell => ({
+    .map((cell, index) => ({
       id: cell.id,
       name: cell.name,
       cost: cell.cost,
       description: cell.description,
-      cellNumber: cell.id, // Добавляем номер клетки
+      cellNumber: cell.id, // Используем реальный ID поля из большого круга
+      originalCellId: cell.id, // Сохраняем оригинальный ID клетки
       icon: cell.icon,
       color: cell.color
     }))
@@ -736,36 +738,15 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
               }}>
                 👤 Текущий игрок
               </Typography>
-              <Button
-                variant="contained"
-                fullWidth
-                size="large"
-                onClick={() => {
-                  console.log('👤 [RoomSetup] Кнопка карточки игрока нажата');
-                  handlePlayerClick({
-                    username: playerName,
-                    profession: selectedProfession || 'none',
-                    ready: isReady,
-                    socketId: 'current'
-                  });
-                }}
+              <Box
                 sx={{
                   p: 3,
                   background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)',
                   color: 'white',
                   borderRadius: '16px',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
-                  textTransform: 'none',
-                  fontSize: '1.1rem',
-                  fontWeight: 'bold',
-                  transition: 'all 0.3s ease',
                   position: 'relative',
                   overflow: 'hidden',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 24px rgba(0, 0, 0, 0.3)',
-                    border: '1px solid rgba(16, 185, 129, 0.3)'
-                  },
                   '&::before': {
                     content: '""',
                     position: 'absolute',
@@ -826,29 +807,10 @@ const RoomSetup = ({ playerData, onRoomSetup }) => {
                           boxShadow: isReady ? '0 0 10px rgba(16, 185, 129, 0.3)' : '0 0 10px rgba(245, 158, 11, 0.3)'
                         }}
                       />
-                      <Typography variant="body2" sx={{ 
-                        color: 'rgba(255, 255, 255, 0.7)', 
-                        fontStyle: 'italic',
-                        textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
-                      }}>
-                        Нажмите для просмотра карточки
-                      </Typography>
                     </Box>
                   </Box>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="h3" sx={{ color: '#10B981' }}>
-                      👆
-                    </Typography>
-                    <Typography variant="caption" sx={{ 
-                      color: 'rgba(255, 255, 255, 0.7)', 
-                      textAlign: 'center',
-                      textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
-                    }}>
-                      Кликните
-                    </Typography>
-                  </Box>
                 </Box>
-              </Button>
+              </Box>
             </Box>
 
             {/* Имя комнаты */}

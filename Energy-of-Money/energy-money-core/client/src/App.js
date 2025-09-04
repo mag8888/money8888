@@ -108,6 +108,11 @@ function AppRouter() {
         roomId={roomId}
         playerData={playerData}
         onExit={() => {
+          // Уведомляем сервер о выходе из комнаты
+          if (socket.connected && roomId) {
+            socket.emit('leaveRoom', roomId);
+            console.log('🚪 [App] Notified server about leaving room:', roomId);
+          }
           // Не очищаем currentRoom при выходе, чтобы игрок мог вернуться
           navigate('/');
         }}

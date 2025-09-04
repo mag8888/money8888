@@ -249,6 +249,7 @@ const MarketCardModal = ({
           Отказаться
         </Button>
 
+
         <Button
           onClick={onClose}
           sx={{

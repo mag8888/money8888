@@ -36,6 +36,17 @@ class Database {
                 name TEXT NOT NULL,
                 host_id TEXT,
                 host_username TEXT,
+                max_players INTEGER DEFAULT 2,
+                game_duration INTEGER DEFAULT 180,
+                status TEXT DEFAULT 'waiting',
+                password TEXT DEFAULT '',
+                profession_type TEXT DEFAULT 'individual',
+                host_profession TEXT,
+                shared_profession TEXT,
+                current_players TEXT,
+                game_start_time INTEGER,
+                game_end_time INTEGER,
+                next_break_time INTEGER,
                 created_at INTEGER,
                 updated_at INTEGER
             )
@@ -222,15 +233,31 @@ class Database {
     saveRoom(room) {
         return new Promise((resolve, reject) => {
             const sql = `
-                INSERT OR REPLACE INTO rooms (id, name, host_id, host_username, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT OR REPLACE INTO rooms (
+                    id, name, host_id, host_username, max_players, game_duration, 
+                    status, password, profession_type, host_profession, shared_profession,
+                    current_players, game_start_time, game_end_time, next_break_time,
+                    created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             
             this.db.run(sql, [
-                room.id,
-                room.name,
+                room.roomId || room.id,
+                room.name || room.displayName,
                 room.hostId || null,
                 room.hostUsername || null,
+                room.maxPlayers || 2,
+                room.gameDuration || 180,
+                room.status || 'waiting',
+                room.password || '',
+                room.professionType || 'individual',
+                room.hostProfession ? JSON.stringify(room.hostProfession) : null,
+                room.sharedProfession ? JSON.stringify(room.sharedProfession) : null,
+                room.currentPlayers ? JSON.stringify(room.currentPlayers) : null,
+                room.gameStartTime || null,
+                room.gameEndTime || null,
+                room.nextBreakTime || null,
                 room.createdAt || Date.now(),
                 Date.now()
             ], function(err) {
@@ -325,6 +352,20 @@ class Database {
                     reject(err);
                 } else {
                     resolve(this.changes > 0);
+                }
+            });
+        });
+    }
+
+    deleteOldRooms(timestamp) {
+        return new Promise((resolve, reject) => {
+            const sql = 'DELETE FROM rooms WHERE created_at < ?';
+            this.db.run(sql, [timestamp], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    console.log(`🧹 [DB] Deleted ${this.changes} old rooms`);
+                    resolve(this.changes);
                 }
             });
         });

@@ -7,6 +7,7 @@ import MarketCardModal from './MarketCardModal';
 import ExpenseCardModal from './ExpenseCardModal';
 import BreakModal from './BreakModal';
 import BankModule from './BankModule';
+import CellPopup from './CellPopup';
 import { MarketDeckManager, checkPlayerHasMatchingAsset } from '../data/marketCards';
 import { ExpenseDeckManager } from '../data/expenseCards';
 import { CELL_CONFIG } from '../data/gameCells';
@@ -41,9 +42,13 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [currentTurn, setCurrentTurn] = useState(null);
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const [isHost, setIsHost] = useState(false);
+  const [hostCanRoll, setHostCanRoll] = useState(true);
   
   // Получаем данные игроков для игры
   const [gamePlayers, setGamePlayers] = useState([]);
+  
+  // Состояние для дебаунсинга обновлений игроков
+  const [playersUpdateTimeout, setPlayersUpdateTimeout] = useState(null);
 
 
 
@@ -53,7 +58,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       id: player.id || player.socketId,
       username: player.username || 'Игрок',
       socketId: player.socketId,
-      balance: player.balance || 3000,
+      balance: player.balance !== undefined ? player.balance : 3000,
       position: player.position || 0,
       ready: player.ready || false,
       profession: player.profession || null,
@@ -76,15 +81,20 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     }
   };
 
-  // Функция для получения активов текущего игрока
+  // Функция для получения активов текущего игрока (пользователя)
   const getCurrentPlayerAssets = () => {
-    const currentPlayerData = gamePlayers[currentPlayer];
-    return currentPlayerData?.assets || [];
+    // Находим текущего игрока по socket.id, а не по индексу хода
+    const currentPlayerData = gamePlayers.find(p => p.socketId === socket?.id);
+    if (!currentPlayerData || !currentPlayerData.assets) {
+      return [];
+    }
+    return currentPlayerData.assets;
   };
 
-  // Функция для обновления активов текущего игрока
+  // Функция для обновления активов текущего игрока (пользователя)
   const updateCurrentPlayerAssets = (newAssets) => {
-    const currentPlayerData = gamePlayers[currentPlayer];
+    // Находим текущего игрока по socket.id, а не по индексу хода
+    const currentPlayerData = gamePlayers.find(p => p.socketId === socket?.id);
     if (currentPlayerData) {
       syncPlayerData(currentPlayerData.socketId, { assets: newAssets });
       setGamePlayers(prev => prev.map(p => 
@@ -169,21 +179,37 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   useEffect(() => {
     // Настраиваем обработчики Socket.IO событий
 
-    // Обработчик обновления списка игроков
-    const handlePlayersUpdate = (playersList) => {
+  // Обработчик обновления списка игроков
+  const handlePlayersUpdate = (playersList) => {
+    console.log('🔄 [OriginalGameBoard] handlePlayersUpdate получен - состояние сделок:', {
+      showDealModal,
+      currentDealCard: currentDealCard?.name || null,
+      globalDealCard: globalDealCard?.name || null,
+      showMarketCardModal,
+      currentMarketCard: currentMarketCard?.name || null,
+      showExpenseCardModal,
+      currentExpenseCard: currentExpenseCard?.name || null
+    });
+    
+    // Дебаунсинг обновлений игроков
+    if (playersUpdateTimeout) {
+      clearTimeout(playersUpdateTimeout);
+    }
+
+    const timeout = setTimeout(() => {
       // Получен обновленный список игроков
-      console.log('🔄 [OriginalGameBoard] handlePlayersUpdate received:', playersList.map(p => ({
+      console.log('🔄 [OriginalGameBoard] handlePlayersUpdate processed:', playersList.map(p => ({
         username: p.username,
         balance: p.balance,
         socketId: p.socketId,
         id: p.id,
         userId: p.userId
       })));
-      
-      // Дополнительная проверка для текущего игрока
-      const currentPlayerData = playersList.find(p => 
-        p.id === playerData?.id || p.userId === playerData?.id || p.username === playerData?.username
-      );
+        
+        // Дополнительная проверка для текущего игрока
+        const currentPlayerData = playersList.find(p => 
+          p.id === playerData?.id || p.userId === playerData?.id || p.username === playerData?.username
+        );
       if (currentPlayerData) {
         console.log('🎯 [OriginalGameBoard] Текущий игрок в обновлении:', {
           username: currentPlayerData.username,
@@ -229,7 +255,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       
       // Сохраняем в localStorage
       localStorage.setItem('potok-deneg_gamePlayers', JSON.stringify(initializedPlayers));
-    };
+    }, 100); // Дебаунсинг 100мс
+
+    setPlayersUpdateTimeout(timeout);
+  };
 
     // Обработчик получения данных комнаты
     const handleRoomData = (roomData) => {
@@ -291,15 +320,67 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     const handlePlayerTurnChanged = (data) => {
       console.log('🎯 [OriginalGameBoard] Получено обновление хода игрока:', data);
       
+      console.log('🔄 [OriginalGameBoard] ПЕРЕД handlePlayerTurnChanged - состояние сделок:', {
+        showDealModal,
+        currentDealCard: currentDealCard?.name || null,
+        globalDealCard: globalDealCard?.name || null,
+        showMarketCardModal,
+        currentMarketCard: currentMarketCard?.name || null,
+        showExpenseCardModal,
+        currentExpenseCard: currentExpenseCard?.name || null
+      });
+      
+      // Разблокируем состояние смены хода
+      setIsTurnChanging(false);
+      
       setCurrentPlayer(data.currentPlayerIndex);
+      
       // Преобразуем ID в имя пользователя
-      const currentPlayerName = gamePlayers.find(p => p.id === data.currentPlayer || p.socketId === data.currentPlayer)?.username || data.currentPlayer || '';
+      const currentPlayerName = gamePlayers.find(p => p.id === data.currentPlayer?.id || p.socketId === data.currentPlayer?.socketId)?.username || data.currentPlayer?.username || '';
       setCurrentTurn(currentPlayerName);
       
-      // Сбрасываем таймер для нового игрока
-      setTurnTimeLeft(120);
+      // Обновляем таймер из данных сервера
+      if (data.turnTimeLeft !== undefined) {
+        setTurnTimeLeft(data.turnTimeLeft);
+      } else {
+        setTurnTimeLeft(120);
+      }
+      
+      if (data.isTurnEnding !== undefined) {
+        setIsTurnEnding(data.isTurnEnding);
+      } else {
+        setIsTurnEnding(false);
+      }
+      
       setTimerProgress(0);
-      setIsTurnEnding(false);
+      
+      // Сбрасываем возможность хоста бросать кубик при смене хода
+      setHostCanRoll(true);
+      
+      // Показываем уведомление о смене хода
+      if (data.isAutoPass) {
+        setToast({
+          open: true,
+          message: `⏰ Ход автоматически передан ${currentPlayerName}`,
+          severity: 'info'
+        });
+      } else if (data.oldPlayer && data.oldPlayer.username) {
+        setToast({
+          open: true,
+          message: `🎯 Ход передан от ${data.oldPlayer.username} к ${currentPlayerName}`,
+          severity: 'info'
+        });
+      }
+      
+      console.log('🔄 [OriginalGameBoard] ПОСЛЕ handlePlayerTurnChanged - состояние сделок:', {
+        showDealModal,
+        currentDealCard: currentDealCard?.name || null,
+        globalDealCard: globalDealCard?.name || null,
+        showMarketCardModal,
+        currentMarketCard: currentMarketCard?.name || null,
+        showExpenseCardModal,
+        currentExpenseCard: currentExpenseCard?.name || null
+      });
     };
 
     // Обработчик синхронизации таймера хода
@@ -335,6 +416,24 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     socket.on('turnTimerSynced', handleTurnTimerSynced);
 
     socket.on('bankTransferError', handleBankTransferError);
+
+    // Обработчик ошибки смены хода игрока
+    const handleChangePlayerTurnError = (data) => {
+      console.log('❌ [OriginalGameBoard] Ошибка смены хода:', data);
+      
+      // Разблокируем состояние смены хода при ошибке
+      setIsTurnChanging(false);
+      
+      setToast({
+        open: true,
+        message: data.error || 'Ошибка смены хода игрока',
+        severity: 'error'
+      });
+      
+      // Откатываем локальные изменения, если сервер отклонил запрос
+      // Здесь можно добавить логику для восстановления предыдущего состояния
+    };
+    socket.on('changePlayerTurnError', handleChangePlayerTurnError);
 
     // Обработка ошибки "Комната не найдена"
     const handleRoomNotFound = () => {
@@ -404,6 +503,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     const handleGameStarted = () => {
       console.log('🎮 [OriginalGameBoard] Игра началась, перемешиваем карточки сделок...');
       initializeDealDeck();
+      // Сбрасываем возможность хоста бросать кубик при начале игры
+      setHostCanRoll(true);
     };
 
     socket.on('gameStarted', handleGameStarted);
@@ -491,12 +592,52 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       });
     });
 
+    // Обработчики кредитных событий
+    const handleCreditPaymentSuccess = (data) => {
+      console.log('✅ [OriginalGameBoard] Credit payment success:', data);
+      setToast({
+        open: true,
+        message: data.message,
+        severity: 'success'
+      });
+      
+      // Обновляем баланс игрока после успешного взятия кредита
+      if (data.newBalance !== undefined) {
+        setPlayerMoney(data.newBalance);
+        
+        // Если открыт модал благотворительности, обновляем состояние кнопок
+        if (showCharityModal) {
+          console.log('🔄 [OriginalGameBoard] Обновляем состояние кнопок благотворительности после кредита');
+          // Принудительно обновляем состояние компонента для перерендера кнопок
+          setTimeout(() => {
+            setPlayerMoney(prev => prev + 0.01); // Небольшое изменение для принудительного обновления
+            setTimeout(() => {
+              setPlayerMoney(prev => prev - 0.01); // Возвращаем обратно
+            }, 10);
+          }, 100);
+        }
+      }
+    };
+
+    const handleCreditPaymentError = (data) => {
+      console.log('❌ [OriginalGameBoard] Credit payment error:', data);
+      setToast({
+        open: true,
+        message: data.message,
+        severity: 'error'
+      });
+    };
+
+    socket.on('creditPaymentSuccess', handleCreditPaymentSuccess);
+    socket.on('creditPaymentError', handleCreditPaymentError);
+
     // Запрашиваем актуальный список игроков при подключении
     if (socket.connected && roomIdRef.current) {
       console.log('🔄 [OriginalGameBoard] Запрашиваем актуальные данные игры...');
       
       // Сначала присоединяемся к комнате (это обновит socketId на сервере)
       socket.emit('joinRoom', roomIdRef.current, {
+        id: playerData?.id, // Передаем User ID
         username: playerData?.username || 'Игрок',
         socketId: socket.id,
         profession: playerData?.profession || null // Передаем профессию игрока
@@ -519,6 +660,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       socket.off('turnTimerSynced', handleTurnTimerSynced);
 
       socket.off('bankTransferError', handleBankTransferError);
+      socket.off('changePlayerTurnError', handleChangePlayerTurnError);
       socket.off('roomNotFound', handleRoomNotFound);
       socket.off('gamePlayersData', handleGamePlayersData);
       socket.off('balanceUpdateSuccess', handleBalanceUpdateSuccess);
@@ -529,6 +671,13 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       socket.off('cardPassError');
       socket.off('globalDealCardError');
       socket.off('gameStarted', handleGameStarted);
+      socket.off('creditPaymentSuccess', handleCreditPaymentSuccess);
+      socket.off('creditPaymentError', handleCreditPaymentError);
+      
+      // Очищаем timeout при размонтировании
+      if (playersUpdateTimeout) {
+        clearTimeout(playersUpdateTimeout);
+      }
     };
   }, []); // Убираем roomId из зависимостей, чтобы избежать ререндеров
 
@@ -656,6 +805,29 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     if (gamePlayers.length === 0) return null;
     return gamePlayers[index] || gamePlayers[0];
   };
+
+  // Функция для обработки клика по клетке
+  const handleCellClick = (cell) => {
+    console.log('🖱️ [OriginalGameBoard] Клик по клетке:', cell);
+    setSelectedCell(cell);
+    setShowCellPopup(true);
+  };
+
+  // Функция для проверки, является ли текущий игрок активным
+  const isMyTurn = () => {
+    if (gamePlayers.length === 0 || !socket?.id) return false;
+    
+    const currentPlayerData = gamePlayers.find(p => p.socketId === socket.id);
+    if (!currentPlayerData) return false;
+    
+    const currentPlayerIndex = gamePlayers.findIndex(p => p.socketId === socket.id);
+    return currentPlayerIndex === currentPlayer;
+  };
+
+  // Функция для проверки, может ли игрок выполнять действия
+  const canPerformAction = () => {
+    return isMyTurn() || (isHost && hostCanRoll);
+  };
   
   // Состояние для модальных окон
   const [showPlayerModal, setShowPlayerModal] = useState(false);
@@ -754,6 +926,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [globalDealCard, setGlobalDealCard] = useState(null); // Глобальная карточка для всех игроков
   const [globalDealCardOwner, setGlobalDealCardOwner] = useState(null); // Владелец глобальной карточки
   const [stockQuantity, setStockQuantity] = useState(1); // Количество акций для покупки
+
+  // Состояние для popup окна клетки
+  const [showCellPopup, setShowCellPopup] = useState(false);
+  const [selectedCell, setSelectedCell] = useState(null);
   const [showPlayerSelectionModal, setShowPlayerSelectionModal] = useState(false); // Модал выбора игрока для передачи карточки
   const [receivedCard, setReceivedCard] = useState(null); // Полученная карточка от другого игрока
   const [showReceivedCardModal, setShowReceivedCardModal] = useState(false); // Модал полученной карточки
@@ -964,11 +1140,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция броска кубика
   const rollDice = () => {
-    if (isRolling || !canRollDice) return;
+    if (isRolling || (!canRollDice && !(isHost && hostCanRoll))) return;
     
     setIsRolling(true);
     setDiceRolled(true);
     setCanRollDice(false);
+    setHostCanRoll(false);
     
     if (hasCharityBonus && charityTurnsLeft > 0) {
       // Бросаем кубики при наличии бонуса благотворительности
@@ -3267,31 +3444,52 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     const player = getPlayerByIndex(playerIndex);
     console.log(`🎯 [OriginalGameBoard] Переключение на игрока ${player?.username || 'Игрок'}`);
     
-    // Синхронизируем с сервером
+    // Синхронизируем с сервером - НЕ обновляем локально до подтверждения
     if (socket.connected && roomIdRef.current) {
       socket.emit('changePlayerTurn', roomIdRef.current, playerIndex);
+    } else {
+      console.log('❌ [OriginalGameBoard] Socket не подключен, невозможно сменить ход');
+      setToast({
+        open: true,
+        message: 'Ошибка подключения к серверу',
+        severity: 'error'
+      });
     }
-    
-    // Обновляем локально для отзывчивости
-    setCurrentPlayer(playerIndex);
-    setTurnTimeLeft(120);
-    setTimerProgress(0);
-    setIsTurnEnding(false);
-    setCanRollDice(true);
-    setDiceRolled(false);
-    
-    // Показываем уведомление
-    setToast({
-      open: true,
-      message: `🎯 Ход передан игроку ${player?.username || 'Игрок'}`,
-      severity: 'info'
-    });
   };
 
 
 
+  // Состояние для блокировки повторных запросов смены хода
+  const [isTurnChanging, setIsTurnChanging] = useState(false);
+
   // Функция для перехода хода
   const passTurn = () => {
+    console.log('🔄 [OriginalGameBoard] passTurn вызвана - состояние сделок:', {
+      showDealModal,
+      currentDealCard: currentDealCard?.name || null,
+      globalDealCard: globalDealCard?.name || null,
+      showMarketCardModal,
+      currentMarketCard: currentMarketCard?.name || null,
+      showExpenseCardModal,
+      currentExpenseCard: currentExpenseCard?.name || null
+    });
+    
+    // Проверяем, не идет ли уже смена хода
+    if (isTurnChanging) {
+      console.log('⏳ [OriginalGameBoard] Смена хода уже в процессе, игнорируем запрос');
+      return;
+    }
+    
+    // Проверяем, может ли игрок передать ход
+    if (!canPerformAction()) {
+      setToast({
+        open: true,
+        message: 'Не ваш ход для передачи',
+        severity: 'error'
+      });
+      return;
+    }
+    
     // Проверяем, есть ли дополнительный ход
     if (hasExtraTurn) {
       setHasExtraTurn(false);
@@ -3329,28 +3527,40 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     
     const nextPlayer = (currentPlayer + 1) % gamePlayers.length;
     
-    // Синхронизируем с сервером
-    if (socket.connected && roomIdRef.current) {
-      socket.emit('changePlayerTurn', roomIdRef.current, nextPlayer);
-    }
-    
-    // Обновляем локально для отзывчивости
-    setCurrentPlayer(nextPlayer);
-    setTurnTimeLeft(120);
-    setTimerProgress(0);
-    setIsTurnEnding(false);
-    setCanRollDice(true);
-    setDiceRolled(false);
-    
-    // Показываем уведомление
-    const nextPlayerData = getPlayerByIndex(nextPlayer);
-    setToast({
-      open: true,
-      message: `⏭️ Ход передан игроку ${nextPlayerData?.username || 'Игрок'}`,
-      severity: 'info'
+    console.log('🔄 [OriginalGameBoard] Перед отправкой changePlayerTurn - состояние сделок:', {
+      showDealModal,
+      currentDealCard: currentDealCard?.name || null,
+      globalDealCard: globalDealCard?.name || null
     });
     
-    console.log(`⏭️ [OriginalGameBoard] Ход передан игроку ${nextPlayerData?.username || 'Игрок'}`);
+    // Блокируем повторные запросы
+    setIsTurnChanging(true);
+    
+    // Синхронизируем с сервером - НЕ обновляем локально до подтверждения
+    if (socket.connected && roomIdRef.current) {
+      socket.emit('changePlayerTurn', roomIdRef.current, nextPlayer);
+      
+      // Устанавливаем таймаут для разблокировки, если сервер не ответит
+      setTimeout(() => {
+        if (isTurnChanging) {
+          console.log('⏰ [OriginalGameBoard] Таймаут смены хода, разблокируем');
+          setIsTurnChanging(false);
+          setToast({
+            open: true,
+            message: 'Таймаут смены хода. Попробуйте еще раз.',
+            severity: 'warning'
+          });
+        }
+      }, 5000); // 5 секунд таймаут
+    } else {
+      console.log('❌ [OriginalGameBoard] Socket не подключен, невозможно передать ход');
+      setIsTurnChanging(false);
+      setToast({
+        open: true,
+        message: 'Ошибка подключения к серверу',
+        severity: 'error'
+      });
+    }
   };
 
 
@@ -3358,12 +3568,26 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   // Функции для работы с активами
   const getTotalAssetsValue = () => {
     const assets = getCurrentPlayerAssets();
-    return assets.reduce((total, asset) => total + (asset.value * (asset.quantity || 1)), 0);
+    if (!assets || !Array.isArray(assets)) {
+      return 0;
+    }
+    return assets.reduce((total, asset) => {
+      const value = asset.value || 0;
+      const quantity = asset.quantity || 1;
+      return total + (value * quantity);
+    }, 0);
   };
 
   const getTotalAssetsIncome = () => {
     const assets = getCurrentPlayerAssets();
-    return assets.reduce((total, asset) => total + (asset.income * (asset.quantity || 1)), 0);
+    if (!assets || !Array.isArray(assets)) {
+      return 0;
+    }
+    return assets.reduce((total, asset) => {
+      const income = asset.income || 0;
+      const quantity = asset.quantity || 1;
+      return total + (income * quantity);
+    }, 0);
   };
 
   // Обновляем пассивный доход на большом круге при изменении активов
@@ -3405,46 +3629,28 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             socket.emit('syncTurnTimer', roomIdRef.current, newTime, newTime <= 10);
           }
           
-          // Если время истекло
-          if (newTime <= 0) {
-            console.log('⏰ Время хода истекло!');
-            // Автоматически переходим к следующему игроку
-            setTimeout(() => {
-              // Уменьшаем количество ходов благотворительности для текущего игрока
-              if (hasCharityBonus && charityTurnsLeft > 0) {
-                const newTurnsLeft = charityTurnsLeft - 1;
-                setCharityTurnsLeft(newTurnsLeft);
-                
-                if (newTurnsLeft <= 0) {
-                  setHasCharityBonus(false);
-                  setCharityTurnsLeft(0);
-                  console.log('⏰ [OriginalGameBoard] Бонус благотворительности закончился (время истекло)');
-                } else {
-                  console.log(`⏰ [OriginalGameBoard] Осталось ходов благотворительности: ${newTurnsLeft} (время истекло)`);
-                }
+          // Автоматический переход хода при истечении времени
+          if (newTime === 0 && isMyTurn()) {
+            console.log('⏰ [OriginalGameBoard] Время хода истекло, автоматически передаем ход');
+            
+            // Уменьшаем количество ходов благотворительности для текущего игрока
+            if (hasCharityBonus && charityTurnsLeft > 0) {
+              const newTurnsLeft = charityTurnsLeft - 1;
+              setCharityTurnsLeft(newTurnsLeft);
+              
+              if (newTurnsLeft <= 0) {
+                setHasCharityBonus(false);
+                setCharityTurnsLeft(0);
+                console.log('⏰ [OriginalGameBoard] Бонус благотворительности закончился (время истекло)');
+              } else {
+                console.log(`⏰ [OriginalGameBoard] Осталось ходов благотворительности: ${newTurnsLeft} (время истекло)`);
               }
-              
-              const nextPlayer = (currentPlayer + 1) % gamePlayers.length;
-              
-              // Синхронизируем с сервером
-              if (socket.connected && roomIdRef.current) {
-                socket.emit('changePlayerTurn', roomIdRef.current, nextPlayer);
-              }
-              
-              setCurrentPlayer(nextPlayer);
-              setTurnTimeLeft(120);
-              setTimerProgress(0);
-              setIsTurnEnding(false);
-              setCanRollDice(true);
-              setDiceRolled(false);
-              
-              // Показываем уведомление
-              setToast({
-                open: true,
-                message: `⏰ Ход передан игроку ${gamePlayers[nextPlayer]?.username || 'Неизвестный игрок'} (время истекло)`,
-                severity: 'warning'
-              });
-            }, 1000);
+            }
+            
+            // Отправляем запрос на автоматический переход хода
+            if (socket.connected && roomIdRef.current) {
+              socket.emit('autoPassTurn', roomIdRef.current);
+            }
           }
           
           return newTime;
@@ -3531,19 +3737,28 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             gap: isMobile ? 1 : 2
           }}>
             <Avatar sx={{ 
-              bgcolor: getCurrentPlayer()?.color || '#8B5CF6',
+              bgcolor: gamePlayers.find(p => p.socketId === socket?.id)?.color || '#8B5CF6',
               width: isMobile ? 35 : 40,
               height: isMobile ? 35 : 40
             }}>
-              {getCurrentPlayer()?.username?.charAt(0) || '?'}
+              {gamePlayers.find(p => p.socketId === socket?.id)?.username?.charAt(0) || '?'}
             </Avatar>
             <Box>
               <Typography variant={isMobile ? "body1" : "h6"} sx={{ color: 'white', fontWeight: 'bold' }}>
-                {getCurrentPlayer()?.username || 'Игрок'}
+                {gamePlayers.find(p => p.socketId === socket?.id)?.username || 'Игрок'}
               </Typography>
               <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: isMobile ? '0.8rem' : 'inherit' }}>
-                {getCurrentPlayer()?.profession?.name || getCurrentPlayer()?.profession || 'Без профессии'}
+                {gamePlayers.find(p => p.socketId === socket?.id)?.profession?.name || gamePlayers.find(p => p.socketId === socket?.id)?.profession || 'Без профессии'}
               </Typography>
+              {currentTurn && (
+                <Typography variant="body2" sx={{ 
+                  color: currentTurn === gamePlayers.find(p => p.socketId === socket?.id)?.username ? '#10B981' : '#F59E0B', 
+                  fontSize: isMobile ? '0.7rem' : '0.8rem',
+                  fontWeight: 'bold'
+                }}>
+                  {currentTurn === gamePlayers.find(p => p.socketId === socket?.id)?.username ? '🎲 Ваш ход!' : `🎲 Ход: ${currentTurn}`}
+                </Typography>
+              )}
               {isOnBigCircle && (
                 <Typography variant="body2" sx={{ color: '#22C55E', fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 'bold' }}>
                   🎯 Большой круг
@@ -3875,13 +4090,14 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 transition={{ delay: i * 0.05, duration: 0.4 }}
               >
                 <Box
+                  onClick={() => handleCellClick(cell)}
                   sx={{
                     position: 'absolute',
                     top: '50%',
                     left: '50%',
                     transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-                    width: '46px',
-                    height: '46px',
+                    width: '46.92px', // Увеличено на 2%
+                    height: '46.92px', // Увеличено на 2%
                     background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
                     borderRadius: '14px',
                     display: 'flex',
@@ -3925,7 +4141,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             const outerCells = originalBoard.slice(24);
             const cells = [];
             const outerSquareSize = 700;
-            const cellSize = 40;
+            const cellSize = 40.8; // Увеличено на 2%
 
             // Верхний ряд (14 клеток)
             for (let i = 0; i < 14; i++) {
@@ -3934,11 +4150,13 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               const x = 50 + (i * (cellSize + spacing));
               cells.push(
                 <Box key={`top-${cell.id}`}
+                  onClick={() => handleCellClick(cell)}
                   sx={{ position: 'absolute', top: '50px', left: `${x}px`, width: `${cellSize}px`, height: `${cellSize}px`,
                     background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
                     borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: 'white', fontSize: '14px', fontWeight: 'bold', border: '2px solid rgba(255,255,255,0.3)',
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)'
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)', cursor: 'pointer',
+                    '&:hover': { transform: 'scale(1.2)', zIndex: 10 }
                   }}
                   title={`${cell.name} — ${cell.description}`}
                 >
@@ -3956,6 +4174,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               const y = 50 + (i + 1) * (cellSize + 11);
               cells.push(
                 <Box key={`right-${cell.id}`}
+                  onClick={() => handleCellClick(cell)}
                   sx={{ position: 'absolute', top: `${y}px`, right: '50px', width: `${cellSize}px`, height: `${cellSize}px`,
                     background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
                     borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -3979,11 +4198,13 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               const x = 50 + (i * (cellSize + spacing));
               cells.push(
                 <Box key={`bottom-${cell.id}`}
+                  onClick={() => handleCellClick(cell)}
                   sx={{ position: 'absolute', bottom: '50px', left: `${x}px`, width: `${cellSize}px`, height: `${cellSize}px`,
                     background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
                     borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: 'white', fontSize: '14px', fontWeight: 'bold', border: '2px solid rgba(255,255,255,0.3)',
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)'
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)', cursor: 'pointer',
+                    '&:hover': { transform: 'scale(1.2)', zIndex: 10 }
                   }}
                   title={`${cell.name} — ${cell.description}`}
                 >
@@ -4001,11 +4222,13 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               const y = 50 + (i + 1) * (cellSize + 11);
               cells.push(
                 <Box key={`left-${cell.id}`}
+                  onClick={() => handleCellClick(cell)}
                   sx={{ position: 'absolute', top: `${y}px`, left: '50px', width: `${cellSize}px`, height: `${cellSize}px`,
                     background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
                     borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: 'white', fontSize: '14px', fontWeight: 'bold', border: '2px solid rgba(255,255,255,0.3)',
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)'
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)', cursor: 'pointer',
+                    '&:hover': { transform: 'scale(1.2)', zIndex: 10 }
                   }}
                   title={`${cell.name} — ${cell.description}`}
                 >
@@ -4805,33 +5028,43 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         >
           <Button
             variant="contained"
-            onClick={(isHost || canRollDice) ? rollDice : passTurn}
-            disabled={isRolling}
+            onClick={(isHost && hostCanRoll) || canRollDice ? rollDice : passTurn}
+            disabled={isRolling || isTurnChanging}
             sx={{
               width: '100%',
               height: '80px',
-              background: (isHost || canRollDice) 
-                ? 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)'
-                : 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+              background: isTurnChanging 
+                ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
+                : ((isHost && hostCanRoll) || canRollDice) 
+                  ? 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)'
+                  : 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
               color: 'white',
               borderRadius: '15px',
               fontSize: '18px',
               fontWeight: 'bold',
-              boxShadow: (isHost || canRollDice) 
-                ? '0 8px 25px rgba(139, 92, 246, 0.3)'
-                : '0 8px 25px rgba(16, 185, 129, 0.3)',
+              boxShadow: isTurnChanging
+                ? '0 8px 25px rgba(245, 158, 11, 0.3)'
+                : ((isHost && hostCanRoll) || canRollDice) 
+                  ? '0 8px 25px rgba(139, 92, 246, 0.3)'
+                  : '0 8px 25px rgba(16, 185, 129, 0.3)',
               '&:hover': {
-                background: (isHost || canRollDice) 
-                  ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)'
-                  : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                boxShadow: (isHost || canRollDice) 
-                  ? '0 12px 35px rgba(139, 92, 246, 0.4)'
-                  : '0 12px 35px rgba(16, 185, 129, 0.4)'
+                background: isTurnChanging
+                  ? 'linear-gradient(135deg, #D97706 0%, #B45309 100%)'
+                  : ((isHost && hostCanRoll) || canRollDice) 
+                    ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)'
+                    : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                boxShadow: isTurnChanging
+                  ? '0 12px 35px rgba(245, 158, 11, 0.4)'
+                  : ((isHost && hostCanRoll) || canRollDice) 
+                    ? '0 12px 35px rgba(139, 92, 246, 0.4)'
+                    : '0 12px 35px rgba(16, 185, 129, 0.4)'
               },
               '&:disabled': {
-                background: (isHost || canRollDice) 
-                  ? 'rgba(139, 92, 246, 0.5)'
-                  : 'rgba(16, 185, 129, 0.5)'
+                background: isTurnChanging
+                  ? 'rgba(245, 158, 11, 0.5)'
+                  : ((isHost && hostCanRoll) || canRollDice) 
+                    ? 'rgba(139, 92, 246, 0.5)'
+                    : 'rgba(16, 185, 129, 0.5)'
               }
             }}
           >
@@ -4842,9 +5075,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               >
                 🎲
               </motion.div>
-            ) : (isHost || canRollDice) ? (
+            ) : isTurnChanging ? (
               <>
-                {isHost ? '👑 БРОСИТЬ КУБИК (ХОСТ)' : '🎲 БРОСИТЬ КУБИК'}
+                ⏳ ПЕРЕДАЧА ХОДА...
+                <br />
+                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                  Ожидание подтверждения
+                </Typography>
+              </>
+            ) : ((isHost && hostCanRoll) || canRollDice) ? (
+              <>
+                {isHost && hostCanRoll ? '👑 БРОСИТЬ КУБИК (ХОСТ)' : '🎲 БРОСИТЬ КУБИК'}
                 <br />
                 <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
                   <DiceDisplay value={diceValue} isRolling={isRolling} />
@@ -4852,10 +5093,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               </>
             ) : (
               <>
-                ⏭️ ПЕРЕХОД ХОДА
+                {diceRolled ? '⏳ ОЖИДАНИЕ ХОДА' : '⏭️ ПЕРЕХОД ХОДА'}
                 <br />
                 <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                  {isHost ? 'Кубик уже брошен' : 'Не ваш ход'}
+                  {diceRolled ? 'Кубик уже брошен' : (isHost && !hostCanRoll ? 'Кубик уже брошен' : 'Не ваш ход')}
                 </Typography>
               </>
             )}
@@ -5676,7 +5917,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         
         <DialogContent sx={{ pt: 3, textAlign: 'center' }}>
           <Typography variant="h6" sx={{ color: '#92400E', mb: 2 }}>
-            {gamePlayers[currentPlayer]?.name}, вы попали на клетку "Благотворительность"!
+            {gamePlayers[currentPlayer]?.name} вы попали на клетку "Благотворительность"!
           </Typography>
           <Typography variant="body1" sx={{ color: '#92400E', mb: 3 }}>
             Стоимость благотворительности: <strong>${charityCost.toLocaleString()}</strong>
@@ -5706,7 +5947,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           p: 3, 
           borderTop: '1px solid #F59E0B',
           justifyContent: 'center',
-          gap: 2
+          gap: 2,
+          flexWrap: 'wrap'
         }}>
           <Button
             onClick={handleCharityAccept}
@@ -5721,6 +5963,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               borderRadius: '10px',
               fontSize: '16px',
               fontWeight: 'bold',
+              minWidth: '180px',
               '&:hover': {
                 background: (isOnBigCircle ? bigCircleBalance : playerMoney) >= charityCost 
                   ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
@@ -5730,6 +5973,32 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           >
             ❤️ Принять (${charityCost.toLocaleString()})
           </Button>
+          
+          <Button
+            onClick={() => {
+              setShowCreditModal(true);
+              setCreditModalFromDeal(false);
+            }}
+            sx={{
+              background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              minWidth: '180px',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 6px 16px rgba(139, 92, 246, 0.4)'
+              },
+              transition: 'all 0.3s ease'
+            }}
+          >
+            💳 Кредит
+          </Button>
+          
           <Button
             onClick={handleCharityDecline}
             sx={{
@@ -5740,6 +6009,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               borderRadius: '10px',
               fontSize: '16px',
               fontWeight: 'bold',
+              minWidth: '180px',
               '&:hover': {
                 background: 'linear-gradient(135deg, #4B5563 0%, #374151 100%)'
               }
@@ -6508,6 +6778,27 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           >
             💰 Купить
           </Button>
+
+          <Button
+            onClick={() => {
+              setCreditModalFromDeal(true);
+              setShowCreditModal(true);
+            }}
+            sx={{
+              background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+              color: 'white',
+              px: 3,
+              py: 1.5,
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)'
+              }
+            }}
+          >
+            💳 Взять кредит
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -7170,6 +7461,15 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Popup окно клетки */}
+      <CellPopup
+        open={showCellPopup}
+        onClose={() => setShowCellPopup(false)}
+        cell={selectedCell}
+        isPlayerHere={selectedCell && gamePlayers.some(player => player.position === selectedCell.id)}
+        playerName={selectedCell && gamePlayers.find(player => player.position === selectedCell.id)?.username}
+      />
     </Box>
     </Fragment>
   );

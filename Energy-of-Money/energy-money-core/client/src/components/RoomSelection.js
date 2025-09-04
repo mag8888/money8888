@@ -279,12 +279,14 @@ const RoomSelection = ({ playerData, onRoomSelect,
 
 
 
-  const filteredRooms = availableRooms.filter(room =>
-    room.roomId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    room.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    room.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    room.hostId?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredRooms = availableRooms
+    .filter(room =>
+      room.roomId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      room.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      room.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      room.hostId?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); // Сортируем по времени создания (новые сверху)
 
   const getRoomStatusColor = (status) => {
     switch (status) {
@@ -903,9 +905,7 @@ const RoomSelection = ({ playerData, onRoomSelect,
               { value: 60, label: '1 час' },
               { value: 120, label: '2 часа' },
               { value: 180, label: '3 часа' },
-              { value: 240, label: '4 часа' },
-              { value: 300, label: '5 часов' },
-              { value: 360, label: '6 часов' }
+              { value: 240, label: '4 часа' }
             ].map((option) => (
               <MenuItem key={option.value} value={option.value}>
                 {option.label}
