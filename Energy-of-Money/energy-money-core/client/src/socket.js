@@ -6,7 +6,7 @@ const SERVER_HOST = window.location.hostname || 'localhost';
 
 // Базовый URL для сервера
 const baseUrl = process.env.NODE_ENV === 'production' 
-  ? `${window.location.protocol}//${SERVER_HOST}:${SERVER_PORT}`
+  ? `${window.location.protocol}//${SERVER_HOST}` // Для Vercel убираем порт
   : `${window.location.protocol}//${SERVER_HOST}:${SERVER_PORT}`;
 
 console.log('🔌 [Socket] Configuration:', { 

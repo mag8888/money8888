@@ -4126,12 +4126,15 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           height: isMobile ? 'auto' : '800px',
           maxWidth: isMobile ? '100vw' : '800px',
           maxHeight: isMobile ? '70vh' : '800px',
+          minHeight: isMobile ? '300px' : '800px',
           background: 'rgba(255, 255, 255, 0.05)',
           borderRadius: isMobile ? '15px' : '30px',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           backdropFilter: 'blur(20px)',
           boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)',
-          overflow: 'hidden'
+          overflow: isMobile ? 'visible' : 'hidden',
+          padding: isMobile ? '10px' : '0',
+          margin: isMobile ? '10px 0' : '0'
         }}>
           
 
@@ -4157,15 +4160,15 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '200px',
-              height: '200px',
+              width: isMobile ? '120px' : '200px',
+              height: isMobile ? '120px' : '200px',
               zIndex: 2,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               background: 'radial-gradient(circle, rgba(255,215,0,0.1) 0%, rgba(255,165,0,0.05) 50%, transparent 100%)',
               borderRadius: '50%',
-              padding: '20px',
+              padding: isMobile ? '10px' : '20px',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
               '&:hover': {
@@ -4180,8 +4183,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           >
             <Box
               sx={{
-                width: '160px',
-                height: '160px',
+                width: isMobile ? '100px' : '160px',
+                height: isMobile ? '100px' : '160px',
                 background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%)',
                 borderRadius: '50%',
                 display: 'flex',
@@ -4195,8 +4198,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               {/* Внутренний круг с градиентом */}
               <Box
                 sx={{
-                  width: '140px',
-                  height: '140px',
+                  width: isMobile ? '80px' : '140px',
+                  height: isMobile ? '80px' : '140px',
                   background: 'radial-gradient(circle, #000000 0%, #1a1a1a 100%)',
                   borderRadius: '50%',
                   display: 'flex',
@@ -4208,7 +4211,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                 {/* Центральный результат броска кубика */}
                 <Typography
                   sx={{
-                    fontSize: '48px',
+                    fontSize: isMobile ? '32px' : '48px',
                     fontWeight: 'bold',
                     color: '#FFD700',
                     textShadow: '0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 165, 0, 0.6)',
@@ -4316,7 +4319,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           {/* 24 внутренние клетки по кругу */}
           {originalBoard.slice(0, 24).map((cell, i) => {
             const angle = (i * 360) / 24;
-            const radius = 172.5; // радиус малого круга
+            const radius = isMobile ? 120 : 172.5; // радиус малого круга (меньше на мобильных)
             const x = Math.cos((angle - 90) * Math.PI / 180) * radius;
             const y = Math.sin((angle - 90) * Math.PI / 180) * radius;
             
@@ -4334,14 +4337,14 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     top: '50%',
                     left: '50%',
                     transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-                    width: '45.9816px', // Уменьшено на 2% от 46.92
-                    height: '45.9816px', // Уменьшено на 2% от 46.92
+                    width: isMobile ? '35px' : '45.9816px', // Адаптивный размер
+                    height: isMobile ? '35px' : '45.9816px', // Адаптивный размер
                     background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
-                    borderRadius: '14px',
+                    borderRadius: isMobile ? '10px' : '14px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '14px',
+                    fontSize: isMobile ? '12px' : '14px',
                     fontWeight: 'bold',
                     color: 'white',
                     cursor: 'pointer',
@@ -4350,20 +4353,20 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
                     zIndex: 1,
                     '&:hover': {
-                      transform: `translate(-50%, -50%) translate(${x}px, ${y}px) scale(1.3)`,
+                      transform: `translate(-50%, -50%) translate(${x}px, ${y}px) scale(${isMobile ? '1.2' : '1.3'})`,
                       boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
                       zIndex: 3
                     }
                   }}
                   title={cell.description}
                 >
-                  <Typography variant="h6" sx={{ fontSize: '20px' }}>
+                  <Typography variant="h6" sx={{ fontSize: isMobile ? '16px' : '20px' }}>
                     {cell.icon}
                   </Typography>
                   <Typography
                     sx={{
                       position: 'absolute', top: '2px', left: '4px',
-                      fontSize: '10px', fontWeight: 'bold', color: 'white',
+                      fontSize: isMobile ? '8px' : '10px', fontWeight: 'bold', color: 'white',
                       textShadow: '0 1px 2px rgba(0,0,0,0.8)', zIndex: 2
                     }}
                   >
@@ -4374,12 +4377,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             );
           })}
 
-          {/* 52 внешние клетки по периметру 700x700 */}
+          {/* 52 внешние клетки по периметру */}
           {(() => {
             const outerCells = originalBoard.slice(24);
             const cells = [];
-            const outerSquareSize = 700;
-            const cellSize = 39.984; // Уменьшено на 2% от 40.8
+            const outerSquareSize = isMobile ? 280 : 700; // Адаптивный размер квадрата
+            const cellSize = isMobile ? 16 : 39.984; // Адаптивный размер клеток
 
             // Верхний ряд (14 клеток)
             for (let i = 0; i < 14; i++) {
@@ -4389,17 +4392,36 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
               cells.push(
                 <Box key={`top-${cell.id}`}
                   onClick={() => handleCellClick(cell)}
-                  sx={{ position: 'absolute', top: '50px', left: `${x}px`, width: `${cellSize}px`, height: `${cellSize}px`,
+                  sx={{ 
+                    position: 'absolute', 
+                    top: isMobile ? '20px' : '50px', 
+                    left: `${x}px`, 
+                    width: `${cellSize}px`, 
+                    height: `${cellSize}px`,
                     background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
-                    borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'white', fontSize: '14px', fontWeight: 'bold', border: '2px solid rgba(255,255,255,0.3)',
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)', cursor: 'pointer',
-                    '&:hover': { transform: 'scale(1.2)', zIndex: 10 }
+                    borderRadius: isMobile ? '4px' : '8px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: 'white', 
+                    fontSize: isMobile ? '10px' : '14px', 
+                    fontWeight: 'bold', 
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)', 
+                    cursor: 'pointer',
+                    '&:hover': { transform: `scale(${isMobile ? '1.1' : '1.2'})`, zIndex: 10 }
                   }}
                   title={`${cell.name} — ${cell.description}`}
                 >
                   {cell.icon}
-                  <Typography sx={{ position: 'absolute', top: '2px', left: '4px', fontSize: '10px', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                  <Typography sx={{ 
+                    position: 'absolute', 
+                    top: '2px', 
+                    left: '4px', 
+                    fontSize: isMobile ? '6px' : '10px', 
+                    fontWeight: 'bold', 
+                    textShadow: '0 1px 2px rgba(0,0,0,0.8)' 
+                  }}>
                     {cell.id}
                   </Typography>
                 </Box>
@@ -4409,20 +4431,40 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             // Правый столбец (12 клеток)
             for (let i = 0; i < 12; i++) {
               const cell = outerCells[14 + i];
-              const y = 50 + (i + 1) * (cellSize + 11);
+              const y = (isMobile ? 20 : 50) + (i + 1) * (cellSize + (isMobile ? 4 : 11));
               cells.push(
                 <Box key={`right-${cell.id}`}
                   onClick={() => handleCellClick(cell)}
-                  sx={{ position: 'absolute', top: `${y}px`, right: '50px', width: `${cellSize}px`, height: `${cellSize}px`,
+                  sx={{ 
+                    position: 'absolute', 
+                    top: `${y}px`, 
+                    right: isMobile ? '20px' : '50px', 
+                    width: `${cellSize}px`, 
+                    height: `${cellSize}px`,
                     background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
-                    borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'white', fontSize: '14px', fontWeight: 'bold', border: '2px solid rgba(255,255,255,0.3)',
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)'
+                    borderRadius: isMobile ? '4px' : '8px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: 'white', 
+                    fontSize: isMobile ? '10px' : '14px', 
+                    fontWeight: 'bold', 
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
+                    cursor: 'pointer',
+                    '&:hover': { transform: `scale(${isMobile ? '1.1' : '1.2'})`, zIndex: 10 }
                   }}
                   title={`${cell.name} — ${cell.description}`}
                 >
                   {cell.icon}
-                  <Typography sx={{ position: 'absolute', top: '2px', left: '4px', fontSize: '10px', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                  <Typography sx={{ 
+                    position: 'absolute', 
+                    top: '2px', 
+                    left: '4px', 
+                    fontSize: isMobile ? '6px' : '10px', 
+                    fontWeight: 'bold', 
+                    textShadow: '0 1px 2px rgba(0,0,0,0.8)' 
+                  }}>
                     {cell.id}
                   </Typography>
                 </Box>
@@ -4433,21 +4475,40 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             for (let i = 0; i < 14; i++) {
               const cell = outerCells[39 - i];
               const spacing = (outerSquareSize - (14 * cellSize)) / 13;
-              const x = 50 + (i * (cellSize + spacing));
+              const x = (isMobile ? 20 : 50) + (i * (cellSize + spacing));
               cells.push(
                 <Box key={`bottom-${cell.id}`}
                   onClick={() => handleCellClick(cell)}
-                  sx={{ position: 'absolute', bottom: '50px', left: `${x}px`, width: `${cellSize}px`, height: `${cellSize}px`,
+                  sx={{ 
+                    position: 'absolute', 
+                    bottom: isMobile ? '20px' : '50px', 
+                    left: `${x}px`, 
+                    width: `${cellSize}px`, 
+                    height: `${cellSize}px`,
                     background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
-                    borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'white', fontSize: '14px', fontWeight: 'bold', border: '2px solid rgba(255,255,255,0.3)',
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)', cursor: 'pointer',
-                    '&:hover': { transform: 'scale(1.2)', zIndex: 10 }
+                    borderRadius: isMobile ? '4px' : '8px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: 'white', 
+                    fontSize: isMobile ? '10px' : '14px', 
+                    fontWeight: 'bold', 
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)', 
+                    cursor: 'pointer',
+                    '&:hover': { transform: `scale(${isMobile ? '1.1' : '1.2'})`, zIndex: 10 }
                   }}
                   title={`${cell.name} — ${cell.description}`}
                 >
                     {cell.icon}
-                  <Typography sx={{ position: 'absolute', top: '2px', left: '4px', fontSize: '10px', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                  <Typography sx={{ 
+                    position: 'absolute', 
+                    top: '2px', 
+                    left: '4px', 
+                    fontSize: isMobile ? '6px' : '10px', 
+                    fontWeight: 'bold', 
+                    textShadow: '0 1px 2px rgba(0,0,0,0.8)' 
+                  }}>
                     {cell.id}
                   </Typography>
                 </Box>
@@ -4457,21 +4518,40 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             // Левый столбец (12 клеток) — снизу вверх
             for (let i = 0; i < 12; i++) {
               const cell = outerCells[51 - i];
-              const y = 50 + (i + 1) * (cellSize + 11);
+              const y = (isMobile ? 20 : 50) + (i + 1) * (cellSize + (isMobile ? 4 : 11));
               cells.push(
                 <Box key={`left-${cell.id}`}
                   onClick={() => handleCellClick(cell)}
-                  sx={{ position: 'absolute', top: `${y}px`, left: '50px', width: `${cellSize}px`, height: `${cellSize}px`,
+                  sx={{ 
+                    position: 'absolute', 
+                    top: `${y}px`, 
+                    left: isMobile ? '20px' : '50px', 
+                    width: `${cellSize}px`, 
+                    height: `${cellSize}px`,
                     background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
-                    borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'white', fontSize: '14px', fontWeight: 'bold', border: '2px solid rgba(255,255,255,0.3)',
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)', cursor: 'pointer',
-                    '&:hover': { transform: 'scale(1.2)', zIndex: 10 }
+                    borderRadius: isMobile ? '4px' : '8px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: 'white', 
+                    fontSize: isMobile ? '10px' : '14px', 
+                    fontWeight: 'bold', 
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)', 
+                    cursor: 'pointer',
+                    '&:hover': { transform: `scale(${isMobile ? '1.1' : '1.2'})`, zIndex: 10 }
                   }}
                   title={`${cell.name} — ${cell.description}`}
                 >
                   {cell.icon}
-                  <Typography sx={{ position: 'absolute', top: '2px', left: '4px', fontSize: '10px', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                  <Typography sx={{ 
+                    position: 'absolute', 
+                    top: '2px', 
+                    left: '4px', 
+                    fontSize: isMobile ? '6px' : '10px', 
+                    fontWeight: 'bold', 
+                    textShadow: '0 1px 2px rgba(0,0,0,0.8)' 
+                  }}>
                     {cell.id}
                   </Typography>
                 </Box>
