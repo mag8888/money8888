@@ -1704,6 +1704,83 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ❤️ Передача благотворительности другому игроку
+  socket.on('passCharityToOther', (data) => {
+    try {
+      const { roomId, fromPlayerId, charityCost } = data;
+      console.log('❤️ [SERVER] Pass charity to other request:', { roomId, fromPlayerId, charityCost });
+      
+      const room = rooms.get(roomId);
+      if (!room) {
+        console.log('❌ [SERVER] Room not found:', roomId);
+        socket.emit('charityPassError', { message: 'Комната не найдена' });
+        return;
+      }
+      
+      // Находим отправителя
+      const fromPlayer = room.currentPlayers.find(p => p.id === fromPlayerId);
+      
+      if (!fromPlayer) {
+        console.log('❌ [SERVER] From player not found:', fromPlayerId);
+        socket.emit('charityPassError', { message: 'Отправитель не найден' });
+        return;
+      }
+      
+      // Находим следующего игрока (кроме отправителя)
+      const otherPlayers = room.currentPlayers.filter(p => p.id !== fromPlayerId);
+      if (otherPlayers.length === 0) {
+        console.log('❌ [SERVER] No other players found');
+        socket.emit('charityPassError', { message: 'Нет других игроков для передачи' });
+        return;
+      }
+      
+      // Выбираем случайного игрока из остальных
+      const randomIndex = Math.floor(Math.random() * otherPlayers.length);
+      const toPlayer = otherPlayers[randomIndex];
+      
+      // Отправляем благотворительность получателю
+      const charityData = {
+        charityCost: charityCost,
+        fromPlayer: fromPlayer.username,
+        message: `Игрок ${fromPlayer.username} передал вам благотворительность на сумму $${charityCost.toLocaleString()}`
+      };
+      
+      // Находим socket получателя и отправляем ему благотворительность
+      const toPlayerSocket = Array.from(io.sockets.sockets.values())
+        .find(s => s.id === toPlayer.socketId);
+      
+      if (toPlayerSocket) {
+        toPlayerSocket.emit('charityReceived', charityData);
+        console.log('✅ [SERVER] Charity sent to player:', {
+          fromPlayer: fromPlayer.username,
+          toPlayer: toPlayer.username,
+          charityCost: charityCost
+        });
+      } else {
+        console.log('❌ [SERVER] To player socket not found:', toPlayer.socketId);
+        socket.emit('charityPassError', { message: 'Получатель не подключен' });
+        return;
+      }
+      
+      // Уведомляем всех игроков о передаче
+      io.to(roomId).emit('charityPassed', {
+        fromPlayer: fromPlayer.username,
+        toPlayer: toPlayer.username,
+        charityCost: charityCost
+      });
+      
+      // Отправляем подтверждение отправителю
+      socket.emit('charityPassSuccess', { 
+        message: `Благотворительность передана игроку ${toPlayer.username}`,
+        toPlayer: toPlayer.username
+      });
+      
+    } catch (error) {
+      console.error('❌ [SERVER] Error in pass charity to other:', error);
+      socket.emit('charityPassError', { message: 'Ошибка при передаче благотворительности' });
+    }
+  });
+
   // 🌍 Показ глобальной карточки всем игрокам
   socket.on('showGlobalDealCard', (data) => {
     try {

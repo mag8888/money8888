@@ -181,6 +181,87 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     }
   }, [socket?.id]);
 
+  // Функция передачи благотворительности другому игроку
+  const handleCharityPass = () => {
+    const player = getCurrentPlayer();
+    
+    if (!player) {
+      setToast({
+        open: true,
+        message: '❌ Ошибка: игрок не найден',
+        severity: 'error'
+      });
+      return;
+    }
+
+    // Закрываем модал благотворительности
+    setShowCharityModal(false);
+    setShowCharityCreditModal(false);
+    
+    // Отправляем событие на сервер для передачи благотворительности
+    if (socket && roomId) {
+      socket.emit('passCharityToOther', {
+        roomId,
+        fromPlayerId: player.id,
+        charityCost: charityCost
+      });
+    }
+    
+    setToast({
+      open: true,
+      message: `👥 Благотворительность передана другому игроку`,
+      severity: 'info'
+    });
+    
+    console.log(`👥 [OriginalGameBoard] Игрок ${player.username} передал благотворительность другому игроку`);
+  };
+
+  // Функция проверки наличия акций у игрока
+  const hasPlayerStock = (card) => {
+    if (!card || !isStockCard(card)) return false;
+    
+    const playerAssets = getCurrentPlayerAssets();
+    return playerAssets.some(asset => 
+      asset.name === card.name && asset.quantity > 0
+    );
+  };
+
+  // Функция продажи акций
+  const handleSellStock = () => {
+    const card = currentDealCard || globalDealCard;
+    if (!card || !isStockCard(card)) return;
+    
+    const playerAssets = getCurrentPlayerAssets();
+    const stockAsset = playerAssets.find(asset => asset.name === card.name);
+    
+    if (!stockAsset || stockAsset.quantity <= 0) {
+      setToast({
+        open: true,
+        message: '❌ У вас нет таких акций для продажи',
+        severity: 'error'
+      });
+      return;
+    }
+
+    // Продаем все акции этого типа
+    const sellPrice = card.cost * stockAsset.quantity;
+    const newAssets = playerAssets.filter(asset => asset.name !== card.name);
+    
+    // Обновляем активы игрока
+    updateCurrentPlayerAssets(newAssets);
+    
+    // Добавляем деньги от продажи
+    setPlayerMoney(prev => prev + sellPrice);
+    
+    setToast({
+      open: true,
+      message: `💰 Продано ${stockAsset.quantity} акций ${card.name} за $${sellPrice.toLocaleString()}`,
+      severity: 'success'
+    });
+    
+    console.log(`💰 [OriginalGameBoard] Продано ${stockAsset.quantity} акций ${card.name} за $${sellPrice}`);
+  };
+
   // Обработчики Socket.IO событий для обновления списка игроков
   useEffect(() => {
     // Настраиваем обработчики Socket.IO событий
@@ -628,6 +709,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         if (showCharityModal) {
           console.log('🔄 [OriginalGameBoard] Обновляем состояние кнопок благотворительности после кредита');
           // Принудительно обновляем состояние компонента для перерендера кнопок
+          setCharityModalKey(prev => prev + 1); // Принудительный перерендер модала
           setTimeout(() => {
             setPlayerMoney(prev => prev + 0.01); // Небольшое изменение для принудительного обновления
             setTimeout(() => {
@@ -649,6 +731,52 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
     socket.on('creditPaymentSuccess', handleCreditPaymentSuccess);
     socket.on('creditPaymentError', handleCreditPaymentError);
+
+    // Обработчики событий передачи благотворительности
+    const handleCharityReceived = (data) => {
+      console.log('❤️ [OriginalGameBoard] Charity received:', data);
+      setToast({
+        open: true,
+        message: data.message,
+        severity: 'info'
+      });
+      
+      // Открываем модал благотворительности для получателя
+      setCharityCost(data.charityCost);
+      setShowCharityModal(true);
+    };
+
+    const handleCharityPassed = (data) => {
+      console.log('👥 [OriginalGameBoard] Charity passed:', data);
+      setToast({
+        open: true,
+        message: `👥 ${data.fromPlayer} передал благотворительность игроку ${data.toPlayer}`,
+        severity: 'info'
+      });
+    };
+
+    const handleCharityPassSuccess = (data) => {
+      console.log('✅ [OriginalGameBoard] Charity pass success:', data);
+      setToast({
+        open: true,
+        message: data.message,
+        severity: 'success'
+      });
+    };
+
+    const handleCharityPassError = (data) => {
+      console.log('❌ [OriginalGameBoard] Charity pass error:', data);
+      setToast({
+        open: true,
+        message: data.message,
+        severity: 'error'
+      });
+    };
+
+    socket.on('charityReceived', handleCharityReceived);
+    socket.on('charityPassed', handleCharityPassed);
+    socket.on('charityPassSuccess', handleCharityPassSuccess);
+    socket.on('charityPassError', handleCharityPassError);
 
     // Запрашиваем актуальный список игроков при подключении
     if (socket.connected && roomIdRef.current) {
@@ -697,6 +825,10 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       socket.off('gameStarted', handleGameStarted);
       socket.off('creditPaymentSuccess', handleCreditPaymentSuccess);
       socket.off('creditPaymentError', handleCreditPaymentError);
+      socket.off('charityReceived', handleCharityReceived);
+      socket.off('charityPassed', handleCharityPassed);
+      socket.off('charityPassSuccess', handleCharityPassSuccess);
+      socket.off('charityPassError', handleCharityPassError);
       
       // Очищаем timeout при размонтировании
       if (playersUpdateTimeout) {
@@ -1036,6 +1168,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [showCharityDiceModal, setShowCharityDiceModal] = useState(false);
   const [charityDiceValues, setCharityDiceValues] = useState({ dice1: 0, dice2: 0, dice3: 0, sum: 0 });
   const [charityDiceCount, setCharityDiceCount] = useState(2); // Количество кубиков для благотворительности (2 для малого круга, 1-3 для большого)
+  const [charityModalKey, setCharityModalKey] = useState(0); // Ключ для принудительного перерендера модала благотворительности
   
   // Состояние для отображения количества карточек
 
@@ -2555,6 +2688,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     
     console.log(`😔 [OriginalGameBoard] Игрок отказался от благотворительности`);
   };
+
 
   // Функция взятия кредита для благотворительности
   const handleCharityTakeCredit = () => {
@@ -5994,6 +6128,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
       {/* Модальное окно благотворительности */}
       <Dialog
+        key={charityModalKey}
         open={showCharityModal}
         onClose={() => setShowCharityModal(false)}
         maxWidth="sm"
@@ -6098,6 +6233,28 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             }}
           >
             💳 Кредит
+          </Button>
+
+          <Button
+            onClick={handleCharityPass}
+            sx={{
+              background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              minWidth: '180px',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 6px 16px rgba(245, 158, 11, 0.4)'
+              },
+              transition: 'all 0.3s ease'
+            }}
+          >
+            👥 Передать другому
           </Button>
           
           <Button
@@ -6623,6 +6780,29 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           >
             💳 Взять кредит
           </Button>
+
+          {hasPlayerStock(currentDealCard || globalDealCard) && (
+            <Button
+              onClick={handleSellStock}
+              sx={{
+                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                color: 'white',
+                px: 3,
+                py: 1.5,
+                borderRadius: '10px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 16px rgba(245, 158, 11, 0.4)'
+                },
+                transition: 'all 0.3s ease'
+              }}
+            >
+              💰 Продать
+            </Button>
+          )}
 
           <Button
             onClick={handlePassCardToPlayer}
