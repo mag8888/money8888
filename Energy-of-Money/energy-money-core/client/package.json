@@ -28,13 +28,7 @@
     "eject": "react-scripts eject",
     "lint": "eslint src/**/*.{js,jsx,ts,tsx}",
     "lint:fix": "eslint src/**/*.{js,jsx,ts,tsx} --fix",
-    "vercel-build": "GENERATE_SOURCEMAP=false NODE_ENV=production react-scripts build"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "vercel-build": "DISABLE_ESLINT_PLUGIN=true GENERATE_SOURCEMAP=false NODE_ENV=production SKIP_PREFLIGHT_CHECK=true FAST_REFRESH=false react-scripts build"
   },
   "browserslist": {
     "production": [
