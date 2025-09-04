@@ -530,6 +530,7 @@ io.on('connection', (socket) => {
         gamePlayersData: [],
         turnOrder: [],
         currentTurnIndex: 0,
+        currentPlayerIndex: 0, // Добавляем для совместимости
         currentTurn: null,
         turnTimeLeft: 120,
         isTurnEnding: false,
@@ -917,6 +918,7 @@ io.on('connection', (socket) => {
       
       // Устанавливаем первого игрока как текущий ход
       room.currentTurnIndex = 0;
+      room.currentPlayerIndex = 0; // Добавляем для совместимости
       room.currentTurn = room.turnOrder[0].socketId;
       
       console.log('🎲 [SERVER] Turn order determined:', room.turnOrder.map(p => ({ username: p.username, turnIndex: p.turnIndex })));
@@ -2066,6 +2068,14 @@ io.on('connection', (socket) => {
       }
       
       // Проверяем, что это не тот же игрок
+      console.log('🔍 [SERVER] Turn change comparison:', {
+        roomCurrentPlayerIndex: room.currentPlayerIndex,
+        newCurrentPlayerIndex: newCurrentPlayerIndex,
+        currentPlayerUsername: room.currentPlayers[room.currentPlayerIndex]?.username,
+        newPlayerUsername: newPlayer.username,
+        areEqual: room.currentPlayerIndex === newCurrentPlayerIndex
+      });
+      
       if (room.currentPlayerIndex === newCurrentPlayerIndex) {
         console.log('⚠️ [SERVER] Same player turn change attempt:', {
           currentPlayer: room.currentPlayers[room.currentPlayerIndex]?.username,
@@ -2361,6 +2371,7 @@ const loadRoomsFromDatabase = async () => {
         gamePlayersData: [],
         turnOrder: [],
         currentTurnIndex: 0,
+        currentPlayerIndex: 0, // Добавляем для совместимости
         currentTurn: null,
         turnTimeLeft: 120,
         isTurnEnding: false,

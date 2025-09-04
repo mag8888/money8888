@@ -54,6 +54,12 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция для инициализации полной структуры игрока
   const initializePlayerData = (player, allPlayers = []) => {
+    console.log('🔧 [OriginalGameBoard] initializePlayerData для игрока:', {
+      username: player.username,
+      profession: player.profession,
+      professionType: typeof player.profession
+    });
+    
     return {
       id: player.id || player.socketId,
       username: player.username || 'Игрок',
@@ -203,7 +209,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         balance: p.balance,
         socketId: p.socketId,
         id: p.id,
-        userId: p.userId
+        userId: p.userId,
+        profession: p.profession
       })));
         
         // Дополнительная проверка для текущего игрока
@@ -215,7 +222,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
           username: currentPlayerData.username,
           balance: currentPlayerData.balance,
           id: currentPlayerData.id,
-          userId: currentPlayerData.userId
+          userId: currentPlayerData.userId,
+          profession: currentPlayerData.profession
         });
       }
       
@@ -338,6 +346,17 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       // Преобразуем ID в имя пользователя
       const currentPlayerName = gamePlayers.find(p => p.id === data.currentPlayer?.id || p.socketId === data.currentPlayer?.socketId)?.username || data.currentPlayer?.username || '';
       setCurrentTurn(currentPlayerName);
+      
+      // НОВАЯ ЛОГИКА: Сбрасываем состояние хода для всех игроков
+      setTurnState('waiting');
+      setDiceRolled(false);
+      setHasPassedTurn(false);
+      
+      // Очищаем таймер
+      if (turnPassTimer) {
+        clearTimeout(turnPassTimer);
+        setTurnPassTimer(null);
+      }
       
       // Обновляем таймер из данных сервера
       if (data.turnTimeLeft !== undefined) {
@@ -658,6 +677,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       socket.off('playerPositionUpdate', handlePlayerPositionUpdate);
       socket.off('playerTurnChanged', handlePlayerTurnChanged);
       socket.off('turnTimerSynced', handleTurnTimerSynced);
+      
+      // Очищаем таймеры
+      if (turnPassTimer) {
+        clearTimeout(turnPassTimer);
+      }
 
       socket.off('bankTransferError', handleBankTransferError);
       socket.off('changePlayerTurnError', handleChangePlayerTurnError);
@@ -787,6 +811,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
   const [canRollDice, setCanRollDice] = useState(true);
   const [diceRolled, setDiceRolled] = useState(false);
   
+  // НОВАЯ СИСТЕМА ХОДОВ
+  const [turnState, setTurnState] = useState('waiting'); // 'waiting', 'rolling', 'playing', 'canPass'
+  const [turnPassTimer, setTurnPassTimer] = useState(null); // Таймер для кнопки "передать ход"
+  const [hasPassedTurn, setHasPassedTurn] = useState(false); // Флаг того, что игрок передал ход
+  
   // Состояние игроков и их фишек - начинают с 1-й клетки (малый круг)
   // Удалено: const [players, setPlayers] = useState([]); - используем gamePlayers
   
@@ -822,6 +851,56 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     
     const currentPlayerIndex = gamePlayers.findIndex(p => p.socketId === socket.id);
     return currentPlayerIndex === currentPlayer;
+  };
+
+  // НОВАЯ ФУНКЦИЯ: Получить состояние кнопки для текущего игрока
+  const getButtonState = () => {
+    if (!isMyTurn()) {
+      return {
+        text: '⏳ ОЖИДАНИЕ ХОДА',
+        disabled: true,
+        color: 'grey',
+        description: 'Не ваш ход'
+      };
+    }
+
+    switch (turnState) {
+      case 'waiting':
+        return {
+          text: '🎲 БРОСИТЬ КУБИК',
+          disabled: false,
+          color: 'primary',
+          description: 'Ваш ход!'
+        };
+      case 'rolling':
+        return {
+          text: '🎲 БРОСАЮ...',
+          disabled: true,
+          color: 'grey',
+          description: 'Кубик брошен'
+        };
+      case 'playing':
+        return {
+          text: '⏳ ИГРАЮ...',
+          disabled: true,
+          color: 'grey',
+          description: 'Выполняю действия'
+        };
+      case 'canPass':
+        return {
+          text: '⏭️ ПЕРЕДАТЬ ХОД',
+          disabled: false,
+          color: 'success',
+          description: 'Можно передать ход'
+        };
+      default:
+        return {
+          text: '🎲 БРОСИТЬ КУБИК',
+          disabled: false,
+          color: 'primary',
+          description: 'Ваш ход!'
+        };
+    }
   };
 
   // Функция для проверки, может ли игрок выполнять действия
@@ -1140,12 +1219,14 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
 
   // Функция броска кубика
   const rollDice = () => {
-    if (isRolling || (!canRollDice && !(isHost && hostCanRoll))) return;
+    if (isRolling || !isMyTurn() || turnState !== 'waiting') return;
+    
+    console.log('🎲 [OriginalGameBoard] Начинаем бросок кубика');
     
     setIsRolling(true);
     setDiceRolled(true);
-    setCanRollDice(false);
-    setHostCanRoll(false);
+    setTurnState('rolling');
+    setHasPassedTurn(false);
     
     if (hasCharityBonus && charityTurnsLeft > 0) {
       // Бросаем кубики при наличии бонуса благотворительности
@@ -1187,12 +1268,16 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       // Двигаем фишку текущего игрока
       movePlayer(finalValue);
       
-      // Через 10 секунд после броска кнопка превращается в "Переход хода"
-      setTimeout(() => {
-        if (diceRolled) {
-          setCanRollDice(false);
-        }
+      // Переходим в состояние "играю"
+      setTurnState('playing');
+      
+      // Через 10 секунд после броска включаем кнопку "Передать ход"
+      const passTimer = setTimeout(() => {
+        console.log('⏰ [OriginalGameBoard] Включаем кнопку "Передать ход"');
+        setTurnState('canPass');
       }, 10000);
+      
+      setTurnPassTimer(passTimer);
     }, 1000);
   };
   
@@ -3480,11 +3565,11 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       return;
     }
     
-    // Проверяем, может ли игрок передать ход
-    if (!canPerformAction()) {
+    // НОВАЯ ЛОГИКА: Проверяем, может ли игрок передать ход
+    if (!isMyTurn() || turnState !== 'canPass') {
       setToast({
         open: true,
-        message: 'Не ваш ход для передачи',
+        message: 'Нельзя передать ход в текущем состоянии',
         severity: 'error'
       });
       return;
@@ -3525,7 +3610,18 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
       }
     }
     
+    // Получаем индекс следующего игрока от текущего игрока (чьего ход)
     const nextPlayer = (currentPlayer + 1) % gamePlayers.length;
+    
+    console.log('🔄 [OriginalGameBoard] Логика передачи хода:', {
+      currentPlayer,
+      nextPlayer,
+      gamePlayersLength: gamePlayers.length,
+      currentPlayerUsername: gamePlayers[currentPlayer]?.username,
+      nextPlayerUsername: gamePlayers[nextPlayer]?.username,
+      isMyTurn: isMyTurn(),
+      turnState
+    });
     
     console.log('🔄 [OriginalGameBoard] Перед отправкой changePlayerTurn - состояние сделок:', {
       showDealModal,
@@ -3535,6 +3631,14 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
     
     // Блокируем повторные запросы
     setIsTurnChanging(true);
+    setHasPassedTurn(true);
+    setTurnState('waiting'); // Сбрасываем состояние для следующего хода
+    
+    // Очищаем таймер
+    if (turnPassTimer) {
+      clearTimeout(turnPassTimer);
+      setTurnPassTimer(null);
+    }
     
     // Синхронизируем с сервером - НЕ обновляем локально до подтверждения
     if (socket.connected && roomIdRef.current) {
@@ -3756,7 +3860,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                   fontSize: isMobile ? '0.7rem' : '0.8rem',
                   fontWeight: 'bold'
                 }}>
-                  {currentTurn === gamePlayers.find(p => p.socketId === socket?.id)?.username ? '🎲 Ваш ход!' : `🎲 Ход: ${currentTurn}`}
+                  {currentTurn === gamePlayers.find(p => p.socketId === socket?.id)?.username ? '🎲 Ваш ход!' : `🎲 Ход: ${gamePlayers.find(p => p.id === currentTurn)?.username || currentTurn}`}
                 </Typography>
               )}
               {isOnBigCircle && (
@@ -4096,8 +4200,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                     top: '50%',
                     left: '50%',
                     transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-                    width: '46.92px', // Увеличено на 2%
-                    height: '46.92px', // Увеличено на 2%
+                    width: '45.9816px', // Уменьшено на 2% от 46.92
+                    height: '45.9816px', // Уменьшено на 2% от 46.92
                     background: `linear-gradient(135deg, ${cell.color} 0%, ${cell.color}DD 100%)`,
                     borderRadius: '14px',
                     display: 'flex',
@@ -4141,7 +4245,7 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
             const outerCells = originalBoard.slice(24);
             const cells = [];
             const outerSquareSize = 700;
-            const cellSize = 40.8; // Увеличено на 2%
+            const cellSize = 39.984; // Уменьшено на 2% от 40.8
 
             // Верхний ряд (14 клеток)
             for (let i = 0; i < 14; i++) {
@@ -5028,8 +5132,8 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
         >
           <Button
             variant="contained"
-            onClick={(isHost && hostCanRoll) || canRollDice ? rollDice : passTurn}
-            disabled={isRolling || isTurnChanging}
+            onClick={getButtonState().text.includes('БРОСИТЬ') ? rollDice : passTurn}
+            disabled={getButtonState().disabled || isRolling || isTurnChanging}
             sx={{
               width: '100%',
               height: '80px',
@@ -5083,21 +5187,18 @@ const OriginalGameBoard = ({ roomId, playerData, onExit }) => {
                   Ожидание подтверждения
                 </Typography>
               </>
-            ) : ((isHost && hostCanRoll) || canRollDice) ? (
-              <>
-                {isHost && hostCanRoll ? '👑 БРОСИТЬ КУБИК (ХОСТ)' : '🎲 БРОСИТЬ КУБИК'}
-                <br />
-                <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
-                  <DiceDisplay value={diceValue} isRolling={isRolling} />
-                </Box>
-              </>
             ) : (
               <>
-                {diceRolled ? '⏳ ОЖИДАНИЕ ХОДА' : '⏭️ ПЕРЕХОД ХОДА'}
+                {getButtonState().text}
                 <br />
                 <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                  {diceRolled ? 'Кубик уже брошен' : (isHost && !hostCanRoll ? 'Кубик уже брошен' : 'Не ваш ход')}
+                  {getButtonState().description}
                 </Typography>
+                {getButtonState().text.includes('БРОСИТЬ') && (
+                  <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
+                    <DiceDisplay value={diceValue} isRolling={isRolling} />
+                  </Box>
+                )}
               </>
             )}
           </Button>
