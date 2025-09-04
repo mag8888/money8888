@@ -1,6 +1,6 @@
 {
-  "name": "energy-of-money-client",
-  "version": "1.0.1",
+  "name": "potok-deneg-client",
+  "version": "1.0.0",
   "description": "Клиентская часть приложения Energy-of-Money",
   "private": true,
   "dependencies": {
@@ -22,13 +22,10 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "DISABLE_ESLINT_PLUGIN=true react-scripts start",
+    "build": "DISABLE_ESLINT_PLUGIN=true GENERATE_SOURCEMAP=false NODE_ENV=production SKIP_PREFLIGHT_CHECK=true FAST_REFRESH=false react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "lint": "eslint src/**/*.{js,jsx,ts,tsx}",
-    "lint:fix": "eslint src/**/*.{js,jsx,ts,tsx} --fix",
-    "vercel-build": "DISABLE_ESLINT_PLUGIN=true GENERATE_SOURCEMAP=false NODE_ENV=production SKIP_PREFLIGHT_CHECK=true FAST_REFRESH=false react-scripts build"
+    "eject": "react-scripts eject"
   },
   "browserslist": {
     "production": [
@@ -43,9 +40,8 @@
     ]
   },
   "devDependencies": {
-    "@types/jest": "^27.5.2",
-    "eslint": "^8.55.0",
     "@babel/preset-env": "^7.23.0",
-    "@babel/preset-react": "^7.22.0"
+    "@babel/preset-react": "^7.22.0",
+    "@types/jest": "^27.5.2"
   }
 }
