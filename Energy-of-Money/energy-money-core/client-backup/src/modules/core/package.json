@@ -1,0 +1,26 @@
+{
+  "name": "@cashflow/core",
+  "version": "1.0.0",
+  "description": "Core module for CASHFLOW game - main game logic and state management",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "jest",
+    "build": "rollup -c",
+    "dev": "rollup -c -w"
+  },
+  "dependencies": {
+    "immer": "^10.0.0"
+  },
+  "devDependencies": {
+    "rollup": "^4.0.0",
+    "rollup-plugin-node-resolve": "^15.0.0",
+    "rollup-plugin-commonjs": "^25.0.0"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./gameState": "./gameState.js",
+    "./player": "./player.js",
+    "./room": "./room.js"
+  }
+}
