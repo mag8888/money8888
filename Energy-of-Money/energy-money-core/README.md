@@ -48,3 +48,4 @@ npm start
 
 Все необходимые зависимости указаны в `package.json` файлах клиента и сервера.
 # Force Vercel update Thu Sep  4 21:27:54 MSK 2025
+# Force Vercel update Thu Sep  4 21:33:10 MSK 2025
