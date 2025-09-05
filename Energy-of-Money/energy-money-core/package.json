@@ -4,23 +4,9 @@
   "description": "Независимая версия основных компонентов игры Energy of Money",
   "private": true,
   "scripts": {
-    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
-    "start:client": "cd client && npm start",
-    "start:server": "cd server && npm start",
-    "dev:server": "cd server && npm run dev",
-    "build": "cd client && npm run build",
-    "build:client": "cd client && npm run build",
-    "test:client": "cd client && npm test",
-    "dev": "concurrently \"npm run dev:server\" \"npm run start:client\"",
-    "start": "concurrently \"npm run start:server\" \"npm run start:client\""
+    "build": "cd client && npm install && npm run build",
+    "start": "cd client && npm start"
   },
-  "devDependencies": {
-    "concurrently": "^8.2.2"
-  },
-  "workspaces": [
-    "client",
-    "server"
-  ],
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=8.0.0"
