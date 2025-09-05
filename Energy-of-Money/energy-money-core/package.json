@@ -1,7 +1,7 @@
 {
   "name": "energy-money-core",
-  "version": "1.1.2",
-  "description": "Независимая версия основных компонентов игры Energy of Money",
+  "version": "1.2.0",
+  "description": "Минимальная версия игры Energy of Money - только регистрация",
   "private": true,
   "scripts": {
     "build": "cd client && npm install && npm run build",
