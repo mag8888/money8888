@@ -4,7 +4,7 @@
   "description": "Независимая версия основных компонентов игры Energy of Money",
   "private": true,
   "scripts": {
-    "build": "cd client && npm install && npm run build",
+    "build": "cd client && npm install && npx craco build",
     "start": "cd client && npm start"
   },
   "engines": {
@@ -14,6 +14,7 @@
   "dependencies": {
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-scripts": "5.0.1"
+    "react-scripts": "5.0.1",
+    "@craco/craco": "^7.1.0"
   }
 }
