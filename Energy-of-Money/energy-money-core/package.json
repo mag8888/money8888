@@ -1,6 +1,6 @@
 {
   "name": "energy-money-core",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Минимальная версия игры Energy of Money - только регистрация",
   "private": true,
   "scripts": {
