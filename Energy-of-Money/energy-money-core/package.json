@@ -1,7 +1,7 @@
 {
   "name": "energy-money-core",
-  "version": "2.0.0",
-  "description": "Чистый проект Energy of Money - одна кнопка",
+  "version": "3.0.0",
+  "description": "Energy of Money - рабочая версия с одной кнопкой",
   "private": true,
   "scripts": {
     "build": "cd client && npm install && npm run build",
