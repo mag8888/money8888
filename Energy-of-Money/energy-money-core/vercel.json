@@ -5,8 +5,7 @@
       "src": "client/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "build",
-        "buildCommand": "cd client && npm run build"
+        "distDir": "build"
       }
     }
   ],
@@ -15,12 +14,5 @@
       "src": "/(.*)",
       "dest": "/client/build/$1"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production",
-    "GENERATE_SOURCEMAP": "false",
-    "DISABLE_ESLINT_PLUGIN": "true",
-    "SKIP_PREFLIGHT_CHECK": "true",
-    "FAST_REFRESH": "false"
-  }
+  ]
 }

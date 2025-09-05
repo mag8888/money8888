@@ -20,5 +20,9 @@
   "workspaces": [
     "client",
     "server"
-  ]
+  ],
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
 }
