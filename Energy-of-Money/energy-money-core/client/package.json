@@ -27,7 +27,7 @@
   },
   "scripts": {
     "start": "DISABLE_ESLINT_PLUGIN=true react-scripts start",
-    "build": "DISABLE_ESLINT_PLUGIN=true GENERATE_SOURCEMAP=false NODE_ENV=production SKIP_PREFLIGHT_CHECK=true FAST_REFRESH=false craco build",
+    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
