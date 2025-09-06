@@ -1,43 +1,20 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#667eea" />
-    
-    <!-- Favicons -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
-    
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Energy of Money - игра с одной кнопкой"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <title>Energy of Money</title>
-    
-    <!-- Блокируем автоматические попытки подключения к MetaMask -->
-    <script>
-      // Блокируем автоматические попытки подключения к кошелькам
-      if (typeof window !== 'undefined') {
-        // Переопределяем window.ethereum для предотвращения автоматических подключений
-        Object.defineProperty(window, 'ethereum', {
-          value: undefined,
-          writable: false,
-          configurable: false
-        });
-        
-        // Блокируем события подключения к кошелькам
-        window.addEventListener('beforeunload', function(e) {
-          e.preventDefault();
-          e.returnValue = '';
-        });
-        
-        // Отключаем автоматические попытки подключения
-        if (window.ethereum) {
-          window.ethereum = undefined;
-        }
-      }
-    </script>
   </head>
   <body>
-    <noscript>Для запуска приложения нужен JavaScript.</noscript>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
   </body>
 </html>

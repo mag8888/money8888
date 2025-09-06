@@ -1,0 +1,1008 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Box,
+  Typography,
+  Button,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Chip,
+  IconButton,
+  useMediaQuery,
+  useTheme,
+  Alert,
+  Snackbar,
+  Card,
+  CardContent,
+  Grid,
+  Divider,
+  Avatar,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  ListItemSecondaryAction
+} from '@mui/material';
+import { motion } from 'framer-motion';
+import { 
+  Close as CloseIcon, 
+  AccountBalance, 
+  Send, 
+  History, 
+  CheckCircle, 
+  Error,
+  TrendingUp,
+  TrendingDown,
+  AccountBalanceWallet,
+  CreditCard,
+  AttachMoney,
+  Schedule
+} from '@mui/icons-material';
+
+const BankModal = ({ 
+  isOpen, 
+  onClose, 
+  playerData, 
+  gamePlayers, 
+  socket, 
+  roomId,
+  bankBalance: externalBankBalance,
+  onBankBalanceChange
+}) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Состояние банковских операций
+  const [bankBalance, setBankBalance] = useState(0);
+  const [transferAmount, setTransferAmount] = useState('');
+  const [selectedRecipient, setSelectedRecipient] = useState('');
+  const [transferHistory, setTransferHistory] = useState([]);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Добавление CSS анимации shimmer
+  useEffect(() => {
+    const shimmerStyle = `
+      @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+    `;
+    
+    const style = document.createElement('style');
+    style.textContent = shimmerStyle;
+    document.head.appendChild(style);
+    
+    return () => {
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
+    };
+  }, []);
+
+  // Получение текущего игрока
+  const getCurrentPlayer = useCallback(() => {
+    if (!gamePlayers || !Array.isArray(gamePlayers) || !socket?.id) {
+      return null;
+    }
+    return gamePlayers.find(p => p.socketId === socket.id);
+  }, [gamePlayers, socket?.id]);
+
+  // Получение начального баланса из профессии
+  const getInitialBalance = useCallback(() => {
+    const currentPlayer = getCurrentPlayer();
+    const profession = currentPlayer?.profession || playerData?.profession;
+    
+    if (profession?.balance !== undefined) {
+      return Number(profession.balance);
+    }
+    
+    // Fallback для разных профессий
+    const professionBalances = {
+      'Предприниматель': 3000,
+      'Учитель': 2000,
+      'Врач': 5000,
+      'Инженер': 4000,
+      'Юрист': 6000
+    };
+    
+    return professionBalances[profession?.name] || 3000;
+  }, [getCurrentPlayer, playerData?.profession]);
+
+  // Получение списка получателей (все игроки кроме текущего)
+  const getRecipients = useCallback(() => {
+    if (!gamePlayers || !Array.isArray(gamePlayers) || !socket?.id) {
+      return [];
+    }
+    const currentPlayer = getCurrentPlayer();
+    return gamePlayers.filter(player => 
+      player.socketId !== socket.id && 
+      player.username && 
+      player.username.trim() !== ''
+    );
+  }, [gamePlayers, socket?.id, getCurrentPlayer]);
+
+  // Инициализация банковского баланса и истории транзакций
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const initialBalance = getInitialBalance();
+    console.log('🏦 [BankModal] Инициализация баланса:', initialBalance);
+    
+    // Устанавливаем баланс
+    setBankBalance(initialBalance);
+    
+    // Уведомляем родительский компонент
+    if (onBankBalanceChange) {
+      onBankBalanceChange(initialBalance);
+    }
+    
+    // Загружаем историю транзакций из localStorage
+    let history = [];
+    if (socket?.id && roomId) {
+      const savedHistory = localStorage.getItem(`bank_history_${socket.id}_${roomId}`);
+      
+      if (savedHistory) {
+        try {
+          history = JSON.parse(savedHistory);
+          console.log('📜 [BankModal] Загружена история транзакций:', history.length, 'записей');
+        } catch (error) {
+          console.error('❌ [BankModal] Ошибка загрузки истории:', error);
+          history = [];
+        }
+      }
+    }
+    
+    // Если истории нет, создаем начальную транзакцию
+    if (history.length === 0 && initialBalance > 0) {
+      const initialTransaction = {
+        id: `initial_${Date.now()}`,
+        type: 'initial',
+        amount: initialBalance,
+        description: 'Начальный баланс профессии',
+        timestamp: new Date().toLocaleString('ru-RU'),
+        from: 'Банк',
+        to: getCurrentPlayer()?.username || playerData?.username || 'Игрок',
+        status: 'completed',
+        balanceAfter: initialBalance
+      };
+      
+      history = [initialTransaction];
+      console.log('🆕 [BankModal] Создана начальная транзакция:', initialTransaction);
+    }
+    
+    setTransferHistory(history);
+    
+    // Сохраняем историю в localStorage
+    if (socket?.id && roomId) {
+      localStorage.setItem(`bank_history_${socket.id}_${roomId}`, JSON.stringify(history));
+    }
+    
+  }, [isOpen, getInitialBalance, onBankBalanceChange, socket?.id, roomId, playerData?.username]);
+
+  // Синхронизация с внешним балансом (только при первой загрузке)
+  useEffect(() => {
+    if (externalBankBalance !== undefined && bankBalance === 0) {
+      console.log('🔄 [BankModal] Инициализация баланса из внешнего источника:', externalBankBalance);
+      setBankBalance(externalBankBalance);
+    }
+  }, [externalBankBalance, bankBalance]);
+
+  // Обработчики socket событий для банковских операций
+  useEffect(() => {
+    if (!socket || !isOpen) return;
+
+    // Обработка успешного перевода
+    const handleBankTransferSuccess = (data) => {
+      console.log('✅ [BankModal] Перевод успешен:', data);
+      setSuccess(data.message);
+      
+      // Обновляем баланс если пришел новый
+      if (data.newBalance !== undefined) {
+        setBankBalance(data.newBalance);
+        if (onBankBalanceChange) {
+          onBankBalanceChange(data.newBalance);
+        }
+        
+        // Обновляем последнюю транзакцию в истории
+        setTransferHistory(prev => prev.map(t => 
+          t.status === 'pending' ? { ...t, status: 'completed', balanceAfter: data.newBalance } : t
+        ));
+      }
+    };
+
+    // Обработка ошибки перевода
+    const handleBankTransferError = (data) => {
+      console.error('❌ [BankModal] Ошибка перевода:', data);
+      setError(data.message);
+      
+      // Удаляем pending транзакцию из истории
+      setTransferHistory(prev => prev.filter(t => t.status !== 'pending'));
+    };
+
+    // Обработка получения перевода от другого игрока
+    const handleBankTransferReceived = (data) => {
+      console.log('💰 [BankModal] Получен перевод:', data);
+      
+      // Добавляем транзакцию о получении
+      const receivedTransaction = {
+        id: `received_${Date.now()}`,
+        type: 'received',
+        amount: data.amount,
+        description: `Перевод от ${data.fromPlayer}`,
+        timestamp: new Date().toLocaleString('ru-RU'),
+        from: data.fromPlayer,
+        to: getCurrentPlayer()?.username || playerData?.username || 'Игрок',
+        status: 'completed',
+        balanceAfter: bankBalance + data.amount
+      };
+
+      // Обновляем баланс
+      const newBalance = bankBalance + data.amount;
+      setBankBalance(newBalance);
+      
+      if (onBankBalanceChange) {
+        onBankBalanceChange(newBalance);
+      }
+
+      // Добавляем в историю
+      const updatedHistory = [receivedTransaction, ...transferHistory];
+      setTransferHistory(updatedHistory);
+      saveTransactionHistory(updatedHistory);
+
+      setSuccess(`Получен перевод $${data.amount.toLocaleString()} от ${data.fromPlayer}!`);
+    };
+
+    // Подписываемся на события
+    socket.on('bankTransferSuccess', handleBankTransferSuccess);
+    socket.on('bankTransferError', handleBankTransferError);
+    socket.on('bankTransferReceived', handleBankTransferReceived);
+
+    // Очистка при размонтировании
+    return () => {
+      socket.off('bankTransferSuccess', handleBankTransferSuccess);
+      socket.off('bankTransferError', handleBankTransferError);
+      socket.off('bankTransferReceived', handleBankTransferReceived);
+    };
+  }, [socket, isOpen, bankBalance, onBankBalanceChange, transferHistory, saveTransactionHistory, getCurrentPlayer, playerData?.username]);
+
+
+
+  // Сохранение истории транзакций в localStorage
+  const saveTransactionHistory = useCallback((history) => {
+    try {
+      if (socket?.id && roomId) {
+        localStorage.setItem(`bank_history_${socket.id}_${roomId}`, JSON.stringify(history));
+        console.log('💾 [BankModal] История сохранена:', history.length, 'записей');
+      }
+    } catch (error) {
+      console.error('❌ [BankModal] Ошибка сохранения истории:', error);
+    }
+  }, [socket?.id, roomId]);
+
+  // Обработка перевода средств
+  const handleTransfer = useCallback(async () => {
+    if (!transferAmount || !selectedRecipient || isTransferring) return;
+    
+    const amount = parseFloat(transferAmount);
+    if (amount <= 0) {
+      setError('Сумма должна быть больше нуля');
+      return;
+    }
+    
+    if (amount > bankBalance) {
+      setError('Недостаточно средств на счету');
+      return;
+    }
+
+    const recipient = getRecipients().find(p => p.username === selectedRecipient);
+    if (!recipient) {
+      setError('Получатель не найден');
+      return;
+    }
+
+    setIsTransferring(true);
+    setError('');
+
+    try {
+      console.log('💸 [BankModal] Начинаем перевод:', { amount, recipient: selectedRecipient });
+      
+      // Создаем транзакцию
+      const transaction = {
+        id: `transfer_${Date.now()}`,
+        type: 'transfer',
+        amount: amount,
+        description: `Перевод игроку ${selectedRecipient}`,
+        timestamp: new Date().toLocaleString('ru-RU'),
+        from: getCurrentPlayer()?.username || playerData?.username || 'Игрок',
+        to: selectedRecipient,
+        status: 'pending',
+        balanceAfter: bankBalance - amount
+      };
+
+      // НЕ обновляем баланс локально - ждем подтверждения от сервера
+
+      // Добавляем транзакцию в историю
+      const updatedHistory = [transaction, ...transferHistory];
+      setTransferHistory(updatedHistory);
+      saveTransactionHistory(updatedHistory);
+
+      // Отправляем на сервер (если есть WebSocket)
+      if (socket && roomId) {
+        const currentPlayer = getCurrentPlayer();
+        socket.emit('bankTransfer', {
+          roomId,
+          playerId: currentPlayer?.id || playerData?.id,
+          recipient: selectedRecipient,
+          amount: amount,
+          transactionId: transaction.id
+        });
+      }
+
+      // Статус транзакции будет обновлен через socket событие
+
+      // Очищаем форму
+      setTransferAmount('');
+      setSelectedRecipient('');
+
+    } catch (error) {
+      console.error('❌ [BankModal] Ошибка при переводе:', error);
+      setError('Ошибка при переводе средств');
+      
+      // Удаляем pending транзакцию из истории
+      setTransferHistory(prev => prev.filter(t => t.status !== 'pending'));
+    } finally {
+      setIsTransferring(false);
+    }
+  }, [transferAmount, selectedRecipient, isTransferring, bankBalance, getRecipients, getCurrentPlayer, playerData?.username, transferHistory, saveTransactionHistory, socket, roomId]);
+
+  // Сброс формы перевода
+  const resetTransferForm = useCallback(() => {
+    setTransferAmount('');
+    setSelectedRecipient('');
+    setError('');
+  }, []);
+
+  // Получение иконки для типа транзакции
+  const getTransactionIcon = (type) => {
+    switch (type) {
+      case 'initial': return <AccountBalanceWallet />;
+      case 'transfer': return <Send />;
+      case 'salary': return <AttachMoney />;
+      case 'expense': return <CreditCard />;
+      case 'credit': return <CreditCard />;
+      case 'payday': return <TrendingUp />;
+      default: return <History />;
+    }
+  };
+
+  // Получение цвета для типа транзакции
+  const getTransactionColor = (type) => {
+    switch (type) {
+      case 'initial': return '#10B981';
+      case 'transfer': return '#8B5CF6';
+      case 'salary': return '#EAB308';
+      case 'expense': return '#EF4444';
+      case 'credit': return '#F59E0B';
+      case 'payday': return '#06B6D4';
+      default: return '#6B7280';
+    }
+  };
+
+  // Получение статистики транзакций
+  const getTransactionStats = () => {
+    const totalTransfers = transferHistory.filter(t => t.type === 'transfer').length;
+    const totalAmount = transferHistory
+      .filter(t => t.type === 'transfer')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    return { totalTransfers, totalAmount };
+  };
+
+  const stats = getTransactionStats();
+
+  return (
+    <>
+      <Dialog
+        open={isOpen}
+        onClose={onClose}
+        maxWidth="lg"
+        fullWidth
+        fullScreen={isMobile}
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+            borderRadius: isMobile ? 0 : '16px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            maxHeight: '95vh'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          color: 'white', 
+          textAlign: 'center',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          pb: 2,
+          position: 'relative',
+          background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+            <AccountBalance sx={{ fontSize: '1.5rem', color: '#10B981' }} />
+            <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+              Банковские операции
+            </Typography>
+          </Box>
+          <IconButton
+            onClick={onClose}
+            sx={{
+              position: 'absolute',
+              right: 16,
+              top: 16,
+              color: 'rgba(255, 255, 255, 0.7)',
+              '&:hover': {
+                color: 'white',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)'
+              }
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 3 }}>
+          <Grid container spacing={3}>
+            
+            {/* Левая колонка - Основная информация */}
+            <Grid item xs={12} md={4}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                
+                {/* Карточка баланса */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <Card sx={{
+                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                    color: 'white',
+                    borderRadius: '16px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '2px',
+                      background: 'linear-gradient(90deg, #10B981, #059669, #10B981)',
+                      animation: 'shimmer 2s infinite'
+                    }
+                  }}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <AccountBalanceWallet />
+                          Текущий баланс
+                        </Typography>
+                        <Chip 
+                          label="Активен" 
+                          size="small" 
+                          sx={{ 
+                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                            color: 'white',
+                            fontWeight: 'bold'
+                          }} 
+                        />
+                      </Box>
+                      <Typography variant="h3" sx={{ 
+                        fontWeight: 'bold',
+                        textShadow: '0 0 20px rgba(255, 255, 255, 0.3)',
+                        mb: 1
+                      }}>
+                        ${bankBalance.toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                        Доступно для операций
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Статистика */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                >
+                  <Card sx={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '12px'
+                  }}>
+                    <CardContent sx={{ p: 2 }}>
+                      <Typography variant="h6" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
+                        📊 Статистика
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                            Всего переводов:
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#8B5CF6', fontWeight: 'bold' }}>
+                            {stats.totalTransfers}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                            Сумма переводов:
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#8B5CF6', fontWeight: 'bold' }}>
+                            ${stats.totalAmount.toLocaleString()}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                            Транзакций:
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#10B981', fontWeight: 'bold' }}>
+                            {transferHistory.length}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Быстрые действия */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  <Card sx={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '12px'
+                  }}>
+                    <CardContent sx={{ p: 2 }}>
+                      <Typography variant="h6" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
+                        ⚡ Быстрые действия
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Button
+                          variant="outlined"
+                          startIcon={<Send />}
+                          onClick={() => {
+                            const transferSection = document.getElementById('transfer-section');
+                            if (transferSection) {
+                              transferSection.scrollIntoView({ behavior: 'smooth' });
+                            }
+                          }}
+                          sx={{
+                            borderColor: 'rgba(139, 92, 246, 0.5)',
+                            color: '#8B5CF6',
+                            '&:hover': {
+                              borderColor: '#8B5CF6',
+                              backgroundColor: 'rgba(139, 92, 246, 0.1)'
+                            }
+                          }}
+                        >
+                          Новый перевод
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          startIcon={<History />}
+                          onClick={() => {
+                            const historySection = document.getElementById('history-section');
+                            if (historySection) {
+                              historySection.scrollIntoView({ behavior: 'smooth' });
+                            }
+                          }}
+                          sx={{
+                            borderColor: 'rgba(59, 130, 246, 0.5)',
+                            color: '#3B82F6',
+                            '&:hover': {
+                              borderColor: '#3B82F6',
+                              backgroundColor: 'rgba(59, 130, 246, 0.1)'
+                            }
+                          }}
+                        >
+                          История операций
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </Box>
+            </Grid>
+
+            {/* Правая колонка - Операции */}
+            <Grid item xs={12} md={8}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                
+                {/* Перевод средств */}
+                <motion.div
+                  id="transfer-section"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <Card sx={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '16px'
+                  }}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                        <Send sx={{ color: '#8B5CF6' }} />
+                        <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                          Перевод средств
+                        </Typography>
+                      </Box>
+                      
+                      {error && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                          {error}
+                        </Alert>
+                      )}
+                      
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                          <FormControl fullWidth>
+                            <InputLabel sx={{ 
+                              color: '#1e293b',
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                              px: 1,
+                              borderRadius: '4px'
+                            }}>
+                              Получатель
+                            </InputLabel>
+                            <Select
+                              value={selectedRecipient}
+                              onChange={(e) => setSelectedRecipient(e.target.value)}
+                              sx={{
+                                color: '#1e293b',
+                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                '& .MuiOutlinedInput-notchedOutline': {
+                                  borderColor: 'rgba(30, 41, 59, 0.3)'
+                                },
+                                '&:hover .MuiOutlinedInput-notchedOutline': {
+                                  borderColor: '#8B5CF6'
+                                },
+                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                  borderColor: '#8B5CF6'
+                                },
+                                '& .MuiSvgIcon-root': {
+                                  color: '#1e293b'
+                                }
+                              }}
+                            >
+                              {getRecipients().map((player) => (
+                                <MenuItem key={player.socketId} value={player.username}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Avatar sx={{ width: 24, height: 24, fontSize: '0.8rem', backgroundColor: '#8B5CF6' }}>
+                                      {player.username.charAt(0).toUpperCase()}
+                                    </Avatar>
+                                    <Typography sx={{ color: '#1e293b', fontWeight: 'bold' }}>{player.username}</Typography>
+                                    {player.profession && (
+                                      <Chip 
+                                        label={player.profession.name || 'Профессия'} 
+                                        size="small" 
+                                        sx={{ 
+                                          backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                                          color: '#8B5CF6',
+                                          fontSize: '0.7rem',
+                                          fontWeight: 'bold'
+                                        }} 
+                                      />
+                                    )}
+                                  </Box>
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                        
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            fullWidth
+                            label="Сумма ($)"
+                            type="number"
+                            value={transferAmount}
+                            onChange={(e) => setTransferAmount(e.target.value)}
+                            inputProps={{ min: 0, max: bankBalance, step: 1 }}
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                color: '#1e293b',
+                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                '& fieldset': {
+                                  borderColor: 'rgba(30, 41, 59, 0.3)'
+                                },
+                                '&:hover fieldset': {
+                                  borderColor: '#8B5CF6'
+                                },
+                                '&.Mui-focused fieldset': {
+                                  borderColor: '#8B5CF6'
+                                }
+                              },
+                              '& .MuiInputLabel-root': {
+                                color: '#1e293b',
+                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                px: 1,
+                                borderRadius: '4px',
+                                '&.Mui-focused': {
+                                  color: '#8B5CF6'
+                                }
+                              }
+                            }}
+                          />
+                        </Grid>
+                        
+                        <Grid item xs={12}>
+                          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                            <Button
+                              variant="contained"
+                              onClick={handleTransfer}
+                              disabled={!transferAmount || !selectedRecipient || isTransferring || parseFloat(transferAmount) <= 0}
+                              startIcon={<Send />}
+                              sx={{
+                                flex: 1,
+                                background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                                color: 'white',
+                                py: 1.5,
+                                borderRadius: '12px',
+                                fontSize: '1rem',
+                                fontWeight: 'bold',
+                                textTransform: 'none',
+                                boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)',
+                                '&:hover': {
+                                  background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                                  transform: 'translateY(-2px)',
+                                  boxShadow: '0 6px 20px rgba(139, 92, 246, 0.4)'
+                                },
+                                '&:disabled': {
+                                  background: 'rgba(139, 92, 246, 0.3)',
+                                  color: 'rgba(255, 255, 255, 0.5)',
+                                  transform: 'none',
+                                  boxShadow: 'none'
+                                },
+                                transition: 'all 0.2s ease-in-out'
+                              }}
+                            >
+                              {isTransferring ? '⏳ Перевод...' : '💸 Выполнить перевод'}
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              onClick={resetTransferForm}
+                              sx={{
+                                borderColor: 'rgba(107, 114, 128, 0.5)',
+                                color: 'rgba(107, 114, 128, 0.8)',
+                                py: 1.5,
+                                borderRadius: '12px',
+                                fontSize: '1rem',
+                                fontWeight: 'bold',
+                                textTransform: 'none',
+                                '&:hover': {
+                                  borderColor: 'rgba(107, 114, 128, 0.8)',
+                                  backgroundColor: 'rgba(107, 114, 128, 0.1)',
+                                  transform: 'translateY(-1px)'
+                                },
+                                transition: 'all 0.2s ease-in-out'
+                              }}
+                            >
+                              🔄 Сбросить
+                            </Button>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* История транзакций */}
+                <motion.div
+                  id="history-section"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                >
+                  <Card sx={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '16px'
+                  }}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <History sx={{ color: '#3B82F6' }} />
+                          <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                            История операций
+                          </Typography>
+                        </Box>
+                        <Chip 
+                          label={transferHistory.length} 
+                          sx={{ 
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            color: '#3B82F6',
+                            fontWeight: 'bold'
+                          }} 
+                        />
+                      </Box>
+                      
+                      {transferHistory.length === 0 ? (
+                        <Box sx={{ 
+                          textAlign: 'center', 
+                          py: 4,
+                          color: 'rgba(255, 255, 255, 0.5)'
+                        }}>
+                          <Typography variant="body1" sx={{ fontSize: '1.1rem' }}>
+                            📝 Транзакций пока нет
+                          </Typography>
+                          <Typography variant="body2" sx={{ mt: 1, opacity: 0.7 }}>
+                            Все ваши банковские операции будут отображаться здесь
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <List sx={{ 
+                          maxHeight: '400px', 
+                          overflow: 'auto',
+                          '&::-webkit-scrollbar': {
+                            width: '6px',
+                          },
+                          '&::-webkit-scrollbar-track': {
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            borderRadius: '3px',
+                          },
+                          '&::-webkit-scrollbar-thumb': {
+                            background: 'rgba(59, 130, 246, 0.5)',
+                            borderRadius: '3px',
+                          },
+                          '&::-webkit-scrollbar-thumb:hover': {
+                            background: 'rgba(59, 130, 246, 0.7)',
+                          }
+                        }}>
+                          {transferHistory.map((transaction, index) => (
+                            <motion.div
+                              key={transaction.id}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.3, delay: index * 0.05 }}
+                            >
+                              <ListItem
+                                sx={{
+                                  background: index % 2 === 0 ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.12)',
+                                  borderRadius: '12px',
+                                  mb: 1,
+                                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                                  transition: 'all 0.2s ease',
+                                  '&:hover': {
+                                    background: 'rgba(255, 255, 255, 0.15)',
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                                    border: '1px solid rgba(139, 92, 246, 0.3)'
+                                  }
+                                }}
+                              >
+                                <ListItemIcon sx={{ minWidth: 40 }}>
+                                  <Box sx={{ 
+                                    color: getTransactionColor(transaction.type),
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: '50%',
+                                    backgroundColor: `${getTransactionColor(transaction.type)}20`
+                                  }}>
+                                    {getTransactionIcon(transaction.type)}
+                                  </Box>
+                                </ListItemIcon>
+                                <ListItemText
+                                  primary={
+                                    <Typography sx={{ 
+                                      color: '#ffffff', 
+                                      fontWeight: 'bold',
+                                      fontSize: '0.95rem',
+                                      textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)'
+                                    }}>
+                                      {transaction.type === 'initial' ? 'Начальный баланс' :
+                                       transaction.type === 'transfer' ? `Перевод ${transaction.to}` :
+                                       transaction.type === 'salary' ? 'Зарплата' :
+                                       transaction.type === 'payday' ? 'PAYDAY' :
+                                       transaction.description}
+                                    </Typography>
+                                  }
+                                  secondary={
+                                    <Box>
+                                      <Typography sx={{ 
+                                        color: 'rgba(255, 255, 255, 0.8)', 
+                                        fontSize: '0.8rem',
+                                        mb: 0.5,
+                                        textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+                                      }}>
+                                        {transaction.from} → {transaction.to}
+                                      </Typography>
+                                      <Typography sx={{ 
+                                        color: 'rgba(255, 255, 255, 0.7)', 
+                                        fontSize: '0.75rem',
+                                        fontStyle: 'italic',
+                                        textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+                                      }}>
+                                        {transaction.timestamp}
+                                      </Typography>
+                                    </Box>
+                                  }
+                                />
+                                <ListItemSecondaryAction>
+                                  <Box sx={{ textAlign: 'right' }}>
+                                    <Typography sx={{ 
+                                      color: getTransactionColor(transaction.type),
+                                      fontWeight: 'bold',
+                                      fontSize: '1.1rem'
+                                    }}>
+                                      {transaction.type === 'transfer' ? '-' : '+'}${transaction.amount.toLocaleString()}
+                                    </Typography>
+                                    <Chip 
+                                      label={transaction.status === 'completed' ? 'Завершено' : 
+                                            transaction.status === 'pending' ? 'В обработке' : 'Ошибка'}
+                                      size="small"
+                                      sx={{ 
+                                        mt: 0.5,
+                                        backgroundColor: transaction.status === 'completed' ? 'rgba(16, 185, 129, 0.2)' :
+                                                      transaction.status === 'pending' ? 'rgba(245, 158, 11, 0.2)' :
+                                                      'rgba(239, 68, 68, 0.2)',
+                                        color: transaction.status === 'completed' ? '#10B981' :
+                                               transaction.status === 'pending' ? '#F59E0B' : '#EF4444',
+                                        fontSize: '0.7rem'
+                                      }}
+                                    />
+                                  </Box>
+                                </ListItemSecondaryAction>
+                              </ListItem>
+                            </motion.div>
+                          ))}
+                        </List>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </Box>
+            </Grid>
+          </Grid>
+        </DialogContent>
+      </Dialog>
+
+      {/* Уведомления */}
+      <Snackbar
+        open={!!error}
+        autoHideDuration={5000}
+        onClose={() => setError('')}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setError('')} severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!success}
+        autoHideDuration={4000}
+        onClose={() => setSuccess('')}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSuccess('')} severity="success">
+          {success}
+        </Alert>
+      </Snackbar>
+    </>
+  );
+};
+
+export default BankModal;

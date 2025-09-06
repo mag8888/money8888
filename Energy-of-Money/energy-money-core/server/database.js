@@ -3,7 +3,14 @@ const path = require('path');
 
 class Database {
     constructor() {
-        this.dbPath = path.join(__dirname, 'game.db');
+        // Поддержка указания пути к БД через переменные окружения
+        // Приоритет: DATABASE_FILE, затем sqlite-путь из DATABASE_URL, затем локальный файл
+        const fromEnvFile = process.env.DATABASE_FILE;
+        const fromEnvUrl = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('sqlite:')
+            ? process.env.DATABASE_URL.replace('sqlite:', '')
+            : (process.env.DATABASE_URL || null);
+
+        this.dbPath = fromEnvFile || fromEnvUrl || path.join(__dirname, 'game.db');
         this.db = null;
         this.initialize();
     }

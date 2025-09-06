@@ -4,10 +4,16 @@ import io from 'socket.io-client';
 const SERVER_PORT = 5000;
 const SERVER_HOST = window.location.hostname || 'localhost';
 
+// Приоритетно используем явный URL из окружения (например, внешний Socket-сервер)
+// Пример: REACT_APP_SOCKET_URL=https://your-backend.example.com
+const ENV_SOCKET_URL = process.env.REACT_APP_SOCKET_URL?.trim();
+
 // Базовый URL для сервера
-const baseUrl = process.env.NODE_ENV === 'production' 
-  ? `${window.location.protocol}//${SERVER_HOST}` // Для Vercel убираем порт
-  : `${window.location.protocol}//${SERVER_HOST}:${SERVER_PORT}`;
+const baseUrl = ENV_SOCKET_URL
+  ? ENV_SOCKET_URL
+  : (process.env.NODE_ENV === 'production'
+      ? `${window.location.protocol}//${SERVER_HOST}` // Для Vercel убираем порт
+      : `${window.location.protocol}//${SERVER_HOST}:${SERVER_PORT}`);
 
 console.log('🔌 [Socket] Configuration:', { 
   baseUrl, 
@@ -155,4 +161,3 @@ socket.on('error', (error) => {
 
 // Экспортируем socket и функции
 export default socket;
-

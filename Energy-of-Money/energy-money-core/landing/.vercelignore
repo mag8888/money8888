@@ -1,0 +1,9 @@
+components/
+hooks/
+modules/
+server/
+services/
+data/
+api/
+*.md
+start.sh

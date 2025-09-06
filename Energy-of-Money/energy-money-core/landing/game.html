@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Игровое поле - Energy of Money</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="logo">
+                    <span class="logo-icon">⚡</span>
+                    <span class="logo-text">Energy of Money</span>
+                </div>
+            </div>
+            <div class="nav-actions">
+                <span id="userInfo" class="user-info">Игрок</span>
+                <button id="backToLobbyBtn" class="btn-secondary">В лобби</button>
+                <button id="logoutBtn" class="btn-outline">Выйти</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Game Content -->
+    <div class="game-container">
+        <div class="game-header">
+            <h1 id="roomTitle">Комната</h1>
+            <div class="room-info">
+                <span id="roomStatus" class="status-badge">Ожидание</span>
+                <span id="roomPlayers">0/4 игроков</span>
+            </div>
+        </div>
+
+        <!-- Dream Selection -->
+        <div id="dreamSelection" class="dream-selection">
+            <h2>Выберите свою мечту</h2>
+            <p>Мечта определяет вашу цель в игре</p>
+            <div class="dreams-grid">
+                <div class="dream-card" data-dream="financial_freedom">
+                    <div class="dream-icon">💰</div>
+                    <h3>Финансовая свобода</h3>
+                    <p>Пассивный доход превышает расходы</p>
+                </div>
+                <div class="dream-card" data-dream="business_empire">
+                    <div class="dream-icon">🏢</div>
+                    <h3>Бизнес-империя</h3>
+                    <p>Создание крупного бизнеса</p>
+                </div>
+                <div class="dream-card" data-dream="real_estate">
+                    <div class="dream-icon">🏠</div>
+                    <h3>Недвижимость</h3>
+                    <p>Портфель доходной недвижимости</p>
+                </div>
+                <div class="dream-card" data-dream="investment_portfolio">
+                    <div class="dream-icon">📈</div>
+                    <h3>Инвестиционный портфель</h3>
+                    <p>Диверсифицированные инвестиции</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Room Interface -->
+        <div id="roomInterface" class="room-interface" style="display: none;">
+            <!-- Profession Card -->
+            <div class="profession-card-room">
+                <h3>Профессия комнаты</h3>
+                <div id="professionCard" class="profession-card-mini">
+                    <!-- Профессия будет загружена динамически -->
+                </div>
+            </div>
+
+            <!-- Players List -->
+            <div class="players-section">
+                <h3>Игроки в комнате</h3>
+                <div id="playersList" class="players-list">
+                    <!-- Список игроков будет загружен динамически -->
+                </div>
+            </div>
+
+            <!-- Room Controls -->
+            <div class="room-controls">
+                <button id="readyBtn" class="btn-primary">Готов</button>
+                <button id="startGameBtn" class="btn-success" style="display: none;">Начать игру</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    <div id="messageContainer" class="message-container"></div>
+
+    <script src="game-script.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "energy8-landing",
+  "version": "1.0.0",
+  "description": "Energy of Money Landing Page",
+  "main": "index.html",
+  "scripts": {
+    "build": "mkdir -p build && cp *.html *.css *.js build/",
+    "start": "echo 'Static site - no start needed'"
+  },
+  "keywords": ["landing", "static", "html"],
+  "author": "Energy Team",
+  "license": "MIT"
+}

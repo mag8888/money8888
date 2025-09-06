@@ -1,19 +1,26 @@
 {
   "name": "energy-money-core",
   "version": "3.0.0",
-  "description": "Energy of Money - рабочая версия с одной кнопкой",
+  "description": "Energy of Money - полный проект с игрой и одной кнопкой",
   "private": true,
   "scripts": {
     "build": "cd client && npm install && npm run build",
-    "start": "cd client && npm start"
+    "start": "cd server && npm start",
+    "server": "cd server && npm install && npm start",
+    "dev": "concurrently \"npm run server\" \"npm run start\"",
+    "install-all": "npm install && cd client && npm install && cd ../server && npm install"
   },
   "engines": {
-    "node": ">=16.0.0",
+    "node": ">=18.0.0",
     "npm": ">=8.0.0"
   },
   "dependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "react-scripts": "5.0.1"
-  }
+    "concurrently": "^7.6.0"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  },
+  "keywords": ["game", "money", "energy", "cashflow", "multiplayer"],
+  "author": "Energy of Money Team",
+  "license": "MIT"
 }

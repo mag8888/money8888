@@ -3,7 +3,21 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const path = require('path');
-const Database = require('./database');
+const fs = require('fs');
+// Инициализация базы данных с безопасным фолбэком
+let db;
+try {
+  const Database = require('./database');
+  db = new Database();
+} catch (e) {
+  console.error('❌ [SERVER] DB init failed, running without persistence:', e.message);
+  db = {
+    saveRoom: async () => {},
+    getAllRooms: async () => [],
+    deleteOldRooms: async () => 0,
+    getPlayersInRoom: async () => []
+  };
+}
 
 // Определяем порт
 const PORT = process.env.PORT || 5000;
@@ -15,7 +29,17 @@ const server = http.createServer(app);
 // Настройка CORS
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Отдача статики: приоритетно из React build, затем из server/public
+const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
+if (fs.existsSync(clientBuildPath)) {
+  console.log('🧱 [SERVER] Serving client build at', clientBuildPath);
+  app.use(express.static(clientBuildPath));
+} else {
+  const publicPath = path.join(__dirname, 'public');
+  console.log('🧱 [SERVER] Serving static from', publicPath);
+  app.use(express.static(publicPath));
+}
 
 // Создаем Socket.IO сервер
 const io = socketIo(server, {
@@ -29,8 +53,7 @@ const io = socketIo(server, {
   }
 });
 
-// Инициализируем базу данных
-const db = new Database();
+// db уже инициализирован выше
 
 // Глобальное хранилище пользователей (в памяти)
 const users = new Map(); // userId -> userData
@@ -2399,6 +2422,19 @@ app.get('/api/rooms', (req, res) => {
   const roomsList = getRoomsList();
   res.json(roomsList);
 });
+
+// SPA fallback: отдаём index.html для любых не-API маршрутов
+try {
+  const indexHtmlPath = path.join(clientBuildPath, 'index.html');
+  if (fs.existsSync(indexHtmlPath)) {
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) return next();
+      res.sendFile(indexHtmlPath);
+    });
+  }
+} catch (e) {
+  // no-op
+}
 
 // Функция для обновления комнаты в базе данных
 const updateRoomInDatabase = async (room) => {
