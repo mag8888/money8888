@@ -3,9 +3,7 @@ services:
     name: energy2-cashflow
     env: node
     plan: free
-    buildCommand: |
-      cd client && npm install && npm run build
-      cd ../server && npm install
+    buildCommand: bash render-build.sh
     startCommand: cd server && npm start
     healthCheckPath: /health
     autoDeploy: true

@@ -1,19 +1,22 @@
-#!/usr/bin/env bash
-set -euxo pipefail
+#!/bin/bash
 
-echo "→ Node version:" && node -v || true
-echo "→ NPM version:" && npm -v || true
-echo "→ PWD:" && pwd
-echo "→ Repo root contents:" && ls -la
+echo "🚀 Starting build process..."
 
-echo "\n=== Install client deps ==="
-npm --prefix client install --no-audit --no-fund
+# Устанавливаем зависимости корневого проекта
+echo "📦 Installing root dependencies..."
+npm install
 
-echo "\n=== Build client ==="
-npm --prefix client run build
+# Собираем клиент
+echo "🎨 Building client..."
+cd client
+npm install
+npm run build
+cd ..
 
-echo "\n=== Install server deps ==="
-npm --prefix server install --no-audit --no-fund
+# Устанавливаем зависимости сервера
+echo "🖥️ Installing server dependencies..."
+cd server
+npm install
+cd ..
 
-echo "\n✅ Build steps completed"
-
+echo "✅ Build completed successfully!"
