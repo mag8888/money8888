@@ -1,14 +1,13 @@
 {
-  "name": "energy-money-core",
-  "version": "3.0.0",
-  "description": "Energy of Money - полный проект с игрой и одной кнопкой",
+  "name": "energy-money-railway",
+  "version": "1.0.0",
+  "description": "Energy of Money - Railway optimized version",
   "private": true,
   "scripts": {
     "build": "react-scripts build",
-    "start": "npm run build && node server.js",
-    "server": "node server.js",
-    "dev": "concurrently \"npm run server\" \"npm run start\"",
-    "install-all": "npm install"
+    "start": "node server/index.js",
+    "dev": "concurrently \"npm run build\" \"npm start\"",
+    "postinstall": "npm run build"
   },
   "engines": {
     "node": ">=18.0.0",
