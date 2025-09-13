@@ -16,7 +16,7 @@ const server = http.createServer(app);
 // Настройка CORS
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'client/build')));
+app.use(express.static(path.join(__dirname, 'build')));
 app.use(express.static(path.join(__dirname, 'server/public')));
 
 // Создаем Socket.IO сервер
@@ -170,7 +170,7 @@ app.get('/api/telegram/images', (req, res) => {
 
 // Главная страница - отдаем React приложение
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
 // Socket.IO обработчики

@@ -4,11 +4,11 @@
   "description": "Energy of Money - полный проект с игрой и одной кнопкой",
   "private": true,
   "scripts": {
-    "build": "cd client && npm install && npm run build",
+    "build": "react-scripts build",
     "start": "npm run build && node server.js",
     "server": "node server.js",
     "dev": "concurrently \"npm run server\" \"npm run start\"",
-    "install-all": "npm install && cd client && npm install"
+    "install-all": "npm install"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -18,10 +18,14 @@
     "concurrently": "^7.6.0",
     "cors": "^2.8.5",
     "express": "^4.19.2",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-scripts": "5.0.1",
     "socket.io": "^4.7.5",
     "socket.io-client": "^4.7.5",
     "sqlite3": "^5.1.6",
-    "telegraf": "^4.15.6"
+    "telegraf": "^4.15.6",
+    "web-vitals": "^2.1.4"
   },
   "devDependencies": {
     "concurrently": "^7.6.0"
