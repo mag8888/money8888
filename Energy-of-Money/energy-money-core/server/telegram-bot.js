@@ -37,7 +37,7 @@ class TelegramBot {
     // Функция для получения или создания пользователя
     async getUser(userId) {
         try {
-            let user = await this.dbManager.getTelegramUser(userId);
+            let user = await this.dbManager.getUser(userId);
             if (!user) {
                 user = {
                     telegram_id: userId,
@@ -46,7 +46,7 @@ class TelegramBot {
                     ref_code: `ref_${userId}`,
                     created_at: new Date().toISOString()
                 };
-                await this.dbManager.createTelegramUser(user);
+                await this.dbManager.createUser(user);
             }
             return user;
         } catch (error) {
@@ -75,8 +75,8 @@ class TelegramBot {
             referrer.referrals += 1;
             
             // Сохраняем в базу данных
-            await this.dbManager.updateTelegramUser(user);
-            await this.dbManager.updateTelegramUser(referrer);
+            await this.dbManager.updateUser(user);
+            await this.dbManager.updateUser(referrer);
             
             return { user, referrer };
         } catch (error) {
@@ -294,12 +294,12 @@ class TelegramBot {
 👥 Количество приглашенных: ${user.referrals}
 
 🔗 Ваша реферальная ссылка:
-https://t.me/anreal_money_bot?start=${user.ref_code}
+https://t.me/energy_m_bot?start=${user.ref_code}
 
 💰 Приглашайте друзей - вы и друг получите по 10$ на баланс!`;
 
             const balanceKeyboard = Markup.inlineKeyboard([
-                [Markup.button.url('🔗 Поделиться ссылкой', `https://t.me/share/url?url=https://t.me/anreal_money_bot?start=${user.ref_code}&text=Присоединяйся к игре Энергия Денег!`)]
+                [Markup.button.url('🔗 Поделиться ссылкой', `https://t.me/share/url?url=https://t.me/energy_m_bot?start=${user.ref_code}&text=Присоединяйся к игре Энергия Денег!`)]
             ]);
 
             await ctx.reply(balanceText, balanceKeyboard);
@@ -316,7 +316,7 @@ https://t.me/anreal_money_bot?start=${user.ref_code}
         try {
             await this.bot.launch();
             console.log('🤖 Telegram бот запущен!');
-            console.log('🔗 Ссылка на бота: https://t.me/anreal_money_bot');
+            console.log('🔗 Ссылка на бота: https://t.me/energy_m_bot');
             return true;
         } catch (error) {
             console.error('❌ Ошибка запуска бота:', error);

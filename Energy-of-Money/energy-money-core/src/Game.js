@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import socket, { connectSocket, isSocketConnected } from './socket';
 
-function Game({ onBack }) {
+function Game({ onBack, userData: initialUserData }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userData, setUserData] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!initialUserData);
+  const [userData, setUserData] = useState(initialUserData);
   const [socketOk, setSocketOk] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

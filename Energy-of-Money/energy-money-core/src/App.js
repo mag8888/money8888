@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react';
 import './App.css';
 import socket, { connectSocket, isSocketConnected } from './socket';
 import Game from './Game';
+import TelegramAuth from './TelegramAuth';
 
 function App() {
   const [health, setHealth] = useState(null);
   const [socketOk, setSocketOk] = useState(false);
   const [showGame, setShowGame] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -37,8 +40,8 @@ function App() {
       setHealth(json.status || 'OK');
       
       if (json.status === 'OK') {
-        // Если сервер работает, переходим к игре
-        setShowGame(true);
+        // Если сервер работает, переходим к авторизации
+        setShowAuth(true);
       }
     } catch (e) {
       setHealth('ERROR');
@@ -49,11 +52,23 @@ function App() {
 
   const handleBackToMain = () => {
     setShowGame(false);
+    setShowAuth(false);
     setHealth(null);
+    setUserData(null);
   };
 
+  const handleAuthSuccess = (authUserData) => {
+    setUserData(authUserData);
+    setShowAuth(false);
+    setShowGame(true);
+  };
+
+  if (showAuth) {
+    return <TelegramAuth onAuthSuccess={handleAuthSuccess} />;
+  }
+
   if (showGame) {
-    return <Game onBack={handleBackToMain} />;
+    return <Game onBack={handleBackToMain} userData={userData} />;
   }
 
   return (

@@ -147,44 +147,6 @@ app.get('/api/telegram/images', (req, res) => {
   }
 });
 
-// API для авторизации через Telegram
-app.post('/api/telegram/auth', async (req, res) => {
-  try {
-    const { telegram_id, first_name, last_name, username, language_code, is_premium } = req.body;
-    
-    if (!telegram_id) {
-      return res.status(400).json({ success: false, error: 'Telegram ID обязателен' });
-    }
-
-    // Получаем или создаем пользователя
-    let telegramUser = await db.getTelegramUser(telegram_id);
-    
-    if (!telegramUser) {
-      // Создаем нового пользователя
-      const newUser = {
-        telegram_id: telegram_id,
-        balance: 10, // 10$ за регистрацию
-        referrals: 0,
-        ref_code: `ref_${telegram_id}`,
-        created_at: new Date().toISOString()
-      };
-      
-      await db.createTelegramUser(newUser);
-      telegramUser = newUser;
-    }
-
-    res.json({ 
-      success: true, 
-      user: telegramUser,
-      message: 'Авторизация через Telegram успешна'
-    });
-    
-  } catch (error) {
-    console.error('Telegram auth error:', error);
-    res.status(500).json({ success: false, error: 'Внутренняя ошибка сервера' });
-  }
-});
-
 // Главная страница - отдаем React приложение
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../build', 'index.html'));
