@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import socket, { connectSocket, isSocketConnected } from './socket';
+import GameBoard from './GameBoard';
 
 function Game({ onBack, userData: initialUserData }) {
   const [username, setUsername] = useState('');
@@ -10,6 +11,7 @@ function Game({ onBack, userData: initialUserData }) {
   const [socketOk, setSocketOk] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showGameBoard, setShowGameBoard] = useState(false);
 
   useEffect(() => {
     // Обрабатываем данные пользователя
@@ -24,6 +26,9 @@ function Game({ onBack, userData: initialUserData }) {
       if (initialUserData.id === 'test_user_123') {
         console.log('🧪 Test account detected - showing test user info');
       }
+      
+      // Автоматически показываем игровое поле для авторизованных пользователей
+      setShowGameBoard(true);
     }
   }, [initialUserData]);
 
@@ -96,43 +101,7 @@ function Game({ onBack, userData: initialUserData }) {
   };
 
   if (isAuthenticated && userData) {
-    return (
-      <div className="App">
-        <header className="App-header">
-          <h1>🎮 Energy of Money - Игра</h1>
-          <div style={{ 
-            background: 'rgba(255,255,255,0.1)', 
-            padding: '20px', 
-            borderRadius: '10px',
-            margin: '20px 0'
-          }}>
-            <h2>Добро пожаловать, {userData.username}!</h2>
-            <p>Email: {userData.email}</p>
-            <p>ID: {userData.id}</p>
-            <p style={{color: socketOk ? '#4CAF50' : '#f44336'}}>
-              Socket: {socketOk ? '✅ подключен' : '❌ нет подключения'}
-            </p>
-          </div>
-          
-          <div style={{ margin: '20px 0' }}>
-            <button 
-              className="start-button"
-              onClick={() => alert('🎲 Игровая логика будет добавлена позже!')}
-              style={{ margin: '10px' }}
-            >
-              🎲 Начать игру
-            </button>
-            <button 
-              className="start-button"
-              onClick={handleBackToMain}
-              style={{ margin: '10px', background: '#666' }}
-            >
-              ← Назад
-            </button>
-          </div>
-        </header>
-      </div>
-    );
+    return <GameBoard userData={userData} onBack={handleBackToMain} />;
   }
 
   return (

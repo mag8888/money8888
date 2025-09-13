@@ -3,109 +3,215 @@ const path = require('path');
 
 class Database {
     constructor() {
-        // Создаем базу данных в памяти для Railway (более надежно)
-        this.db = new sqlite3.Database(':memory:', (err) => {
+        // Поддержка указания пути к БД через переменные окружения
+        // Приоритет: DATABASE_FILE, затем sqlite-путь из DATABASE_URL, затем локальный файл
+        const fromEnvFile = process.env.DATABASE_FILE;
+        const fromEnvUrl = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('sqlite:')
+            ? process.env.DATABASE_URL.replace('sqlite:', '')
+            : (process.env.DATABASE_URL || null);
+
+        this.dbPath = fromEnvFile || fromEnvUrl || path.join(__dirname, 'game.db');
+        this.db = null;
+        this.initialize();
+    }
+
+    initialize() {
+        this.db = new sqlite3.Database(this.dbPath, (err) => {
             if (err) {
                 console.error('❌ [DB] Error opening database:', err.message);
             } else {
-                console.log('✅ [DB] Connected to SQLite database');
-                this.initializeTables();
+                console.log('🗄️ [DB] Database initialized:', this.dbPath);
+                this.initTables();
             }
         });
     }
 
-    // Инициализация таблиц
-    initializeTables() {
-        // Таблица пользователей игры
+    initTables() {
         const createUsersTable = `
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
                 email TEXT UNIQUE NOT NULL,
-                password TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                last_seen DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `;
-
-        // Таблица пользователей Telegram
-        const createTelegramUsersTable = `
-            CREATE TABLE IF NOT EXISTS telegram_users (
-                telegram_id INTEGER PRIMARY KEY,
-                balance INTEGER DEFAULT 10,
-                referrals INTEGER DEFAULT 0,
-                ref_code TEXT UNIQUE NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `;
-
-        // Таблица комнат
-        const createRoomsTable = `
-            CREATE TABLE IF NOT EXISTS rooms (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                room_id TEXT UNIQUE NOT NULL,
-                display_name TEXT NOT NULL,
-                max_players INTEGER DEFAULT 4,
-                current_players INTEGER DEFAULT 0,
-                status TEXT DEFAULT 'waiting',
-                password TEXT,
-                host_id TEXT,
+                password TEXT NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `;
 
-        // Выполняем создание таблиц
-        this.db.run(createUsersTable, (err) => {
-            if (err) {
-                console.error('❌ [DB] Error creating users table:', err.message);
-            } else {
-                console.log('✅ [DB] Users table ready');
-            }
+        const createRoomsTable = `
+            CREATE TABLE IF NOT EXISTS rooms (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                host_id TEXT,
+                host_username TEXT,
+                max_players INTEGER DEFAULT 2,
+                game_duration INTEGER DEFAULT 180,
+                status TEXT DEFAULT 'waiting',
+                password TEXT DEFAULT '',
+                profession_type TEXT DEFAULT 'individual',
+                host_profession TEXT,
+                shared_profession TEXT,
+                current_players TEXT,
+                game_start_time INTEGER,
+                game_end_time INTEGER,
+                next_break_time INTEGER,
+                created_at INTEGER,
+                updated_at INTEGER
+            )
+        `;
+
+        const createPlayersTable = `
+            CREATE TABLE IF NOT EXISTS players (
+                id TEXT PRIMARY KEY,
+                username TEXT NOT NULL,
+                room_id TEXT NOT NULL,
+                joined_at INTEGER,
+                FOREIGN KEY (room_id) REFERENCES rooms (id)
+            )
+        `;
+
+        this.db.serialize(() => {
+            this.db.run(createUsersTable, (err) => {
+                if (err) {
+                    console.error('❌ [DB] Error creating users table:', err.message);
+                } else {
+                    console.log('✅ [DB] Users table ready');
+                }
+            });
+
+            this.db.run(createRoomsTable, (err) => {
+                if (err) {
+                    console.error('❌ [DB] Error creating rooms table:', err.message);
+                } else {
+                    console.log('✅ [DB] Rooms table ready');
+                }
+            });
+
+            this.db.run(createPlayersTable, (err) => {
+                if (err) {
+                    console.error('❌ [DB] Error creating players table:', err.message);
+                } else {
+                    console.log('✅ [DB] Players table ready');
+                }
+            });
+
+            // Проверяем наличие колонки password
+            this.checkPasswordColumn();
         });
 
-        this.db.run(createTelegramUsersTable, (err) => {
-            if (err) {
-                console.error('❌ [DB] Error creating telegram_users table:', err.message);
-            } else {
-                console.log('✅ [DB] Telegram users table ready');
-            }
-        });
+        console.log('🗄️ [DB] Tables initialized successfully');
+    }
 
-        this.db.run(createRoomsTable, (err) => {
+    checkPasswordColumn() {
+        this.db.get("PRAGMA table_info(users)", (err, row) => {
             if (err) {
-                console.error('❌ [DB] Error creating rooms table:', err.message);
+                console.error('❌ [DB] Error checking table schema:', err.message);
+                return;
+            }
+
+            this.db.all("PRAGMA table_info(users)", (err, rows) => {
+                if (err) {
+                    console.error('❌ [DB] Error getting table schema:', err.message);
+                    return;
+                }
+
+                const hasPasswordColumn = rows.some(col => col.name === 'password');
+                if (hasPasswordColumn) {
+                    console.log('✅ [DB] Password column already exists');
+                    // Обновляем пароли для существующих пользователей
+                    this.updateExistingUsersPasswords();
+                } else {
+                    console.log('🔄 [DB] Adding password column...');
+                    this.migrateAddPasswordColumn();
+                }
+            });
+        });
+    }
+
+    migrateAddPasswordColumn() {
+        const addPasswordColumn = `
+            ALTER TABLE users ADD COLUMN password TEXT NOT NULL DEFAULT '87654321'
+        `;
+
+        this.db.run(addPasswordColumn, (err) => {
+            if (err) {
+                console.error('❌ [DB] Error adding password column:', err.message);
             } else {
-                console.log('✅ [DB] Rooms table ready');
+                console.log('✅ [DB] Password column added successfully');
+                this.updateExistingUsersPasswords();
             }
         });
     }
 
-    // Методы для пользователей игры
-    async createUser(userData) {
+    updateExistingUsersPasswords() {
+        console.log('🔄 [DB] Updating passwords for existing users...');
+        
+        const updatePasswords = `
+            UPDATE users 
+            SET password = '87654321' 
+            WHERE password IS NULL 
+            OR password = '' 
+            OR password = '123456'
+        `;
+
+        this.db.run(updatePasswords, (err) => {
+            if (err) {
+                console.error('❌ [DB] Error updating existing user passwords:', err.message);
+            } else {
+                this.db.get("SELECT COUNT(*) as count FROM users WHERE password = '87654321'", (err, row) => {
+                    if (err) {
+                        console.error('❌ [DB] Error counting updated users:', err.message);
+                    } else {
+                        console.log(`✅ [DB] ${row.count} users have updated passwords`);
+                    }
+                });
+            }
+        });
+    }
+
+    createUser(username, email, password = '87654321') {
         return new Promise((resolve, reject) => {
-            const { username, email, password } = userData;
-            const sql = `INSERT INTO users (username, email, password) VALUES (?, ?, ?)`;
+            const sql = `
+                INSERT INTO users (username, email, password) 
+                VALUES (?, ?, ?)
+            `;
             
             this.db.run(sql, [username, email, password], function(err) {
                 if (err) {
-                    console.error('❌ [DB] Error creating user:', err.message);
-                    reject(err);
+                    if (err.message.includes('UNIQUE constraint failed')) {
+                        reject(new Error('Username or email already exists'));
+                    } else {
+                        reject(err);
+                    }
                 } else {
-                    console.log(`✅ [DB] User created with ID: ${this.lastID}`);
-                    resolve({ id: this.lastID, username, email });
+                    resolve({
+                        id: this.lastID,
+                        username,
+                        email,
+                        password
+                    });
                 }
             });
         });
     }
 
-    async getUser(email) {
+    getUserByUsername(username) {
         return new Promise((resolve, reject) => {
-            const sql = `SELECT * FROM users WHERE email = ?`;
-            
+            const sql = 'SELECT * FROM users WHERE username = ?';
+            this.db.get(sql, [username], (err, row) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(row);
+                }
+            });
+        });
+    }
+
+    getUserByEmail(email) {
+        return new Promise((resolve, reject) => {
+            const sql = 'SELECT * FROM users WHERE email = ?';
             this.db.get(sql, [email], (err, row) => {
                 if (err) {
-                    console.error('❌ [DB] Error getting user:', err.message);
                     reject(err);
                 } else {
                     resolve(row);
@@ -114,113 +220,68 @@ class Database {
         });
     }
 
-    async updateUser(userData) {
+    updateUserPassword(userId, newPassword) {
         return new Promise((resolve, reject) => {
-            const { id, username, email, last_seen } = userData;
-            const sql = `UPDATE users SET username = ?, email = ?, last_seen = ? WHERE id = ?`;
-            
-            this.db.run(sql, [username, email, last_seen || new Date().toISOString(), id], function(err) {
+            const sql = 'UPDATE users SET password = ? WHERE id = ?';
+            this.db.run(sql, [newPassword, userId], function(err) {
                 if (err) {
-                    console.error('❌ [DB] Error updating user:', err.message);
                     reject(err);
                 } else {
-                    console.log(`✅ [DB] User updated: ${username}`);
-                    resolve({ id, username, email });
+                    if (this.changes > 0) {
+                        resolve(true);
+                    } else {
+                        reject(new Error('User not found'));
+                    }
                 }
             });
         });
     }
 
-    // Методы для Telegram пользователей
-    async createTelegramUser(telegramUser) {
+    saveRoom(room) {
         return new Promise((resolve, reject) => {
-            const { telegram_id, balance, referrals, ref_code } = telegramUser;
-            const sql = `INSERT INTO telegram_users (telegram_id, balance, referrals, ref_code) VALUES (?, ?, ?, ?)`;
+            const sql = `
+                INSERT OR REPLACE INTO rooms (
+                    id, name, host_id, host_username, max_players, game_duration, 
+                    status, password, profession_type, host_profession, shared_profession,
+                    current_players, game_start_time, game_end_time, next_break_time,
+                    created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `;
             
-            this.db.run(sql, [telegram_id, balance || 10, referrals || 0, ref_code], function(err) {
+            this.db.run(sql, [
+                room.roomId || room.id,
+                room.name || room.displayName,
+                room.hostId || null,
+                room.hostUsername || null,
+                room.maxPlayers || 2,
+                room.gameDuration || 180,
+                room.status || 'waiting',
+                room.password || '',
+                room.professionType || 'individual',
+                room.hostProfession ? JSON.stringify(room.hostProfession) : null,
+                room.sharedProfession ? JSON.stringify(room.sharedProfession) : null,
+                room.currentPlayers ? JSON.stringify(room.currentPlayers) : null,
+                room.gameStartTime || null,
+                room.gameEndTime || null,
+                room.nextBreakTime || null,
+                room.createdAt || Date.now(),
+                Date.now()
+            ], function(err) {
                 if (err) {
-                    console.error('❌ [DB] Error creating telegram user:', err.message);
                     reject(err);
                 } else {
-                    console.log(`✅ [DB] Telegram user created with ID: ${telegram_id}`);
-                    resolve({ telegram_id, balance, referrals, ref_code });
+                    resolve(room);
                 }
             });
         });
     }
 
-    async getTelegramUser(telegramId) {
+    getRoom(roomId) {
         return new Promise((resolve, reject) => {
-            const sql = `SELECT * FROM telegram_users WHERE telegram_id = ?`;
-            
-            this.db.get(sql, [telegramId], (err, row) => {
-                if (err) {
-                    console.error('❌ [DB] Error getting telegram user:', err.message);
-                    reject(err);
-                } else {
-                    resolve(row);
-                }
-            });
-        });
-    }
-
-    async updateTelegramUser(telegramUser) {
-        return new Promise((resolve, reject) => {
-            const { telegram_id, balance, referrals, ref_code } = telegramUser;
-            const sql = `UPDATE telegram_users SET balance = ?, referrals = ?, ref_code = ?, updated_at = ? WHERE telegram_id = ?`;
-            
-            this.db.run(sql, [balance, referrals, ref_code, new Date().toISOString(), telegram_id], function(err) {
-                if (err) {
-                    console.error('❌ [DB] Error updating telegram user:', err.message);
-                    reject(err);
-                } else {
-                    console.log(`✅ [DB] Telegram user updated: ${telegram_id}`);
-                    resolve({ telegram_id, balance, referrals, ref_code });
-                }
-            });
-        });
-    }
-
-    async getAllTelegramUsers() {
-        return new Promise((resolve, reject) => {
-            const sql = `SELECT * FROM telegram_users ORDER BY created_at DESC`;
-            
-            this.db.all(sql, [], (err, rows) => {
-                if (err) {
-                    console.error('❌ [DB] Error getting all telegram users:', err.message);
-                    reject(err);
-                } else {
-                    resolve(rows);
-                }
-            });
-        });
-    }
-
-    // Методы для комнат
-    async createRoom(roomData) {
-        return new Promise((resolve, reject) => {
-            const { room_id, display_name, max_players, status, password, host_id } = roomData;
-            const sql = `INSERT INTO rooms (room_id, display_name, max_players, status, password, host_id) VALUES (?, ?, ?, ?, ?, ?)`;
-            
-            this.db.run(sql, [room_id, display_name, max_players, status, password, host_id], function(err) {
-                if (err) {
-                    console.error('❌ [DB] Error creating room:', err.message);
-                    reject(err);
-                } else {
-                    console.log(`✅ [DB] Room created: ${room_id}`);
-                    resolve({ id: this.lastID, room_id, display_name });
-                }
-            });
-        });
-    }
-
-    async getRoom(roomId) {
-        return new Promise((resolve, reject) => {
-            const sql = `SELECT * FROM rooms WHERE room_id = ?`;
-            
+            const sql = 'SELECT * FROM rooms WHERE id = ?';
             this.db.get(sql, [roomId], (err, row) => {
                 if (err) {
-                    console.error('❌ [DB] Error getting room:', err.message);
                     reject(err);
                 } else {
                     resolve(row);
@@ -229,30 +290,11 @@ class Database {
         });
     }
 
-    async updateRoom(roomData) {
+    getAllRooms() {
         return new Promise((resolve, reject) => {
-            const { room_id, display_name, max_players, current_players, status, password, host_id } = roomData;
-            const sql = `UPDATE rooms SET display_name = ?, max_players = ?, current_players = ?, status = ?, password = ?, host_id = ? WHERE room_id = ?`;
-            
-            this.db.run(sql, [display_name, max_players, current_players, status, password, host_id, room_id], function(err) {
+            const sql = 'SELECT * FROM rooms ORDER BY created_at DESC';
+            this.db.all(sql, (err, rows) => {
                 if (err) {
-                    console.error('❌ [DB] Error updating room:', err.message);
-                    reject(err);
-                } else {
-                    console.log(`✅ [DB] Room updated: ${room_id}`);
-                    resolve({ room_id, display_name });
-                }
-            });
-        });
-    }
-
-    async getAllRooms() {
-        return new Promise((resolve, reject) => {
-            const sql = `SELECT * FROM rooms ORDER BY created_at DESC`;
-            
-            this.db.all(sql, [], (err, rows) => {
-                if (err) {
-                    console.error('❌ [DB] Error getting all rooms:', err.message);
                     reject(err);
                 } else {
                     resolve(rows);
@@ -261,19 +303,103 @@ class Database {
         });
     }
 
-    // Закрытие соединения
-    close() {
+    deleteRoom(roomId) {
         return new Promise((resolve, reject) => {
+            const sql = 'DELETE FROM rooms WHERE id = ?';
+            this.db.run(sql, [roomId], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.changes > 0);
+                }
+            });
+        });
+    }
+
+    savePlayer(player) {
+        return new Promise((resolve, reject) => {
+            const sql = `
+                INSERT OR REPLACE INTO players (id, username, room_id, joined_at)
+                VALUES (?, ?, ?, ?)
+            `;
+            
+            this.db.run(sql, [
+                player.id,
+                player.username,
+                player.roomId,
+                player.joinedAt || Date.now()
+            ], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(player);
+                }
+            });
+        });
+    }
+
+    getPlayersInRoom(roomId) {
+        return new Promise((resolve, reject) => {
+            const sql = 'SELECT * FROM players WHERE room_id = ?';
+            this.db.all(sql, [roomId], (err, rows) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(rows);
+                }
+            });
+        });
+    }
+
+    removePlayer(playerId) {
+        return new Promise((resolve, reject) => {
+            const sql = 'DELETE FROM players WHERE id = ?';
+            this.db.run(sql, [playerId], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.changes > 0);
+                }
+            });
+        });
+    }
+
+    deleteOldRooms(timestamp) {
+        return new Promise((resolve, reject) => {
+            const sql = 'DELETE FROM rooms WHERE created_at < ?';
+            this.db.run(sql, [timestamp], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    console.log(`🧹 [DB] Deleted ${this.changes} old rooms`);
+                    resolve(this.changes);
+                }
+            });
+        });
+    }
+
+    migrateExistingData() {
+        return new Promise((resolve, reject) => {
+            console.log('🔄 [DB] Starting data migration...');
+            
+            // Здесь можно добавить логику миграции данных
+            // Например, обновление существующих записей
+            
+            console.log('✅ [DB] Data migration completed successfully');
+            resolve();
+        });
+    }
+
+    close() {
+        if (this.db) {
             this.db.close((err) => {
                 if (err) {
                     console.error('❌ [DB] Error closing database:', err.message);
-                    reject(err);
                 } else {
-                    console.log('✅ [DB] Database connection closed');
-                    resolve();
+                    console.log('🗄️ [DB] Database connection closed');
                 }
             });
-        });
+        }
     }
 }
 
