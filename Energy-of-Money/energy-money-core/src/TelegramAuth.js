@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './App.css';
 
 function TelegramAuth({ onAuthSuccess }) {
+  console.log('🔐 TelegramAuth component loaded');
   const [telegramUser, setTelegramUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

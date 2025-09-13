@@ -34,6 +34,7 @@ function App() {
 
   const handleStart = async () => {
     try {
+      console.log('🚀 Starting authentication process...');
       // Проверяем health endpoint
       const res = await fetch('/health');
       const json = await res.json();
@@ -41,6 +42,7 @@ function App() {
       
       if (json.status === 'OK') {
         // Если сервер работает, переходим к авторизации
+        console.log('✅ Server is healthy, showing auth screen');
         setShowAuth(true);
       }
     } catch (e) {
