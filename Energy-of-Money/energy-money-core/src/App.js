@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
 import socket, { connectSocket, isSocketConnected } from './socket';
+import Game from './Game';
 
 function App() {
   const [health, setHealth] = useState(null);
   const [socketOk, setSocketOk] = useState(false);
+  const [showGame, setShowGame] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -29,15 +31,30 @@ function App() {
 
   const handleStart = async () => {
     try {
+      // Проверяем health endpoint
       const res = await fetch('/health');
       const json = await res.json();
       setHealth(json.status || 'OK');
-      alert(`Сервер доступен: ${json.status || 'OK'} ✅`);
+      
+      if (json.status === 'OK') {
+        // Если сервер работает, переходим к игре
+        setShowGame(true);
+      }
     } catch (e) {
       setHealth('ERROR');
       alert('Не удалось связаться с сервером ❌');
+      console.error('Health check failed:', e);
     }
   };
+
+  const handleBackToMain = () => {
+    setShowGame(false);
+    setHealth(null);
+  };
+
+  if (showGame) {
+    return <Game onBack={handleBackToMain} />;
+  }
 
   return (
     <div className="App">
@@ -50,8 +67,9 @@ function App() {
         <button 
           className="start-button"
           onClick={handleStart}
+          disabled={!socketOk}
         >
-          СТАРТ
+          {socketOk ? 'СТАРТ' : 'Ожидание подключения...'}
         </button>
       </header>
     </div>

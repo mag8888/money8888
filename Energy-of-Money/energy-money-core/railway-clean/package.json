@@ -14,30 +14,18 @@
     "npm": ">=8.0.0"
   },
   "dependencies": {
-    "concurrently": "^7.6.0",
-    "cors": "^2.8.5",
-    "express": "^4.19.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-scripts": "5.0.1",
-    "socket.io": "^4.7.5",
     "socket.io-client": "^4.7.5",
+    "web-vitals": "^2.1.4",
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5",
+    "cors": "^2.8.5",
     "sqlite3": "^5.1.6",
     "telegraf": "^4.15.6",
-    "web-vitals": "^2.1.4"
-  },
-  "devDependencies": {
     "concurrently": "^7.6.0"
   },
-  "keywords": [
-    "game",
-    "money",
-    "energy",
-    "cashflow",
-    "multiplayer"
-  ],
-  "author": "Energy of Money Team",
-  "license": "MIT",
   "browserslist": {
     "production": [
       ">0.2%",
