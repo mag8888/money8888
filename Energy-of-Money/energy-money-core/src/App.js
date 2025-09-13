@@ -3,13 +3,17 @@ import './App.css';
 import socket, { connectSocket, isSocketConnected } from './socket';
 import Game from './Game';
 import TelegramAuth from './TelegramAuth';
+import SceneNavigation from './SceneNavigation';
+import Lobby from './Lobby';
 
 function App() {
   const [health, setHealth] = useState(null);
   const [socketOk, setSocketOk] = useState(false);
   const [showGame, setShowGame] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [showLobby, setShowLobby] = useState(false);
   const [userData, setUserData] = useState(null);
+  const [currentScene, setCurrentScene] = useState('lobby');
 
   useEffect(() => {
     (async () => {
@@ -44,6 +48,7 @@ function App() {
         // Если сервер работает, переходим к авторизации
         console.log('✅ Server is healthy, showing auth screen');
         setShowAuth(true);
+        setCurrentScene('auth');
       }
     } catch (e) {
       setHealth('ERROR');
@@ -62,21 +67,70 @@ function App() {
   const handleAuthSuccess = (authUserData) => {
     setUserData(authUserData);
     setShowAuth(false);
-    setShowGame(true);
+    setShowGame(false);
+    setShowLobby(true);
+    setCurrentScene('lobby');
+  };
+
+  const handleSceneChange = (sceneId) => {
+    console.log('🎭 Changing scene to:', sceneId);
+    setCurrentScene(sceneId);
+    
+    switch(sceneId) {
+      case 'auth':
+        setShowAuth(true);
+        setShowGame(false);
+        setShowLobby(false);
+        break;
+      case 'lobby':
+        setShowAuth(false);
+        setShowGame(false);
+        setShowLobby(true);
+        break;
+      case 'game':
+        setShowAuth(false);
+        setShowGame(true);
+        setShowLobby(false);
+        break;
+      default:
+        console.log('🎭 Scene not implemented yet:', sceneId);
+        break;
+    }
   };
 
   if (showAuth) {
-    return <TelegramAuth onAuthSuccess={handleAuthSuccess} />;
+    return (
+      <>
+        <SceneNavigation currentScene={currentScene} onSceneChange={handleSceneChange} />
+        <TelegramAuth onAuthSuccess={handleAuthSuccess} />
+      </>
+    );
+  }
+
+  if (showLobby) {
+    return (
+      <>
+        <SceneNavigation currentScene={currentScene} onSceneChange={handleSceneChange} />
+        <Lobby userData={userData} onStartGame={() => handleSceneChange('game')} />
+      </>
+    );
   }
 
   if (showGame) {
-    return <Game onBack={handleBackToMain} userData={userData} />;
+    return (
+      <>
+        <SceneNavigation currentScene={currentScene} onSceneChange={handleSceneChange} />
+        <Game onBack={handleBackToMain} userData={userData} />
+      </>
+    );
   }
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Energy of Money</h1>
+    <>
+      <SceneNavigation currentScene={currentScene} onSceneChange={handleSceneChange} />
+      <div className="App">
+        <header className="App-header">
+          <h1>Energy of Money</h1>
         <p>Добро пожаловать! Тестовая старт‑страница.</p>
         <p style={{color:'#fff', opacity:0.9, marginTop: '-10px'}}>
           Socket: {socketOk ? '✅ подключен' : '❌ нет подключения'}{health ? ` • Health: ${health}` : ''}
@@ -89,7 +143,8 @@ function App() {
           {socketOk ? 'СТАРТ' : 'Ожидание подключения...'}
         </button>
       </header>
-    </div>
+      </div>
+    </>
   );
 }
 

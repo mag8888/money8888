@@ -82,6 +82,27 @@ function TelegramAuth({ onAuthSuccess }) {
     onAuthSuccess(null);
   };
 
+  const handleTestAccount = () => {
+    // Создаем тестовый аккаунт с заполненными данными
+    const testUserData = {
+      id: 'test_user_123',
+      username: 'testuser',
+      email: 'test@example.com',
+      telegramData: {
+        id: 123456789,
+        first_name: 'Test',
+        last_name: 'User',
+        username: 'testuser',
+        language_code: 'ru',
+        is_premium: false
+      },
+      isTelegramUser: true
+    };
+    
+    console.log('🧪 Using test account:', testUserData);
+    onAuthSuccess(testUserData);
+  };
+
   if (loading) {
     return (
       <div className="App">
@@ -156,6 +177,20 @@ function TelegramAuth({ onAuthSuccess }) {
           <div style={{ margin: '20px 0' }}>
             <button 
               className="start-button"
+              onClick={handleTestAccount}
+              style={{ 
+                width: '100%', 
+                margin: '10px 0',
+                background: 'linear-gradient(45deg, #ff6b35, #f7931e)'
+              }}
+            >
+              🧪 Тест аккаунт
+            </button>
+          </div>
+          
+          <div style={{ margin: '20px 0' }}>
+            <button 
+              className="start-button"
               onClick={handleManualAuth}
               style={{ 
                 width: '100%', 
@@ -170,6 +205,9 @@ function TelegramAuth({ onAuthSuccess }) {
 
         <div style={{ margin: '20px 0', textAlign: 'center' }}>
           <p style={{ fontSize: '14px', opacity: 0.7 }}>
+            🧪 <strong>Тест аккаунт</strong> - быстрый вход с готовыми данными для тестирования
+          </p>
+          <p style={{ fontSize: '12px', opacity: 0.5, marginTop: '5px' }}>
             Для полной функциональности рекомендуем войти через Telegram бот
           </p>
         </div>

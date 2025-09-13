@@ -12,6 +12,22 @@ function Game({ onBack, userData: initialUserData }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // Обрабатываем данные пользователя
+    if (initialUserData) {
+      console.log('🎮 Game loaded with user data:', initialUserData);
+      setUsername(initialUserData.username || '');
+      setEmail(initialUserData.email || '');
+      setIsAuthenticated(true);
+      setUserData(initialUserData);
+      
+      // Если это тестовый аккаунт, показываем дополнительную информацию
+      if (initialUserData.id === 'test_user_123') {
+        console.log('🧪 Test account detected - showing test user info');
+      }
+    }
+  }, [initialUserData]);
+
+  useEffect(() => {
     // Проверяем подключение к сокету
     const checkSocket = async () => {
       try {
