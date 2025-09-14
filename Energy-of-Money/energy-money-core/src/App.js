@@ -9,7 +9,7 @@ import Lobby from './Lobby';
 function App() {
   const [health, setHealth] = useState(null);
   const [socketOk, setSocketOk] = useState(false);
-  const [showGame, setShowGame] = useState(false);
+  const [showGame, setShowGame] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
   const [showLobby, setShowLobby] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -17,8 +17,13 @@ function App() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [userData, setUserData] = useState(null);
-  const [currentScene, setCurrentScene] = useState('lobby');
+  const [userData, setUserData] = useState({
+    id: 'test_user_123',
+    username: 'TestPlayer',
+    email: 'test@example.com',
+    telegramData: { username: 'testuser' }
+  });
+  const [currentScene, setCurrentScene] = useState('game');
 
   useEffect(() => {
     (async () => {
