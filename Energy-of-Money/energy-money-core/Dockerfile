@@ -23,5 +23,5 @@ EXPOSE 8080
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Запускаем тестовый сервер без зависимостей
-CMD ["node", "server/test-server.js"]
+# Запускаем минимальный сервер
+CMD ["node", "server/minimal-server.js"]
