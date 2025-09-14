@@ -6,12 +6,12 @@ WORKDIR /app
 # Копируем только package.json
 COPY package*.json ./
 
-# Копируем ультра-простой сервер
-COPY server/ultra-simple-server.js ./
+# Копируем hello-world сервер
+COPY server/hello-world.js ./
 
 # Устанавливаем переменные окружения
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Запускаем ультра-простой сервер
-CMD ["node", "ultra-simple-server.js"]
+# Запускаем hello-world сервер
+CMD ["node", "hello-world.js"]
