@@ -35,7 +35,7 @@ const db = new Database();
 // Инициализируем Telegram бота
 let telegramBot = null;
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const GAME_URL = process.env.GAME_URL || `https://${process.env.RAILWAY_STATIC_URL || 'localhost:8080'}`;
+const GAME_URL = process.env.GAME_URL || `https://${process.env.RAILWAY_PUBLIC_DOMAIN || process.env.RAILWAY_STATIC_URL || 'localhost:8080'}`;
 
 // Глобальное хранилище пользователей (в памяти)
 const users = new Map();

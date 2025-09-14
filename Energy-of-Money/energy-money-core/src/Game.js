@@ -3,6 +3,7 @@ import './App.css';
 import socket, { connectSocket, isSocketConnected } from './socket';
 import GameBoard from './GameBoard';
 import OriginalGameBoard from './OriginalGameBoard';
+import NextJsGameBoard from './NextJsGameBoard';
 
 function Game({ onBack, userData: initialUserData }) {
   const [username, setUsername] = useState('');
@@ -13,7 +14,7 @@ function Game({ onBack, userData: initialUserData }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showGameBoard, setShowGameBoard] = useState(false);
-  const [gameMode, setGameMode] = useState('original'); // 'original' или 'modern'
+  const [gameMode, setGameMode] = useState('original'); // 'original', 'modern', или 'nextjs'
 
   useEffect(() => {
     // Обрабатываем данные пользователя
@@ -103,9 +104,13 @@ function Game({ onBack, userData: initialUserData }) {
 
   if (isAuthenticated && userData) {
     if (showGameBoard) {
-      return gameMode === 'original' ? 
-        <OriginalGameBoard userData={userData} onBack={handleBackToMain} /> :
-        <GameBoard userData={userData} onBack={handleBackToMain} />;
+      if (gameMode === 'original') {
+        return <OriginalGameBoard userData={userData} onBack={handleBackToMain} />;
+      } else if (gameMode === 'modern') {
+        return <GameBoard userData={userData} onBack={handleBackToMain} />;
+      } else if (gameMode === 'nextjs') {
+        return <NextJsGameBoard userData={userData} onBack={handleBackToMain} />;
+      }
     }
     
     // Показываем выбор игрового режима
@@ -176,6 +181,25 @@ function Game({ onBack, userData: initialUserData }) {
                 🚀 СОВРЕМЕННОЕ ИГРОВОЕ ПОЛЕ
                 <div style={{ fontSize: '14px', opacity: 0.8, marginTop: '5px' }}>
                   Улучшенная версия с новыми функциями и балансом
+                </div>
+              </button>
+
+              <button 
+                className="start-button"
+                onClick={() => {
+                  setGameMode('nextjs');
+                  setShowGameBoard(true);
+                }}
+                style={{
+                  background: 'linear-gradient(45deg, #9C27B0, #7B1FA2)',
+                  width: '100%',
+                  padding: '20px',
+                  fontSize: '18px'
+                }}
+              >
+                🌟 ПОЛНАЯ ИГРОВАЯ ДОСКА
+                <div style={{ fontSize: '14px', opacity: 0.8, marginTop: '5px' }}>
+                  24 внутренних + 52 внешних клетки (Next.js версия)
                 </div>
               </button>
             </div>
