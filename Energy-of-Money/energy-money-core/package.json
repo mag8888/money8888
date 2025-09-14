@@ -6,6 +6,7 @@
   "scripts": {
     "build": "react-scripts build",
     "start": "node server/index.js",
+    "server": "node server/index.js",
     "dev": "concurrently \"npm run build\" \"npm start\"",
     "postinstall": "npm run build",
     "railway:build": "npm run build",
