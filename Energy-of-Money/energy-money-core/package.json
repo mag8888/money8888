@@ -1,12 +1,16 @@
 {
   "name": "test-page",
   "version": "1.0.0",
-  "description": "Simple test page for Railway",
+  "description": "Beautiful test page for Railway deployment",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "node index.js"
   },
   "engines": {
     "node": "18"
-  }
+  },
+  "keywords": ["test", "railway", "nodejs"],
+  "author": "Energy of Money Team",
+  "license": "MIT"
 }
