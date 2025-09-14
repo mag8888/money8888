@@ -19,5 +19,9 @@ RUN npm run build
 # Открываем порт
 EXPOSE 8080
 
+# Устанавливаем переменные окружения
+ENV NODE_ENV=production
+ENV PORT=8080
+
 # Запускаем сервер
-CMD ["npm", "start"]
+CMD ["node", "server/index.js"]
