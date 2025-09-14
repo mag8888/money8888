@@ -1,27 +1,20 @@
-# Используем официальный Node.js образ
+# Простейший Dockerfile без сборки
 FROM node:18-alpine
 
-# Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем package.json и package-lock.json
+# Копируем только package.json
 COPY package*.json ./
 
-# Устанавливаем зависимости
-RUN npm install
+# Устанавливаем только необходимые зависимости
+RUN npm install express
 
-# Копируем исходный код
-COPY . .
-
-# Собираем приложение
-RUN npm run build
-
-# Открываем порт
-EXPOSE 8080
+# Копируем сервер
+COPY server/minimal-server.js ./
 
 # Устанавливаем переменные окружения
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Запускаем минимальный сервер
-CMD ["node", "server/minimal-server.js"]
+# Запускаем сервер
+CMD ["node", "minimal-server.js"]
