@@ -6,12 +6,12 @@ WORKDIR /app
 # Копируем только package.json
 COPY package*.json ./
 
-# Копируем hello-world сервер
-COPY server/hello-world.js ./
+# Копируем корневой index.js
+COPY index.js ./
 
 # Устанавливаем переменные окружения
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Запускаем hello-world сервер
-CMD ["node", "hello-world.js"]
+# Запускаем корневой сервер
+CMD ["node", "index.js"]
