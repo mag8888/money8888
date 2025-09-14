@@ -1,0 +1,13 @@
+node_modules
+.git
+.DS_Store
+build
+src
+public
+shared
+*.md
+.env
+.github
+Railway.toml
+Dockerfile.*
+env.example

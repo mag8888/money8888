@@ -1,0 +1,12 @@
+{
+  "name": "test-page",
+  "version": "1.0.0",
+  "description": "Simple test page for Railway",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": "18"
+  }
+}
