@@ -13,7 +13,7 @@ function Game({ onBack, userData: initialUserData }) {
   const [socketOk, setSocketOk] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showGameBoard, setShowGameBoard] = useState(false);
+  const [showGameBoard, setShowGameBoard] = useState(true);
   const [gameMode, setGameMode] = useState('original'); // 'original', 'modern', или 'nextjs'
 
   useEffect(() => {
