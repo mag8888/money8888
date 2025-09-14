@@ -6,8 +6,11 @@
   "scripts": {
     "build": "react-scripts build",
     "start": "node server/index.js",
+    "server": "node server/index.js",
     "dev": "concurrently \"npm run build\" \"npm start\"",
-    "postinstall": "npm run build"
+    "postinstall": "npm run build",
+    "railway:build": "npm run build",
+    "railway:start": "npm start"
   },
   "engines": {
     "node": ">=18.0.0",
