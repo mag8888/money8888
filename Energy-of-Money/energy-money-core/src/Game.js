@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import socket, { connectSocket, isSocketConnected } from './socket';
 import GameBoard from './GameBoard';
+import OriginalGameBoard from './OriginalGameBoard';
 
 function Game({ onBack, userData: initialUserData }) {
   const [username, setUsername] = useState('');
@@ -12,6 +13,7 @@ function Game({ onBack, userData: initialUserData }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showGameBoard, setShowGameBoard] = useState(false);
+  const [gameMode, setGameMode] = useState('original'); // 'original' или 'modern'
 
   useEffect(() => {
     // Обрабатываем данные пользователя
@@ -27,8 +29,7 @@ function Game({ onBack, userData: initialUserData }) {
         console.log('🧪 Test account detected - showing test user info');
       }
       
-      // Автоматически показываем игровое поле для авторизованных пользователей
-      setShowGameBoard(true);
+      // Не показываем игровое поле автоматически - пусть пользователь выберет режим
     }
   }, [initialUserData]);
 
@@ -101,7 +102,101 @@ function Game({ onBack, userData: initialUserData }) {
   };
 
   if (isAuthenticated && userData) {
-    return <GameBoard userData={userData} onBack={handleBackToMain} />;
+    if (showGameBoard) {
+      return gameMode === 'original' ? 
+        <OriginalGameBoard userData={userData} onBack={handleBackToMain} /> :
+        <GameBoard userData={userData} onBack={handleBackToMain} />;
+    }
+    
+    // Показываем выбор игрового режима
+    return (
+      <div className="App">
+        <header className="App-header">
+          <h1>🎮 Выберите игровой режим</h1>
+          
+          <div style={{
+            background: 'rgba(255,255,255,0.1)',
+            padding: '20px',
+            borderRadius: '10px',
+            margin: '20px 0',
+            minWidth: '400px'
+          }}>
+            <h3>👤 Добро пожаловать, {userData.username}!</h3>
+            <p>Email: {userData.email}</p>
+            {userData.telegramData && (
+              <p>Telegram: @{userData.telegramData.username || 'N/A'}</p>
+            )}
+            {userData.id === 'test_user_123' && (
+              <p style={{ color: '#ff6b35', fontWeight: 'bold' }}>🧪 Тестовый аккаунт</p>
+            )}
+          </div>
+
+          <div style={{
+            background: 'rgba(255,255,255,0.1)',
+            padding: '30px',
+            borderRadius: '10px',
+            margin: '20px 0',
+            minWidth: '500px'
+          }}>
+            <h3>🎯 Выберите игровой режим</h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px' }}>
+              <button 
+                className="start-button"
+                onClick={() => {
+                  setGameMode('original');
+                  setShowGameBoard(true);
+                }}
+                style={{
+                  background: 'linear-gradient(45deg, #4CAF50, #45a049)',
+                  width: '100%',
+                  padding: '20px',
+                  fontSize: '18px'
+                }}
+              >
+                🏛️ ОРИГИНАЛЬНОЕ ИГРОВОЕ ПОЛЕ
+                <div style={{ fontSize: '14px', opacity: 0.8, marginTop: '5px' }}>
+                  Классическая версия с оригинальными правилами и балансом
+                </div>
+              </button>
+              
+              <button 
+                className="start-button"
+                onClick={() => {
+                  setGameMode('modern');
+                  setShowGameBoard(true);
+                }}
+                style={{
+                  background: 'linear-gradient(45deg, #2196F3, #1976D2)',
+                  width: '100%',
+                  padding: '20px',
+                  fontSize: '18px'
+                }}
+              >
+                🚀 СОВРЕМЕННОЕ ИГРОВОЕ ПОЛЕ
+                <div style={{ fontSize: '14px', opacity: 0.8, marginTop: '5px' }}>
+                  Улучшенная версия с новыми функциями и балансом
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div style={{ margin: '20px 0' }}>
+            <p style={{color: socketOk ? '#4CAF50' : '#f44336'}}>
+              Socket: {socketOk ? '✅ подключен' : '❌ нет подключения'}
+            </p>
+          </div>
+
+          <button 
+            className="start-button"
+            onClick={handleBackToMain}
+            style={{ background: '#666' }}
+          >
+            ← Назад к главной
+          </button>
+        </header>
+      </div>
+    );
   }
 
   return (
