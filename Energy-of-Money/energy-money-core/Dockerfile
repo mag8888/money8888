@@ -6,15 +6,12 @@ WORKDIR /app
 # Копируем только package.json
 COPY package*.json ./
 
-# Устанавливаем только необходимые зависимости
-RUN npm install express
-
-# Копируем сервер
-COPY server/minimal-server.js ./
+# Копируем ультра-простой сервер
+COPY server/ultra-simple-server.js ./
 
 # Устанавливаем переменные окружения
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Запускаем сервер
-CMD ["node", "minimal-server.js"]
+# Запускаем ультра-простой сервер
+CMD ["node", "ultra-simple-server.js"]
